@@ -1,0 +1,9 @@
+import { z } from "zod";
+export const analysisQuerySchema = z.object({
+  year: z.coerce
+    .number()
+    .int()
+    .min(2000)
+    .max(2200)
+    .default(new Date().getFullYear()),
+});

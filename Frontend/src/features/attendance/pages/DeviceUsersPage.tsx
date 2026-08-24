@@ -1,0 +1,492 @@
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  CreditCard,
+  Fingerprint,
+  KeyRound,
+  LoaderCircle,
+  Pencil,
+  Plus,
+  ScanFace,
+  Trash2,
+} from "lucide-react";
+import { attendanceApi, type Person } from "../api/attendance.api";
+import { DeleteConfirmationDialog } from "../components/DeleteConfirmationDialog";
+import { useApiResource } from "@/shared/hooks/useApiResource";
+import { apiErrorMessage } from "@/shared/api/client";
+import { TableResourceState } from "@/shared/components/ui/table-resource-state";
+import { Button } from "@/shared/components/ui/button";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { Input } from "@/shared/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/shared/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
+
+type Credential = "card" | "fingerprint" | "face" | "pin";
+
+export default function DeviceUsersPage() {
+  const { t } = useTranslation();
+  const devices = useApiResource(
+    useCallback(() => attendanceApi.devices(), []),
+  );
+  const people = useApiResource(useCallback(() => attendanceApi.people(), []));
+  const [open, setOpen] = useState(false);
+  const [deviceId, setDeviceId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [credential, setCredential] = useState<{
+    person: Person;
+    method: Credential;
+  } | null>(null);
+  const [credentialBusy, setCredentialBusy] = useState(false);
+  const [credentialError, setCredentialError] = useState("");
+  const [removingCredential, setRemovingCredential] = useState<{
+    person: Person;
+    method: Credential;
+  } | null>(null);
+  const [removeBusy, setRemoveBusy] = useState(false);
+  const [removeError, setRemoveError] = useState("");
+  const [deleting, setDeleting] = useState<Person | null>(null);
+  const [editing, setEditing] = useState<Person | null>(null);
+  const [editBusy, setEditBusy] = useState(false);
+  const [editError, setEditError] = useState("");
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    const f = new FormData(e.currentTarget);
+    const employeeNo = String(f.get("employeeNo") ?? "").trim();
+    const duplicate = people.data?.find(
+      (person) =>
+        person.deviceId === deviceId && person.employeeNo === employeeNo,
+    );
+    if (duplicate) {
+      setError(
+        `Employee #${employeeNo} already exists on this device as ${duplicate.name}. Use a different employee number or edit that user.`,
+      );
+      setBusy(false);
+      return;
+    }
+    try {
+      await attendanceApi.addPerson({
+        deviceId,
+        employeeNo,
+        name: f.get("name"),
+        cardNo: f.get("cardNo") || undefined,
+      });
+      setOpen(false);
+      await people.refresh();
+    } catch (cause) {
+      setError(apiErrorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const startCredential = (person: Person, method: Credential) => {
+    setCredentialError("");
+    setCredential({ person, method });
+  };
+  const enroll = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!credential) return;
+    setCredentialBusy(true);
+    setCredentialError("");
+    const form = new FormData(e.currentTarget);
+    try {
+      await attendanceApi.enroll(
+        credential.person.id,
+        credential.method,
+        credential.method === "card"
+          ? { cardNo: String(form.get("cardNo") ?? "") }
+          : credential.method === "pin"
+            ? { pin: String(form.get("pin") ?? "") }
+            : {},
+      );
+      setCredential(null);
+      await people.refresh();
+    } catch (cause) {
+      setCredentialError(apiErrorMessage(cause));
+    } finally {
+      setCredentialBusy(false);
+    }
+  };
+  const update = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editing) return;
+    setEditBusy(true);
+    setEditError("");
+    const form = new FormData(e.currentTarget);
+    try {
+      await attendanceApi.updatePerson(editing.id, {
+        name: String(form.get("name") ?? "").trim(),
+        cardNo: String(form.get("cardNo") ?? "").trim() || null,
+      });
+      setEditing(null);
+      await people.refresh();
+    } catch (cause) {
+      setEditError(apiErrorMessage(cause));
+    } finally {
+      setEditBusy(false);
+    }
+  };
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <div className="flex justify-end border-b p-4">
+          <Dialog
+            open={open}
+            onOpenChange={(value) => {
+              setOpen(value);
+              setError("");
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="size-4" />
+                {t("deviceUsers.add")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{t("deviceUsers.addTitle")}</DialogTitle>
+              </DialogHeader>
+              <form className="space-y-3" onSubmit={submit}>
+                <Select value={deviceId} onValueChange={setDeviceId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("deviceUsers.chooseDevice")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {devices.data?.map((d) => (
+                      <SelectItem value={d.id} key={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  name="employeeNo"
+                  inputMode="numeric"
+                  pattern="[0-9]{1,32}"
+                  placeholder={t("deviceUsers.employeeNumberPlaceholder")}
+                  required
+                />
+                <Input name="name" placeholder={t("deviceUsers.fullName")} required />
+                <Input
+                  name="cardNo"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder={t("deviceUsers.cardOptional")}
+                />
+                {error && (
+                  <p className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
+                    {error}
+                  </p>
+                )}
+                <Button className="w-full" disabled={!deviceId || busy}>
+                  {busy ? t("deviceUsers.creating") : t("deviceUsers.create")}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t("table.headers.user")}</TableHead>
+              <TableHead>{t("table.headers.device")}</TableHead>
+              <TableHead>{t("table.headers.credentials")}</TableHead>
+              <TableHead className="text-end">{t("table.actions")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableResourceState
+              isLoading={people.isLoading}
+              error={people.error}
+              isEmpty={!people.data?.length}
+              colSpan={4}
+            />
+            {!people.isLoading &&
+              !people.error &&
+              people.data?.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    <b>{p.name}</b>
+                    <small className="block text-muted-foreground">
+                      #{p.employeeNo}
+                    </small>
+                  </TableCell>
+                  <TableCell>{p.device?.name}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { method: "card" as Credential, active: Boolean(p.cardNo), Icon: CreditCard },
+                        { method: "fingerprint" as Credential, active: p.hasFingerprint, Icon: Fingerprint },
+                        { method: "face" as Credential, active: p.hasFace, Icon: ScanFace },
+                        { method: "pin" as Credential, active: p.hasPassword, Icon: KeyRound },
+                      ].map(({ method, active, Icon }) => (
+                        <div key={method} className="inline-flex overflow-hidden rounded-md border shadow-xs">
+                          <Button
+                            title={t(`attendancePage.credentials.${method}.set`)}
+                            variant={active ? "secondary" : "ghost"}
+                            size="icon"
+                            className="rounded-none border-0 shadow-none"
+                            onClick={() => startCredential(p, method)}
+                          >
+                            <Icon className="size-4" />
+                          </Button>
+                          {active && (
+                            <Button
+                              title={t("attendancePage.removeCredential", {
+                                credential: t(`attendancePage.credentials.${method}.label`),
+                              })}
+                              variant="ghost"
+                              size="icon"
+                              className="size-9 rounded-none border-s text-destructive shadow-none hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => {
+                                setRemoveError("");
+                                setRemovingCredential({ person: p, method });
+                              }}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-end">
+                    <Button
+                      title={t("deviceUsers.edit")}
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditError("");
+                        setEditing(p);
+                      }}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive"
+                      onClick={() => setDeleting(p)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+        <Dialog
+          open={!!credential}
+          onOpenChange={(value) => {
+            if (!value && !credentialBusy) setCredential(null);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {credential?.method === "card"
+                  ? t("deviceUsers.setCard")
+                  : credential?.method === "fingerprint"
+                    ? t("deviceUsers.captureFingerprint")
+                    : credential?.method === "face"
+                      ? t("deviceUsers.captureFace")
+                      : t("deviceUsers.setPin")}
+              </DialogTitle>
+            </DialogHeader>
+            <form className="space-y-4" onSubmit={enroll}>
+              <p className="text-sm text-muted-foreground">
+                {t("deviceUsers.assigningTo")} {" "}
+                <b className="text-foreground">{credential?.person.name}</b> on
+                {t("deviceUsers.onTerminal")}
+              </p>
+              {credential?.method === "card" ? (
+                <Input
+                  name="cardNo"
+                  inputMode="numeric"
+                  pattern="[0-9]+"
+                  placeholder={t("deviceUsers.cardNumberPlaceholder")}
+                  autoFocus
+                  required
+                />
+              ) : credential?.method === "pin" ? (
+                <Input
+                  name="pin"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]{4,8}"
+                  minLength={4}
+                  maxLength={8}
+                  placeholder={t("deviceUsers.pinPlaceholder")}
+                  autoComplete="new-password"
+                  autoFocus
+                  required
+                />
+              ) : (
+                <div className="rounded-xl border bg-muted/40 p-4 text-sm">
+                  {credential?.method === "fingerprint"
+                    ? t("deviceUsers.fingerprintInstruction")
+                    : t("deviceUsers.faceInstruction")}
+                </div>
+              )}
+              {credentialError && (
+                <p className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
+                  {credentialError}
+                </p>
+              )}
+              <Button className="w-full gap-2" disabled={credentialBusy}>
+                {credentialBusy && (
+                  <LoaderCircle className="size-4 animate-spin" />
+                )}
+                {credentialBusy ? t("deviceUsers.waiting") : t("deviceUsers.start")}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+        <Dialog
+          open={!!editing}
+          onOpenChange={(value) => {
+            if (!value && !editBusy) setEditing(null);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t("deviceUsers.editTitle")}</DialogTitle>
+            </DialogHeader>
+            {editing && (
+              <form className="space-y-3" onSubmit={update}>
+                <Input
+                  value={editing.employeeNo}
+                  aria-label="Employee number"
+                  disabled
+                />
+                <Input
+                  name="name"
+                  defaultValue={editing.name}
+                  placeholder={t("deviceUsers.fullName")}
+                  required
+                />
+                <Input
+                  name="cardNo"
+                  defaultValue={editing.cardNo ?? ""}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder={t("deviceUsers.cardOptional")}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("deviceUsers.updateDescription")}
+                </p>
+                {editError && (
+                  <p className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
+                    {editError}
+                  </p>
+                )}
+                <Button className="w-full gap-2" disabled={editBusy}>
+                  {editBusy && <LoaderCircle className="size-4 animate-spin" />}
+                  {editBusy ? t("deviceUsers.updating") : t("deviceUsers.update")}
+                </Button>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+        <DeleteConfirmationDialog
+          open={!!deleting}
+          title={t("deviceUsers.deleteTitle")}
+          description={t("deviceUsers.deleteDescription", {
+            name: deleting?.name ?? t("deviceUsers.thisUser"),
+          })}
+          onOpenChange={(value) => {
+            if (!value) setDeleting(null);
+          }}
+          onConfirm={async (password) => {
+            if (!deleting) return;
+            await attendanceApi.deletePerson(deleting.id, password);
+            await people.refresh();
+          }}
+        />
+        <Dialog
+          open={!!removingCredential}
+          onOpenChange={(value) => {
+            if (!value && !removeBusy) setRemovingCredential(null);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t("attendancePage.removeCredentialTitle")}</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              {t("attendancePage.removeCredentialDescription", {
+                credential: removingCredential
+                  ? t(`attendancePage.credentials.${removingCredential.method}.label`)
+                  : "",
+                name: removingCredential?.person.name ?? "",
+              })}
+            </p>
+            {removeError && (
+              <p className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
+                {removeError}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                disabled={removeBusy}
+                onClick={() => setRemovingCredential(null)}
+              >
+                {t("common.cancel", { defaultValue: "Cancel" })}
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={removeBusy}
+                onClick={async () => {
+                  if (!removingCredential) return;
+                  setRemoveBusy(true);
+                  setRemoveError("");
+                  try {
+                    await attendanceApi.removeCredential(
+                      removingCredential.person.id,
+                      removingCredential.method,
+                    );
+                    setRemovingCredential(null);
+                    await people.refresh();
+                  } catch (cause) {
+                    setRemoveError(apiErrorMessage(cause));
+                  } finally {
+                    setRemoveBusy(false);
+                  }
+                }}
+              >
+                {removeBusy && <LoaderCircle className="size-4 animate-spin" />}
+                {removeBusy
+                  ? t("attendancePage.removingCredential")
+                  : t("attendancePage.removeFromDevice")}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}

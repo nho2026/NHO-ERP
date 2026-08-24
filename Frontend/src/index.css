@@ -1,0 +1,302 @@
+@import "tailwindcss";
+
+/* Make every `dark:` utility follow the application's manual theme toggle. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@font-face {
+  font-family: "NHO Arabic";
+  src: url("./assets/fonts/arabic.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "NHO Kurdish";
+  src: url("./assets/fonts/kurdish.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --background: #f3f8fc;
+  --foreground: #102a43;
+  --card: #ffffff;
+  --card-foreground: #102a43;
+  --popover: #ffffff;
+  --popover-foreground: #102a43;
+  --primary: #07599a;
+  --primary-foreground: #ffffff;
+  --secondary: #e5f1fa;
+  --secondary-foreground: #06487d;
+  --muted: #edf4f9;
+  --muted-foreground: #718396;
+  --accent: #dceefa;
+  --accent-foreground: #06487d;
+  --destructive: #dc2626;
+  --border: #cfdeea;
+  --input: #c5d9e8;
+  --ring: #07599a;
+  --radius: 0.625rem;
+  font-family: "NHO Kurdish", system-ui, sans-serif;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: #061522;
+  --foreground: #f0f7fa;
+  --card: #0d202d;
+  --card-foreground: #f0f7fa;
+  --popover: #122a39;
+  --popover-foreground: #f0f7fa;
+  --primary: #58a9e3;
+  --primary-foreground: #041e31;
+  --secondary: #123753;
+  --secondary-foreground: #e6f4ff;
+  --muted: #183342;
+  --muted-foreground: #8ea5b2;
+  --accent: #123f61;
+  --accent-foreground: #f0f7fa;
+  --destructive: #fb7185;
+  --border: #294454;
+  --input: #294454;
+  --ring: #58a9e3;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #061522;
+    --foreground: #f0f7fa;
+    --card: #0d202d;
+    --card-foreground: #f0f7fa;
+    --popover: #122a39;
+    --popover-foreground: #f0f7fa;
+    --primary: #58a9e3;
+    --primary-foreground: #041e31;
+    --secondary: #123753;
+    --secondary-foreground: #e6f4ff;
+    --muted: #183342;
+    --muted-foreground: #8ea5b2;
+    --accent: #123f61;
+    --accent-foreground: #f0f7fa;
+    --destructive: #fb7185;
+    --border: #294454;
+    --input: #294454;
+    --ring: #58a9e3;
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  html {
+    @apply bg-background;
+    scroll-behavior: smooth;
+    scrollbar-color: #07599a var(--muted);
+    scrollbar-width: thin;
+  }
+  body {
+    @apply m-0 min-h-svh min-w-80 bg-background text-foreground antialiased;
+    width: 100vw;
+    overflow-x: hidden;
+  }
+  button,
+  input,
+  select,
+  textarea,
+  option {
+    font: inherit;
+  }
+}
+
+#root {
+  width: 100vw;
+  max-width: none;
+  min-height: 100svh;
+}
+
+html[lang="en"],
+html[lang="en"] body {
+  font-family: "NHO Kurdish", system-ui, sans-serif;
+}
+html[lang="ar"],
+html[lang="ar"] body {
+  font-family: "NHO Arabic", "NHO Kurdish", sans-serif;
+}
+html[lang="ku"],
+html[lang="ku"] body {
+  font-family: "NHO Kurdish", "NHO Arabic", sans-serif;
+}
+
+html[lang="en"] [data-sonner-toaster] {
+  font-family: "NHO Kurdish", system-ui, sans-serif !important;
+}
+html[lang="ar"] [data-sonner-toaster] {
+  font-family: "NHO Arabic", "NHO Kurdish", sans-serif !important;
+}
+html[lang="ku"] [data-sonner-toaster] {
+  font-family: "NHO Kurdish", "NHO Arabic", sans-serif !important;
+}
+[data-sonner-toaster] [data-sonner-toast],
+[data-sonner-toaster] [data-sonner-toast] * {
+  font-family: inherit !important;
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+*::-webkit-scrollbar-thumb {
+  border: 2px solid var(--muted);
+  border-radius: 999px;
+  background: linear-gradient(#07599a, #20b4b8);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  border-width: 1px;
+}
+.scrollbar-hidden {
+  scrollbar-width: none;
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar-scroll {
+  scrollbar-color: color-mix(in srgb, var(--foreground) 20%, transparent)
+    transparent;
+  scrollbar-width: thin;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  border: 0;
+  background: color-mix(in srgb, var(--foreground) 32%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+.print-document {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  body.printing-document {
+    background: white !important;
+    color: #0f172a !important;
+  }
+  body.printing-document * {
+    visibility: hidden !important;
+  }
+  body.printing-document .print-document,
+  body.printing-document .print-document * {
+    visibility: visible !important;
+  }
+  body.printing-document .print-document {
+    display: block;
+  }
+  body.printing-document .salary-list-print {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 7mm 9mm;
+    background: white;
+    color: #0f172a;
+    font-size: 11px;
+  }
+  .salary-list-print header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: 2px solid #07599a;
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+  }
+  .salary-list-print h1 {
+    color: #07599a;
+    font-size: 28px;
+    font-weight: 800;
+  }
+  .salary-list-print h2 {
+    margin: 18px 0 8px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .salary-list-print table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 18px;
+  }
+  .salary-list-print th,
+  .salary-list-print td {
+    border: 1px solid #cbd5e1;
+    padding: 7px;
+    text-align: start;
+  }
+  .salary-list-print th {
+    background: #eaf4fb;
+    font-weight: 700;
+  }
+  .salary-print-totals {
+    width: 45%;
+    margin-inline-start: auto;
+    margin-top: 18px;
+    border-top: 2px solid #07599a;
+    padding-top: 8px;
+  }
+  .salary-print-totals p {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+  }
+}

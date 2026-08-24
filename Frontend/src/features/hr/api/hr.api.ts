@@ -1,0 +1,19 @@
+import { apiClient } from "@/shared/api/client";
+
+export type HrRecord = Record<string, unknown> & { id: string };
+const resource = (path: string) => ({
+  list: () => apiClient.get<HrRecord[]>(path).then((response) => response.data),
+  create: (data: Record<string, unknown>) => apiClient.post(path, data).then((response) => response.data),
+  update: (id: string, data: Record<string, unknown>) => apiClient.patch(`${path}/${id}`, data).then((response) => response.data),
+  remove: (id: string) => apiClient.delete(`${path}/${id}`),
+});
+
+export const hrApi = {
+  positions: resource("/employees/positions"),
+  employees: resource("/employees"),
+  contracts: resource("/employees/records/contracts"),
+  salaries: resource("/employees/records/salaries"),
+  attendance: resource("/employees/records/attendance"),
+  payrolls: resource("/employees/records/payrolls"),
+  advances: resource("/advances/salary"),
+};

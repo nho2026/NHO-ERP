@@ -1,0 +1,11 @@
+import { Router } from "express";
+import { validate } from "../../../shared/middleware/validation.middleware.js";
+import { budgetController as c } from "./budgets.controller.js";
+import { budgetSchema as schema } from "./budgets.schema.js";
+import { requirePermission } from "../../../shared/middleware/permission.middleware.js";
+const router = Router(), manage = requirePermission("journal.create");
+router.get("/", c.list);
+router.post("/", manage, validate(schema), c.create);
+router.patch("/:id", manage, validate(schema.partial()), c.update);
+router.delete("/:id", manage, c.remove);
+export default router;

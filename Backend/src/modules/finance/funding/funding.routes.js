@@ -1,0 +1,11 @@
+import { Router } from "express";
+import { validate } from "../../../shared/middleware/validation.middleware.js";
+import { fundingController as c } from "./funding.controller.js";
+import { fundingSchema as schema } from "./funding.schema.js";
+import { requirePermission } from "../../../shared/middleware/permission.middleware.js";
+const router = Router(), manage = requirePermission("journal.create");
+router.get("/", c.list);
+router.post("/", manage, validate(schema), c.create);
+router.patch("/:id", manage, validate(schema.partial()), c.update);
+router.delete("/:id", manage, c.remove);
+export default router;

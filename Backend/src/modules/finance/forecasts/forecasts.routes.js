@@ -1,0 +1,11 @@
+import { Router } from "express";
+import { validate } from "../../../shared/middleware/validation.middleware.js";
+import { forecastController as c } from "./forecasts.controller.js";
+import { forecastSchema, updateForecastSchema } from "./forecasts.schema.js";
+import { requirePermission } from "../../../shared/middleware/permission.middleware.js";
+const router = Router(), manage = requirePermission("journal.create");
+router.get("/", c.list);
+router.post("/", manage, validate(forecastSchema), c.create);
+router.patch("/:id", manage, validate(updateForecastSchema), c.update);
+router.delete("/:id", manage, c.remove);
+export default router;
