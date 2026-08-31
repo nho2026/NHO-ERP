@@ -1,20 +1,22 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Plus,
   Search,
-  Paperclip,
-  CalendarDays,
-  UsersRound,
   Trash2,
+  Eye,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { hasPermission, storedUser } from "@/features/auth/access";
 import { tasksApi, type TaskEmployee, type TaskItem } from "../api/tasks.api";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { FormDatePicker } from "@/shared/components/ui/form-date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { Badge } from "@/shared/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +47,14 @@ const teams = [
   priorities = ["low", "medium", "high", "urgent"];
 export default function TasksPage() {
   const { t } = useTranslation();
+  const currentUser = storedUser();
+  const isHr =
+    hasPermission(currentUser, "employees.manage") ||
+    Boolean(currentUser?.permissions?.some((key) => key.startsWith("hr.employees.")));
+  const canAssign = isHr || Boolean(currentUser?.employee?.isTeamLeader);
+  const availableStatuses = isHr
+    ? statuses
+    : ["todo", "in_progress", "review"];
   const [items, setItems] = useState<TaskItem[]>([]),
     [employees, setEmployees] = useState<TaskEmployee[]>([]),
     [loading, setLoading] = useState(true),
@@ -52,17 +62,16 @@ export default function TasksPage() {
     [search, setSearch] = useState(""),
     [status, setStatus] = useState(""),
     [team, setTeam] = useState("");
-  const load = async () => {
-    setLoading(true);
+  const load = useCallback(async () => {
     try {
       const [data, staff] = await Promise.all([
         tasksApi.list({
           search,
           status: status || undefined,
           team: team || undefined,
-          pageSize: 50,
+          pageSize: 100,
         }),
-        tasksApi.employees(),
+        canAssign ? tasksApi.employees() : Promise.resolve([]),
       ]);
       setItems(data.items);
       setEmployees(staff);
@@ -71,10 +80,12 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [canAssign, search, status, t, team]);
   useEffect(() => {
+    // Refresh the server-backed list whenever its filters change.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-  }, [search, status, team]);
+  }, [load]);
   const counts = useMemo(
     () =>
       statuses.map(
@@ -117,7 +128,7 @@ export default function TasksPage() {
           <h1 className="text-2xl font-bold">{t("tasks.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("tasks.subtitle")}</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        {canAssign && <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus /> {t("tasks.add")}
@@ -190,7 +201,7 @@ export default function TasksPage() {
                       key={x.id}
                       className="flex items-center gap-2 text-sm"
                     >
-                      <input type="checkbox" name="assigneeIds" value={x.id} />
+                      <Checkbox name="assigneeIds" value={x.id} />
                       <span>
                         {x.firstName} {x.lastName} ·{" "}
                         {x.position?.name ?? x.employeeCode}
@@ -211,7 +222,7 @@ export default function TasksPage() {
               <Button type="submit">{t("common.save")}</Button>
             </form>
           </DialogContent>
-        </Dialog>
+        </Dialog>}
       </header>
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {counts.map(([x, n]) => (
@@ -261,23 +272,40 @@ export default function TasksPage() {
           {t("tasks.empty")}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+          <Table>
+            <TableHeader><TableRow>
+              <TableHead>{t("tasks.fields.title")}</TableHead>
+              <TableHead>{t("tasks.fields.assignees")}</TableHead>
+              <TableHead>{t("tasks.fields.team")}</TableHead>
+              <TableHead>{t("tasks.fields.priority")}</TableHead>
+              <TableHead>{t("tasks.fields.status")}</TableHead>
+              <TableHead>{t("tasks.fields.startDate")}</TableHead>
+              <TableHead>{t("tasks.fields.dueDate")}</TableHead>
+              <TableHead>{t("tasks.actions")}</TableHead>
+            </TableRow></TableHeader>
+            <TableBody pageSize={15}>
           {items.map((task) => (
-            <article
-              key={task.id}
-              className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="font-semibold">{task.title}</h2>
-                  <div className="mt-1 flex gap-1">
-                    <Badge variant="secondary">
-                      {t(`tasks.teams.${task.team ?? "other"}`)}
-                    </Badge>
-                    <Badge>{t(`tasks.priorities.${task.priority}`)}</Badge>
-                  </div>
-                </div>
-                <AlertDialog>
+            <TableRow key={task.id}>
+              <TableCell className="min-w-52">
+                <Link to={`/tasks/${task.id}`} className="font-semibold hover:text-primary hover:underline">{task.title}</Link>
+                <p className="mt-1 max-w-sm truncate text-xs text-muted-foreground">{task.description}</p>
+              </TableCell>
+              <TableCell className="min-w-48">{task.assignees.length ? task.assignees.map(({employee}) => `${employee.firstName} ${employee.lastName}`).join(", ") : "—"}</TableCell>
+              <TableCell><Badge variant="secondary">{t(`tasks.teams.${task.team ?? "other"}`)}</Badge></TableCell>
+              <TableCell><Badge>{t(`tasks.priorities.${task.priority}`)}</Badge></TableCell>
+              <TableCell className="min-w-44">
+                <Select value={task.status} onValueChange={async (value) => { try { await tasksApi.update(task.id, { status: value }); await load(); } catch (error) { toast.error(error instanceof Error ? error.message : t("tasks.saveFailed")); } }}>
+                  <SelectTrigger aria-label={t("tasks.fields.status")}><SelectValue /></SelectTrigger>
+                  <SelectContent>{availableStatuses.map((value) => <SelectItem key={value} value={value}>{t(`tasks.statuses.${value}`)}</SelectItem>)}</SelectContent>
+                </Select>
+              </TableCell>
+              <TableCell className="whitespace-nowrap">{task.startDate ? new Date(task.startDate).toLocaleDateString() : "—"}</TableCell>
+              <TableCell className="whitespace-nowrap">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</TableCell>
+              <TableCell>
+                <div className="flex justify-end gap-1">
+                  <Button size="icon" variant="ghost" asChild><Link to={`/tasks/${task.id}`} aria-label={t("tasks.viewDetails")}><Eye /></Link></Button>
+                  {isHr && <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button size="icon" variant="ghost">
                       <Trash2 className="text-destructive" />
@@ -306,82 +334,13 @@ export default function TasksPage() {
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
-                </AlertDialog>
-              </div>
-              <p className="line-clamp-3 text-sm text-muted-foreground">
-                {task.description}
-              </p>
-              <Select
-                value={task.status}
-                onValueChange={async (value) => {
-                  await tasksApi.update(task.id, { status: value });
-                  await load();
-                }}
-              >
-                <SelectTrigger aria-label={t("tasks.fields.status")}><SelectValue /></SelectTrigger><SelectContent>
-                {statuses.map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {t(`tasks.statuses.${value}`)}
-                  </SelectItem>
-                ))}
-                </SelectContent>
-              </Select>
-              <form
-                className="grid grid-cols-[1fr_6rem_auto] gap-2"
-                onSubmit={async (event) => {
-                  event.preventDefault();
-                  const data = new FormData(event.currentTarget);
-                  await tasksApi.addTime(task.id, {
-                    employeeId: data.get("employeeId"),
-                    workDate: new Date().toISOString(),
-                    minutes: Number(data.get("minutes")),
-                    note: null,
-                  });
-                  toast.success(t("tasks.timeSaved"));
-                  event.currentTarget.reset();
-                }}
-              >
-                <Select name="employeeId" defaultValue={task.assignees[0]?.employee.id}>
-                  <SelectTrigger><SelectValue placeholder={t("tasks.fields.assignees")} /></SelectTrigger>
-                  <SelectContent>{task.assignees.map(({employee})=><SelectItem key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}</SelectItem>)}</SelectContent>
-                </Select>
-                <Input name="minutes" type="number" min="1" required placeholder={t("tasks.fields.minutes")} />
-                <Button type="submit" size="sm">{t("tasks.logTime")}</Button>
-              </form>
-              <div className="mt-auto space-y-2 border-t pt-3 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <UsersRound className="size-4" />
-                  {task.assignees
-                    .map(
-                      (x) => `${x.employee.firstName} ${x.employee.lastName}`,
-                    )
-                    .join(", ")}
+                  </AlertDialog>}
                 </div>
-                {task.dueDate && (
-                  <div className="flex items-center gap-2">
-                    <CalendarDays className="size-4" />
-                    {new Date(task.dueDate).toLocaleDateString()}
-                  </div>
-                )}
-                {task.attachments.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Paperclip className="size-4" />
-                    {task.attachments.map((attachment) => (
-                      <a
-                        key={attachment.id}
-                        href={attachment.fileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-primary underline"
-                      >
-                        {attachment.fileName}
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </article>
+              </TableCell>
+            </TableRow>
           ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

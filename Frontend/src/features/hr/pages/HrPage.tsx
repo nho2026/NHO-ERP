@@ -64,7 +64,26 @@ const configs: Record<
       { name: "lastName", label: "Last name", required: true },
       { name: "departmentId", label: "Department", type: "department" },
       { name: "positionId", label: "Position", type: "position" },
+      {
+        name: "isTeamLeader",
+        label: "Team leader",
+        type: "boolean",
+        options: ["true", "false"],
+      },
+      { name: "teamLeaderId", label: "Reports to", type: "teamLeader" },
       { name: "hireDate", label: "Hire date", type: "date", required: true },
+      {
+        name: "checkInTime",
+        label: "Expected check-in",
+        type: "time",
+        required: true,
+      },
+      {
+        name: "checkOutTime",
+        label: "Expected check-out",
+        type: "time",
+        required: true,
+      },
       {
         name: "status",
         label: "Status",
@@ -77,7 +96,11 @@ const configs: Record<
       ["fullName", "Employee"],
       ["position", "Position"],
       ["department", "Department"],
+      ["leadership", "Team leader"],
+      ["teamLeader", "Reports to"],
       ["hireDate", "Hire date"],
+      ["checkInTime", "Expected check-in"],
+      ["checkOutTime", "Expected check-out"],
       ["status", "Status"],
     ],
   },
@@ -100,33 +123,6 @@ const configs: Record<
       ["status", "Status"],
     ],
   },
-  contracts: {
-    title: "Contracts",
-    fields: [
-      {
-        name: "employeeId",
-        label: "Employee",
-        type: "employee",
-        required: true,
-      },
-      { name: "contractType", label: "Contract type", required: true },
-      { name: "startDate", label: "Start date", type: "date", required: true },
-      { name: "endDate", label: "End date", type: "date" },
-      {
-        name: "status",
-        label: "Status",
-        type: "select",
-        options: ["active", "expired", "terminated"],
-      },
-    ],
-    columns: [
-      ["employee", "Employee"],
-      ["contractType", "Type"],
-      ["startDate", "Start"],
-      ["endDate", "End"],
-      ["status", "Status"],
-    ],
-  },
   salaries: {
     title: "Salaries",
     fields: [
@@ -136,7 +132,6 @@ const configs: Record<
         type: "employee",
         required: true,
       },
-      { name: "contractId", label: "Contract", type: "contract" },
       {
         name: "baseSalary",
         label: "Base salary",
@@ -318,6 +313,11 @@ function display(record: HrRecord, key: string): string | number {
     return String((record.position as HrRecord | null)?.name ?? "—");
   if (key === "department")
     return String((record.department as HrRecord | null)?.name ?? "—");
+  if (key === "leadership") return record.isTeamLeader ? "Yes" : "No";
+  if (key === "teamLeader") {
+    const leader = record.teamLeader as HrRecord | null;
+    return leader ? `${leader.firstName} ${leader.lastName}` : "—";
+  }
   if (key === "employeesCount")
     return Number((record._count as HrRecord | undefined)?.employees ?? 0);
   if (key === "period")
@@ -362,9 +362,6 @@ export default function HrPage({ resource }: { resource?: Resource }) {
   const employees = useApiResource(
     useCallback(() => hrApi.employees.list(), []),
   );
-  const contracts = useApiResource(
-    useCallback(() => hrApi.contracts.list(), []),
-  );
   const salaries = useApiResource(useCallback(() => hrApi.salaries.list(), []));
   const users = useApiResource(useCallback(() => usersApi.list(), []));
   const departments = useApiResource(
@@ -373,7 +370,6 @@ export default function HrPage({ resource }: { resource?: Resource }) {
   const resources = {
     positions,
     employees,
-    contracts,
     salaries,
     attendance: useApiResource(useCallback(() => hrApi.attendance.list(), [])),
     payrolls: useApiResource(useCallback(() => hrApi.payrolls.list(), [])),
@@ -400,14 +396,16 @@ export default function HrPage({ resource }: { resource?: Resource }) {
               e.id,
               `${e.employeeCode} — ${e.firstName} ${e.lastName}`,
             ])
+          : field.type === "teamLeader"
+            ? employees.data
+                ?.filter((e) => e.isTeamLeader && e.id !== editing?.id)
+                .map((e) => [
+                  e.id,
+                  `${e.employeeCode} — ${e.firstName} ${e.lastName}`,
+                ])
           : field.type === "position"
             ? positions.data?.map((p) => [p.id, String(p.name)])
-            : field.type === "contract"
-              ? contracts.data?.map((c) => [
-                  c.id,
-                  `${employeeName(c)} — ${c.contractType}`,
-                ])
-              : field.type === "salary"
+            : field.type === "salary"
                 ? salaries.data?.map((s) => [
                     s.id,
                     `${employeeName(s)} — ${s.baseSalary} ${s.currencyId}`,
@@ -426,7 +424,12 @@ export default function HrPage({ resource }: { resource?: Resource }) {
         data[field.name] = null;
         continue;
       }
-      data[field.name] = field.type === "number" ? Number(raw || 0) : raw;
+      data[field.name] =
+        field.type === "number"
+          ? Number(raw || 0)
+          : field.type === "boolean"
+            ? raw === "true"
+            : raw;
     }
     try {
       if (editing) await hrApi[tab].update(editing.id, data);
@@ -436,7 +439,6 @@ export default function HrPage({ resource }: { resource?: Resource }) {
         current.refresh(),
         employees.refresh(),
         positions.refresh(),
-        contracts.refresh(),
         salaries.refresh(),
       ]);
     } catch (cause) {
@@ -646,7 +648,14 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                       type={field.type ?? "text"}
                       step={field.type === "number" ? "0.01" : undefined}
                       min={field.type === "number" ? 0 : undefined}
-                      defaultValue={String(initial ?? "")}
+                      defaultValue={String(
+                        initial ??
+                          (field.name === "checkInTime"
+                            ? "09:00"
+                            : field.name === "checkOutTime"
+                              ? "17:00"
+                              : ""),
+                      )}
                       required={field.required}
                     />
                   )}

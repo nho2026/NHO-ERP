@@ -24,6 +24,7 @@ export const hasPermission = (
   if (!user) return false;
   if (!permission || user.permissions?.includes("*") || user.permissions?.includes(permission))
     return true;
+  if (permission === "tasks.list.view" && user.employee) return true;
   if (permission.startsWith("accounting.")) {
     if (permission.endsWith(".view"))
       return Boolean(user.permissions?.includes("finance.view"));

@@ -12,7 +12,18 @@ export const peopleModel = {
   findAll: (deviceId) =>
     prisma.attendancePerson.findMany({
       where: deviceId ? { deviceId } : {},
-      include: { device: { select: { name: true } } },
+      include: {
+        device: { select: { name: true } },
+        employee: {
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+            user: { select: { id: true, name: true, username: true } },
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     }),
   find: (id) =>

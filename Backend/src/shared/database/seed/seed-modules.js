@@ -3,7 +3,41 @@ import { hashSecret } from "../../../core/security/BcryptPasswordHasher.js";
 
 const pad = (value) => String(value).padStart(2, "0");
 
-export async function seedBusinessModules(count = 50) {
+const people = [
+  ["Ari", "Hassan"],
+  ["Shilan", "Karim"],
+  ["Rebin", "Ahmed"],
+  ["Darya", "Mahmoud"],
+  ["Soran", "Abdullah"],
+  ["Lana", "Omar"],
+  ["Kawa", "Rashid"],
+  ["Narin", "Salih"],
+  ["Haval", "Mustafa"],
+  ["Rojin", "Ali"],
+];
+const patientNames = [
+  "Baran Mohammed", "Avin Jalal", "Dilshad Rahman", "Zana Farhad",
+  "Hana Ibrahim", "Karwan Ismail", "Nawroz Kamal", "Zhino Adnan",
+  "Sirwan Latif", "Tara Yousif",
+];
+const departmentNames = [
+  "Emergency Medicine", "Internal Medicine", "Pediatrics", "Radiology",
+  "General Surgery", "Dermatology", "Ophthalmology", "Orthopedics",
+  "Neurology", "Clinical Laboratory",
+];
+const positionNames = [
+  "Emergency Physician", "Registered Nurse", "Pediatric Specialist",
+  "Radiology Technician", "General Surgeon", "Clinical Pharmacist",
+  "Laboratory Technician", "Patient Coordinator", "Medical Receptionist",
+  "Healthcare Administrator",
+];
+const specialties = [
+  "Emergency care", "Adult medicine", "Child health", "Diagnostic imaging",
+  "General surgery", "Clinical pharmacy", "Laboratory diagnostics",
+  "Patient services", "Medical administration", "Healthcare operations",
+];
+
+export async function seedBusinessModules(count = 10) {
   const passwordHash = await hashSecret("nho1234");
   const employeeRole = await prisma.role.findUniqueOrThrow({
     where: { name: "Employee" },
@@ -15,6 +49,9 @@ export async function seedBusinessModules(count = 50) {
 
   for (let index = 1; index <= count; index += 1) {
     const suffix = pad(index);
+    const [firstName, lastName] = people[(index - 1) % people.length];
+    const departmentName = departmentNames[(index - 1) % departmentNames.length];
+    const positionName = positionNames[(index - 1) % positionNames.length];
     const role = await prisma.role.upsert({
       where: { name: `Seed Role ${suffix}` },
       update: { description: `SEED: Access role ${suffix}` },
@@ -24,14 +61,14 @@ export async function seedBusinessModules(count = 50) {
       },
     });
     const position = await prisma.position.upsert({
-      where: { name: `Seed Position ${suffix}` },
+      where: { name: positionName },
       update: {
-        description: `SEED: Hospital position ${suffix}`,
+        description: `SEED: ${positionName}`,
         status: "active",
       },
       create: {
-        name: `Seed Position ${suffix}`,
-        description: `SEED: Hospital position ${suffix}`,
+        name: positionName,
+        description: `SEED: ${positionName}`,
         status: "active",
       },
     });
@@ -39,14 +76,14 @@ export async function seedBusinessModules(count = 50) {
     const department = await prisma.department.upsert({
       where: { code: `SD${suffix}` },
       update: {
-        name: `Seed Department ${suffix}`,
-        description: `SEED: Clinical department ${suffix}`,
+        name: departmentName,
+        description: `SEED: ${departmentName} department`,
         status: "active",
       },
       create: {
         code: `SD${suffix}`,
-        name: `Seed Department ${suffix}`,
-        description: `SEED: Clinical department ${suffix}`,
+        name: departmentName,
+        description: `SEED: ${departmentName} department`,
         status: "active",
       },
     });
@@ -54,7 +91,7 @@ export async function seedBusinessModules(count = 50) {
     const user = await prisma.user.upsert({
       where: { username: `seed.user${suffix}` },
       update: {
-        name: `Seed Employee ${suffix}`,
+        name: `${firstName} ${lastName}`,
         department: department.name,
         passwordHash,
         status: "active",
@@ -62,7 +99,7 @@ export async function seedBusinessModules(count = 50) {
       create: {
         username: `seed.user${suffix}`,
         email: `seed.user${suffix}@nho.local`,
-        name: `Seed Employee ${suffix}`,
+        name: `${firstName} ${lastName}`,
         department: department.name,
         passwordHash,
         status: "active",
@@ -85,8 +122,8 @@ export async function seedBusinessModules(count = 50) {
       where: { employeeCode: `SEED-EMP-${String(index).padStart(3, "0")}` },
       update: {
         userId: user.id,
-        firstName: "Seed",
-        lastName: `Employee ${suffix}`,
+        firstName,
+        lastName,
         departmentId: department.id,
         positionId: position.id,
         status: "active",
@@ -94,8 +131,8 @@ export async function seedBusinessModules(count = 50) {
       create: {
         employeeCode: `SEED-EMP-${String(index).padStart(3, "0")}`,
         userId: user.id,
-        firstName: "Seed",
-        lastName: `Employee ${suffix}`,
+        firstName,
+        lastName,
         departmentId: department.id,
         positionId: position.id,
         hireDate: new Date(
@@ -113,23 +150,9 @@ export async function seedBusinessModules(count = 50) {
     await prisma.employeeSalary.deleteMany({
       where: { employeeId: employee.id },
     });
-    await prisma.employeeContract.deleteMany({
-      where: { employeeId: employee.id },
-    });
-    const contract = await prisma.employeeContract.create({
-      data: {
-        employeeId: employee.id,
-        contractType: index % 3 === 0 ? "temporary" : "permanent",
-        startDate: new Date(Date.UTC(2024, index % 12, 1)),
-        endDate:
-          index % 3 === 0 ? new Date(Date.UTC(2027, index % 12, 1)) : null,
-        status: "active",
-      },
-    });
     const salary = await prisma.employeeSalary.create({
       data: {
         employeeId: employee.id,
-        contractId: contract.id,
         baseSalary: 900000 + index * 35000,
         currencyId: "IQD",
         payType: "monthly",
@@ -149,7 +172,7 @@ export async function seedBusinessModules(count = 50) {
               : index % 4 === 2
                 ? "technician"
                 : "pharmacist",
-        specialization: `Seed specialty ${suffix}`,
+        specialization: specialties[(index - 1) % specialties.length],
         publicBookingEnabled: index % 4 === 0,
         status: "active",
       },
@@ -164,7 +187,7 @@ export async function seedBusinessModules(count = 50) {
               : index % 4 === 2
                 ? "technician"
                 : "pharmacist",
-        specialization: `Seed specialty ${suffix}`,
+        specialization: specialties[(index - 1) % specialties.length],
         licenseNumber: `SEED-LIC-${suffix}`,
         biography: `SEED: Health professional ${suffix}`,
         publicBookingEnabled: index % 4 === 0,
@@ -239,7 +262,7 @@ export async function seedBusinessModules(count = 50) {
   });
   await prisma.appointment.createMany({
     data: Array.from({ length: count }, (_, index) => ({
-      patientName: `Seed Patient ${pad(index + 1)}`,
+      patientName: patientNames[index % patientNames.length],
       patientPhone: `0751000${String(index + 1).padStart(4, "0")}`,
       patientEmail: `seed.patient${pad(index + 1)}@example.com`,
       doctorId: staff[index % staff.length].id,
@@ -253,6 +276,127 @@ export async function seedBusinessModules(count = 50) {
       source: index % 2 ? "admin" : "website",
     })),
   });
+
+  // Healthcare CRM: realistic leads, patients, surgeries, appointments, and payments.
+  for (let index = 0; index < count; index += 1) {
+    const data = {
+      name: patientNames[index % patientNames.length],
+      phone: `075040${String(index + 1).padStart(5, "0")}`,
+      email: `crm.patient${pad(index + 1)}@example.com`,
+      source: ["website", "phone", "referral", "social_media"][index % 4],
+      interest: ["General consultation", "Dental treatment", "Eye examination", "Surgery consultation"][index % 4],
+      notes: `SEED: CRM lead ${index + 1}`,
+      status: ["new", "contacted", "qualified", "qualified", "lost"][index % 5],
+    };
+    await prisma.crmLead.upsert({
+      where: { id: `seed-crm-lead-${String(index + 1).padStart(3, "0")}` },
+      update: data,
+      create: {
+        id: `seed-crm-lead-${String(index + 1).padStart(3, "0")}`,
+        ...data,
+      },
+    });
+  }
+
+  const crmPatients = [];
+  for (let index = 0; index < count; index += 1) {
+    const [firstName, lastName] = patientNames[index % patientNames.length].split(" ");
+    crmPatients.push(
+      await prisma.patient.upsert({
+        where: { patientCode: `PAT-${String(index + 1).padStart(4, "0")}` },
+        update: {
+          firstName,
+          lastName,
+          phone: `075050${String(index + 1).padStart(5, "0")}`,
+          status: "active",
+        },
+        create: {
+          patientCode: `PAT-${String(index + 1).padStart(4, "0")}`,
+          firstName,
+          lastName,
+          phone: `075050${String(index + 1).padStart(5, "0")}`,
+          email: `patient${pad(index + 1)}@example.com`,
+          dateOfBirth: new Date(Date.UTC(1980 + index * 3, index % 12, 5 + index)),
+          gender: index % 2 ? "female" : "male",
+          address: ["Erbil", "Sulaymaniyah", "Duhok", "Kirkuk"][index % 4],
+          bloodType: ["A+", "O+", "B+", "AB+", "A-"][index % 5],
+          allergies: index % 3 === 0 ? "Penicillin" : null,
+          medicalNotes: `SEED: Patient medical profile ${index + 1}`,
+          status: "active",
+        },
+      }),
+    );
+  }
+
+  const surgeryNames = [
+    "Appendectomy", "Cataract surgery", "Knee arthroscopy", "Hernia repair",
+    "Tonsillectomy", "Gallbladder removal", "Cesarean section",
+    "Coronary angioplasty", "Sinus surgery", "Carpal tunnel release",
+  ];
+  const crmSurgeries = [];
+  for (let index = 0; index < count; index += 1)
+    crmSurgeries.push(
+      await prisma.surgery.upsert({
+        where: { code: `SUR-${String(index + 1).padStart(3, "0")}` },
+        update: { name: surgeryNames[index % surgeryNames.length], status: "active" },
+        create: {
+          code: `SUR-${String(index + 1).padStart(3, "0")}`,
+          name: surgeryNames[index % surgeryNames.length],
+          description: `SEED: ${surgeryNames[index % surgeryNames.length]} procedure`,
+          durationMinutes: 45 + index * 15,
+          basePrice: 500000 + index * 175000,
+          status: "active",
+        },
+      }),
+    );
+
+  const doctors = staff.filter(({ staffType }) => staffType === "doctor");
+  const surgeryAppointments = [];
+  for (let index = 0; index < count; index += 1)
+    surgeryAppointments.push(
+      await prisma.surgeryAppointment.upsert({
+        where: { id: `seed-crm-surgery-appointment-${String(index + 1).padStart(3, "0")}` },
+        update: {
+          patientId: crmPatients[index].id,
+          doctorId: (doctors[index % doctors.length] ?? staff[index % staff.length]).id,
+          surgeryId: crmSurgeries[index].id,
+          scheduledAt: new Date(Date.UTC(2026, 8 + (index % 3), 3 + index, 7 + (index % 6))),
+          operatingRoom: `OR-${1 + (index % 4)}`,
+          status: ["scheduled", "confirmed", "in_progress", "completed"][index % 4],
+        },
+        create: {
+          id: `seed-crm-surgery-appointment-${String(index + 1).padStart(3, "0")}`,
+          patientId: crmPatients[index].id,
+          doctorId: (doctors[index % doctors.length] ?? staff[index % staff.length]).id,
+          surgeryId: crmSurgeries[index].id,
+          scheduledAt: new Date(Date.UTC(2026, 8 + (index % 3), 3 + index, 7 + (index % 6))),
+          operatingRoom: `OR-${1 + (index % 4)}`,
+          status: ["scheduled", "confirmed", "in_progress", "completed"][index % 4],
+          preOpNotes: `SEED: Pre-operation assessment ${index + 1}`,
+          postOpNotes: index % 4 === 3 ? "SEED: Procedure completed successfully" : null,
+        },
+      }),
+    );
+  for (let index = 0; index < surgeryAppointments.length; index += 1) {
+    const data = {
+      patientId: crmPatients[index].id,
+      surgeryAppointmentId: surgeryAppointments[index].id,
+      amount: 250000 + index * 125000,
+      paymentMethod: ["cash", "card", "bank_transfer", "insurance"][index % 4],
+      reference: `CRM-PAY-${String(index + 1).padStart(4, "0")}`,
+      notes: `SEED: Surgery payment ${index + 1}`,
+      paidAt: new Date(Date.UTC(2026, 7 + (index % 3), 2 + index, 9)),
+      status: index % 4 === 0 ? "pending" : "paid",
+    };
+    await prisma.patientPayment.upsert({
+      where: { id: `seed-crm-payment-${String(index + 1).padStart(3, "0")}` },
+      update: data,
+      create: {
+        id: `seed-crm-payment-${String(index + 1).padStart(3, "0")}`,
+        ...data,
+      },
+    });
+  }
 
   const seedAccounts = [];
   for (let index = 1; index <= count; index += 1)
@@ -315,10 +459,10 @@ export async function seedBusinessModules(count = 50) {
     const suffix = String(index).padStart(3, "0");
     const customer = await prisma.billingCustomer.upsert({
       where: { code: `SEED-CUST-${suffix}` },
-      update: { name: `Seed Customer ${suffix}`, status: "active" },
+      update: { name: patientNames[(index - 1) % patientNames.length], status: "active" },
       create: {
         code: `SEED-CUST-${suffix}`,
-        name: `Seed Customer ${suffix}`,
+        name: patientNames[(index - 1) % patientNames.length],
         phone: `0752000${String(index).padStart(4, "0")}`,
         email: `seed.customer${suffix}@example.com`,
         address: "Erbil",
@@ -369,7 +513,7 @@ export async function seedBusinessModules(count = 50) {
   await prisma.serviceAdvance.createMany({
     data: Array.from({ length: count }, (_, index) => ({
       receiptNumber: `SEED-SVC-${String(index + 1).padStart(3, "0")}`,
-      patientName: `Seed Patient ${pad(index + 1)}`,
+      patientName: patientNames[index % patientNames.length],
       patientPhone: `0753000${String(index + 1).padStart(4, "0")}`,
       departmentId: departments[index % departments.length].id,
       amount: 100000 + index * 5000,
@@ -513,7 +657,7 @@ export async function seedBusinessModules(count = 50) {
       data: {
         saleNumber: `POS-SEED-${suffix}`,
         warehouseId: warehouses[0].id,
-        customerName: `Seed Customer ${suffix}`,
+        customerName: patientNames[index % patientNames.length],
         paymentMethod: ["cash", "card", "bank_transfer"][index % 3],
         subtotal: price,
         taxAmount: tax,

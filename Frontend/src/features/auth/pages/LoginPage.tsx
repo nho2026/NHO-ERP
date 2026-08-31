@@ -43,6 +43,7 @@ import logo from "../../../assets/icons/logo.png";
 import { useLogin } from "../hooks/useLogin";
 import type { LoginMethod } from "../types/auth.types";
 import { isCashier } from "../access";
+import { WindowControls } from "@/shared/components/WindowControls";
 
 function LoginPage() {
   const { t, i18n } = useTranslation();
@@ -83,6 +84,37 @@ function LoginPage() {
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-slate-100 p-4 text-slate-900 sm:p-8 dark:bg-slate-950 dark:text-slate-50">
+      <div className="electron-titlebar fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-end gap-2 px-3">
+        <div className="flex items-center gap-1.5 text-slate-500">
+          <Globe2 className="size-4" aria-hidden="true" />
+          <Select
+            value={i18n.resolvedLanguage?.split("-")[0] ?? "en"}
+            onValueChange={(value) => void i18n.changeLanguage(value)}
+          >
+            <SelectTrigger
+              className="h-9 w-29.5 border-slate-200 bg-white text-xs shadow-sm dark:border-slate-700 dark:bg-slate-900"
+              aria-label={t("language.label")}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent
+              className="z-10000 border-slate-200 bg-white text-slate-900 shadow-xl dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
+              position="popper"
+            >
+              <SelectItem className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800" value="en">
+                {t("language.english")}
+              </SelectItem>
+              <SelectItem className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800" value="ar">
+                {t("language.arabic")}
+              </SelectItem>
+              <SelectItem className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800" value="ku">
+                {t("language.kurdish")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <WindowControls />
+      </div>
       <div className="grid min-h-180 w-full min-w-0 max-w-6xl overflow-hidden rounded-3xl border border-white/80 bg-white p-2 shadow-[0_30px_90px_rgba(15,23,42,0.16)] lg:grid-cols-[0.96fr_1.04fr] dark:border-slate-800 dark:bg-slate-900">
         <section className="relative flex min-w-0 max-w-full flex-col overflow-hidden px-4 py-6 sm:px-12 lg:px-16">
           <header className="flex items-center justify-between gap-4">
@@ -100,43 +132,6 @@ function LoginPage() {
                   Health Organization
                 </span>
               </div>
-            </div>
-            <div className="flex items-center gap-1.5 text-slate-500">
-              <Globe2 className="size-4" aria-hidden="true" />
-              <Select
-                value={i18n.resolvedLanguage?.split("-")[0] ?? "en"}
-                onValueChange={(value) => void i18n.changeLanguage(value)}
-              >
-                <SelectTrigger
-                  className="h-9 w-29.5 border-slate-200 bg-white text-xs shadow-sm dark:border-slate-700 dark:bg-slate-900"
-                  aria-label={t("language.label")}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent
-                  className="z-10000 border-slate-200 bg-white text-slate-900 shadow-xl dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
-                  position="popper"
-                >
-                  <SelectItem
-                    className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800"
-                    value="en"
-                  >
-                    {t("language.english")}
-                  </SelectItem>
-                  <SelectItem
-                    className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800"
-                    value="ar"
-                  >
-                    {t("language.arabic")}
-                  </SelectItem>
-                  <SelectItem
-                    className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800"
-                    value="ku"
-                  >
-                    {t("language.kurdish")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </header>
 

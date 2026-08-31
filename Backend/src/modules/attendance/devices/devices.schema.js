@@ -5,7 +5,6 @@ export const deviceSchema = z.object({
   port: z.coerce.number().int().min(1).max(65535).default(80),
   username: z.string().min(1),
   password: z.string().min(1),
-  eventType: z.enum(["check_in", "check_out"]).default("check_in"),
   workingDaysPerMonth: z.coerce.number().int().min(1).max(31).default(22),
   checkInTime: z
     .string()

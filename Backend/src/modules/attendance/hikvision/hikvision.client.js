@@ -99,6 +99,71 @@ export class HikvisionClient {
       return this.finish(await send(auth));
     });
   }
+  alertStream(onData, signal) {
+    const path = "/ISAPI/Event/notification/alertStream";
+    let activeRequest;
+    const abort = () => activeRequest?.destroy();
+    const open = (authorization) =>
+      new Promise((resolve, reject) => {
+        const req = http.request(
+          {
+            host: this.ipAddress,
+            port: this.port,
+            path,
+            method: "GET",
+            headers: {
+              Accept: "application/json, multipart/mixed, application/xml",
+              Connection: "keep-alive",
+              ...(authorization ? { Authorization: authorization } : {}),
+            },
+          },
+          (res) => resolve({ req, res }),
+        );
+        req.on("error", reject);
+        req.end();
+      });
+    const authorization = (challenge) => {
+      const c = parseChallenge(challenge),
+        nc = "00000001",
+        cnonce = crypto.randomBytes(8).toString("hex"),
+        qop = c.qop?.split(",")[0] ?? "auth",
+        response = md5(
+          `${md5(`${this.username}:${c.realm}:${this.password}`)}:${c.nonce}:${nc}:${cnonce}:${qop}:${md5(`GET:${path}`)}`,
+        );
+      return `Digest username="${this.username}", realm="${c.realm}", nonce="${c.nonce}", uri="${path}", response="${response}", qop=${qop}, nc=${nc}, cnonce="${cnonce}"${c.opaque ? `, opaque="${c.opaque}"` : ""}`;
+    };
+    signal?.addEventListener("abort", abort, { once: true });
+    return new Promise((resolve, reject) => {
+      const connect = async () => {
+        try {
+          let result = await open();
+          activeRequest = result.req;
+          if (
+            result.res.statusCode === 401 &&
+            result.res.headers["www-authenticate"]?.startsWith("Digest")
+          ) {
+            result.res.resume();
+            result = await open(
+              authorization(result.res.headers["www-authenticate"]),
+            );
+            activeRequest = result.req;
+          }
+          if (result.res.statusCode < 200 || result.res.statusCode >= 300) {
+            result.res.resume();
+            throw new Error(
+              `Hikvision alert stream rejected the request (${result.res.statusCode}).`,
+            );
+          }
+          result.res.on("data", onData);
+          result.res.on("end", resolve);
+          result.res.on("error", reject);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      void connect();
+    }).finally(() => signal?.removeEventListener("abort", abort));
+  }
   async readRequest(
     method,
     path,

@@ -24,9 +24,12 @@ export const eventsModel = {
   list: (where) =>
     prisma.attendanceEvent.findMany({
       where,
-      include: { device: { select: { name: true } } },
+      include: {
+        device: { select: { name: true } },
+        person: { select: { id: true, employeeId: true } },
+      },
       orderBy: { occurredAt: "desc" },
-      take: 500,
+      take: 10000,
     }),
   status: (id, data) => prisma.attendanceDevice.update({ where: { id }, data }),
 };

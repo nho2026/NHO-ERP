@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import { HikvisionClient } from "../hikvision/hikvision.client.js";
 import { eventsModel as m } from "./events.model.js";
+import { verifiedAttendanceEvent } from "./events.verification.js";
+
 export const eventsService = {
   list(q) {
     const to = q.to ? String(q.to) : "";
@@ -46,10 +48,12 @@ export const eventsService = {
                 const employeeNo = String(
                     event.employeeNoString ?? event.employeeNo ?? "",
                   ).trim(),
-                  occurredAt = new Date(event.time);
+                  occurredAt = new Date(event.time),
+                  attendance = verifiedAttendanceEvent(event);
                 if (
                   !employeeNo ||
                   Number.isNaN(occurredAt.getTime()) ||
+                  !attendance ||
                   (d.eventsClearedAt && occurredAt <= d.eventsClearedAt)
                 )
                   return;
@@ -63,9 +67,9 @@ export const eventsService = {
                   personId: p?.id,
                   employeeNo,
                   personName: event.name ?? p?.name,
-                  eventType: d.eventType ?? "check_in",
+                  eventType: attendance.eventType,
                   occurredAt,
-                  verification: event.currentVerifyMode,
+                  verification: attendance.verification,
                 });
                 synced++;
               }),

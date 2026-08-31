@@ -1,8 +1,17 @@
 import "dotenv/config";
 import { prisma } from "../../../shared/database/client.js";
-import { hashSecret } from "../../security/BcryptPasswordHasher.js";
-import { createPinLookup } from "../../security/JwtTokenService.js";
+import { hashSecret } from "../../../core/security/BcryptPasswordHasher.js";
+import { createPinLookup } from "../../../core/security/JwtTokenService.js";
 import { seedBusinessModules } from "./seed-modules.js";
+
+const seedRecordCount = Number.parseInt(
+  process.env.SEED_RECORD_COUNT ?? "10",
+  10,
+);
+
+if (!Number.isInteger(seedRecordCount) || seedRecordCount < 1) {
+  throw new Error("SEED_RECORD_COUNT must be a positive integer");
+}
 
 const catalog = [
   ["users.view", "View users", "Users"],
@@ -23,6 +32,7 @@ const catalog = [
   ["inventory.manage", "Manage inventory", "Inventory"],
   ["inventory.adjust", "Adjust stock", "Inventory"],
   ["pos.use", "Use point of sale", "Point of Sale"],
+  ["meetings.create", "Create department meetings", "Meetings"],
   ["finance.view", "View finances", "Accounting"],
   ["journal.create", "Create journals", "Accounting"],
   ["reports.generate", "Generate reports", "Reports"],
@@ -278,30 +288,84 @@ async function seed() {
     where: { id: finance.id },
     data: { managerId: accountantEmployee.id },
   });
-  const doctorContract =
-    (await prisma.employeeContract.findFirst({
-      where: { employeeId: doctorEmployee.id, contractType: "permanent" },
-    })) ??
-    (await prisma.employeeContract.create({
-      data: {
-        employeeId: doctorEmployee.id,
-        contractType: "permanent",
-        startDate: new Date("2023-01-15"),
-        status: "active",
+
+  await prisma.task.deleteMany({
+    where: { description: { startsWith: "SEED:" } },
+  });
+  await prisma.task.create({
+    data: {
+      title: "Prepare monthly finance report",
+      description:
+        "SEED: Review the monthly accounts, reconcile balances, and prepare the management finance report.",
+      team: "other",
+      priority: "high",
+      status: "in_progress",
+      startDate: new Date("2026-08-20T08:00:00Z"),
+      dueDate: new Date("2026-08-28T16:00:00Z"),
+      estimatedMinutes: 480,
+      createdById: admin.id,
+      assignees: { create: [{ employeeId: accountantEmployee.id }] },
+      comments: {
+        create: [{ authorId: admin.id, body: "Please include the budget variance summary." }],
       },
-    }));
-  const accountantContract =
-    (await prisma.employeeContract.findFirst({
-      where: { employeeId: accountantEmployee.id, contractType: "permanent" },
-    })) ??
-    (await prisma.employeeContract.create({
-      data: {
-        employeeId: accountantEmployee.id,
-        contractType: "permanent",
-        startDate: new Date("2024-02-01"),
-        status: "active",
+      timeEntries: {
+        create: [{
+          employeeId: accountantEmployee.id,
+          recordedById: admin.id,
+          workDate: new Date("2026-08-24T09:00:00Z"),
+          minutes: 180,
+          note: "Account reconciliation and variance review",
+        }],
       },
-    }));
+    },
+  });
+  await prisma.task.create({
+    data: {
+      title: "Update cardiology patient workflow",
+      description:
+        "SEED: Review the cardiology patient journey and document improvements for appointments and follow-up care.",
+      team: "content",
+      priority: "medium",
+      status: "review",
+      startDate: new Date("2026-08-18T08:00:00Z"),
+      dueDate: new Date("2026-08-27T16:00:00Z"),
+      estimatedMinutes: 360,
+      createdById: admin.id,
+      assignees: { create: [{ employeeId: doctorEmployee.id }] },
+      comments: {
+        create: [{ authorId: doctorUser.id, body: "The first workflow draft is ready for review." }],
+      },
+      timeEntries: {
+        create: [{
+          employeeId: doctorEmployee.id,
+          recordedById: doctorUser.id,
+          workDate: new Date("2026-08-23T10:00:00Z"),
+          minutes: 240,
+          note: "Reviewed clinical steps and documented follow-up flow",
+        }],
+      },
+    },
+  });
+  await prisma.task.create({
+    data: {
+      title: "Hospital operations coordination meeting",
+      description:
+        "SEED: Coordinate clinical and finance representatives and publish the agreed operational actions.",
+      team: "other",
+      priority: "urgent",
+      status: "todo",
+      startDate: new Date("2026-08-26T08:00:00Z"),
+      dueDate: new Date("2026-08-30T16:00:00Z"),
+      estimatedMinutes: 180,
+      createdById: admin.id,
+      assignees: {
+        create: [
+          { employeeId: doctorEmployee.id },
+          { employeeId: accountantEmployee.id },
+        ],
+      },
+    },
+  });
   const doctorSalary =
     (await prisma.employeeSalary.findFirst({
       where: { employeeId: doctorEmployee.id, effectiveTo: null },
@@ -309,7 +373,6 @@ async function seed() {
     (await prisma.employeeSalary.create({
       data: {
         employeeId: doctorEmployee.id,
-        contractId: doctorContract.id,
         baseSalary: 2500000,
         currencyId: "IQD",
         payType: "monthly",
@@ -323,7 +386,6 @@ async function seed() {
     (await prisma.employeeSalary.create({
       data: {
         employeeId: accountantEmployee.id,
-        contractId: accountantContract.id,
         baseSalary: 1500000,
         currencyId: "IQD",
         payType: "monthly",
@@ -558,7 +620,7 @@ async function seed() {
     where: { notes: { startsWith: "SEED:" } },
   });
   await prisma.financeBudget.createMany({
-    data: Array.from({ length: 50 }, (_, index) => ({
+    data: Array.from({ length: seedRecordCount }, (_, index) => ({
       name: `Operating budget ${String(index + 1).padStart(2, "0")}`,
       fiscalYear: 2024 + (index % 5),
       department: financeDepartments[index % financeDepartments.length],
@@ -570,7 +632,7 @@ async function seed() {
     })),
   });
   await prisma.financeCashFlow.createMany({
-    data: Array.from({ length: 50 }, (_, index) => ({
+    data: Array.from({ length: seedRecordCount }, (_, index) => ({
       flowDate: new Date(Date.UTC(2026, index % 12, 1 + (index % 27))),
       flowType: index % 3 === 0 ? "outflow" : "inflow",
       category: financeCategories[index % financeCategories.length],
@@ -581,7 +643,7 @@ async function seed() {
     })),
   });
   await prisma.financeForecast.createMany({
-    data: Array.from({ length: 50 }, (_, index) => {
+    data: Array.from({ length: seedRecordCount }, (_, index) => {
       const periodStart = new Date(
         Date.UTC(2024 + Math.floor(index / 12), index % 12, 1),
       );
@@ -606,7 +668,7 @@ async function seed() {
     }),
   });
   await prisma.financeFunding.createMany({
-    data: Array.from({ length: 50 }, (_, index) => ({
+    data: Array.from({ length: seedRecordCount }, (_, index) => ({
       sourceName: `${["Health Ministry", "Development Fund", "Private Partner", "Community Donor", "Internal Reserve"][index % 5]} ${index + 1}`,
       fundingType: ["grant", "loan", "investment", "donation", "internal"][
         index % 5
@@ -621,9 +683,9 @@ async function seed() {
       notes: `SEED: Integrated funding source ${index + 1}`,
     })),
   });
-  await seedBusinessModules(50);
+  await seedBusinessModules(seedRecordCount);
   console.log(
-    "Integrated seed complete. Users: superadmin, doctor.demo, accountant.demo | Password: nho1234 | Admin PIN: 123456",
+    `Integrated seed complete with ${seedRecordCount} demo records per module. Users: superadmin, doctor.demo, accountant.demo | Password: nho1234 | Admin PIN: 123456`,
   );
 }
 seed().finally(() => prisma.$disconnect());

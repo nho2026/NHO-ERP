@@ -1,6 +1,7 @@
 import { z } from "zod";
 export const personSchema = z.object({
   deviceId: z.string(),
+  employeeId: z.string().nullable().optional(),
   employeeNo: z
     .string()
     .regex(/^\d{1,32}$/, "Employee number must contain only digits."),
@@ -8,6 +9,7 @@ export const personSchema = z.object({
   cardNo: z.string().regex(/^\d+$/).optional(),
 });
 export const updatePersonSchema = z.object({
+  employeeId: z.string().nullable().optional(),
   name: z.string().min(2).optional(),
   cardNo: z.string().regex(/^\d+$/).nullable().optional(),
 });

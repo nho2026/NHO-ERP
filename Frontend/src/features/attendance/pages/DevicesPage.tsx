@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 import {
-  Clock3,
   CalendarX2,
   Plus,
   RefreshCw,
@@ -17,13 +16,6 @@ import { ResourceState } from "@/shared/components/ui/table-resource-state";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +54,6 @@ export default function DevicesPage() {
         port: Number(f.get("port")),
         username: f.get("username"),
         password: f.get("password"),
-        eventType: f.get("eventType"),
       });
       setOpen(false);
       await devices.refresh();
@@ -72,18 +63,23 @@ export default function DevicesPage() {
       setBusy(false);
     }
   };
-  const saveSchedule = async (e: React.FormEvent<HTMLFormElement>) => {
+  const saveDevice = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!managing) return;
     setBusy(true);
     setError("");
     const f = new FormData(e.currentTarget);
+    const password = String(f.get("password") ?? "").trim();
     try {
       await attendanceApi.updateDevice(managing.id, {
+        name: f.get("name"),
+        ipAddress: f.get("ipAddress"),
+        port: Number(f.get("port")),
+        username: f.get("username"),
+        ...(password ? { password } : {}),
         workingDaysPerMonth: Number(f.get("workingDaysPerMonth")),
         checkInTime: f.get("checkInTime"),
         checkOutTime: f.get("checkOutTime"),
-        eventType: f.get("eventType"),
       });
       setManaging(null);
       await devices.refresh();
@@ -141,19 +137,6 @@ export default function DevicesPage() {
                 placeholder={t("attendance.device.passwordPlaceholder")}
                 required
               />
-              <Select name="eventType" defaultValue="check_in">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="check_in">
-                    {t("attendance.device.checkInDevice")}
-                  </SelectItem>
-                  <SelectItem value="check_out">
-                    {t("attendance.device.checkOutDevice")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button disabled={busy} className="w-full">
                 {busy
@@ -180,11 +163,6 @@ export default function DevicesPage() {
                   {d.status === "online" ? <Wifi /> : <WifiOff />}
                 </span>
                 <div className="flex gap-2">
-                  <Badge variant="secondary">
-                    {t(
-                      `attendance.device.${d.eventType === "check_out" ? "checkOutDevice" : "checkInDevice"}`,
-                    )}
-                  </Badge>
                   <Badge variant="outline">{d.status}</Badge>
                 </div>
               </div>
@@ -267,35 +245,68 @@ export default function DevicesPage() {
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Clock3 />
-              {t("attendance.schedule.title", { name: managing?.name })}
+              <Settings2 />
+              {t("attendance.device.editTitle", { name: managing?.name })}
             </DialogTitle>
           </DialogHeader>
           {managing && (
-            <form className="space-y-4" onSubmit={saveSchedule}>
+            <form className="space-y-4" onSubmit={saveDevice}>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold">
-                  {t("attendance.device.purpose")}
+                  {t("attendance.device.name")}
                 </label>
-                <Select
-                  name="eventType"
-                  defaultValue={managing.eventType ?? "check_in"}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="check_in">
-                      {t("attendance.device.checkInDevice")}
-                    </SelectItem>
-                    <SelectItem value="check_out">
-                      {t("attendance.device.checkOutDevice")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input name="name" defaultValue={managing.name} required />
+              </div>
+              <div className="grid grid-cols-[1fr_100px] gap-3">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold">
+                    {t("attendance.device.ipAddress")}
+                  </label>
+                  <Input
+                    name="ipAddress"
+                    dir="ltr"
+                    defaultValue={managing.ipAddress}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold">
+                    {t("attendance.device.port")}
+                  </label>
+                  <Input
+                    name="port"
+                    type="number"
+                    min="1"
+                    max="65535"
+                    defaultValue={managing.port}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold">
+                    {t("attendance.device.username")}
+                  </label>
+                  <Input
+                    name="username"
+                    defaultValue={managing.username}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold">
+                    {t("attendance.device.password")}
+                  </label>
+                  <Input
+                    name="password"
+                    type="password"
+                    placeholder={t("attendance.device.passwordUnchanged")}
+                  />
+                </div>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold">
@@ -348,7 +359,7 @@ export default function DevicesPage() {
               <Button className="w-full" disabled={busy}>
                 {busy
                   ? t("attendance.schedule.saving")
-                  : t("attendance.schedule.save")}
+                  : t("attendance.device.saveChanges")}
               </Button>
             </form>
           )}

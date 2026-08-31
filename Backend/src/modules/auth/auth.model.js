@@ -23,14 +23,29 @@ const profileInclude = {
     },
   },
 };
+const loginInclude = {
+  ...roles,
+  employee: {
+    select: {
+      id: true,
+      employeeCode: true,
+      firstName: true,
+      lastName: true,
+      departmentId: true,
+      isTeamLeader: true,
+      teamLeaderId: true,
+      status: true,
+    },
+  },
+};
 export const authModel = {
   findByLogin: (login) =>
     prisma.user.findFirst({
       where: { OR: [{ username: login }, { email: login }] },
-      include: roles,
+      include: loginInclude,
     }),
   findByPinLookup: (pinLookup) =>
-    prisma.user.findUnique({ where: { pinLookup }, include: roles }),
+    prisma.user.findUnique({ where: { pinLookup }, include: loginInclude }),
   getProfile: (id) =>
     prisma.user.findUniqueOrThrow({ where: { id }, include: profileInclude }),
   updateProfile: (id, data) =>

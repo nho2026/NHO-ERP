@@ -4,6 +4,7 @@ import { prisma } from "../src/shared/database/client.js";
 try {
   const catalog = [
     ["pos.use", "Use point of sale", "Point of Sale"],
+    ["meetings.create", "Create department meetings", "Meetings"],
     ...[
       ["tasks.list", "Tasks / Task List"],
       ["tasks.reports", "Tasks / Reports"],
@@ -12,7 +13,6 @@ try {
       ["attendance.events", "Attendance / Events"],
       ["hr.employees", "Human Resources / Employees"],
       ["hr.positions", "Human Resources / Positions"],
-      ["hr.contracts", "Human Resources / Contracts"],
       ["hr.salaries", "Human Resources / Salaries"],
       ["hr.attendance", "Human Resources / Attendance"],
       ["hr.payrolls", "Human Resources / Payrolls"],

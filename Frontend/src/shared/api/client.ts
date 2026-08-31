@@ -2,8 +2,11 @@ import axios from "axios";
 import { toast } from "sonner";
 import i18n from "@/i18n";
 
+const defaultApiUrl =
+  window.location.protocol === "file:" ? "http://192.168.1.90:4000/api" : "/api";
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "/api",
+  baseURL: import.meta.env.VITE_API_URL ?? defaultApiUrl,
   withCredentials: true,
   headers: { "Content-Type": "application/json", Accept: "application/json" },
   timeout: 15_000,
@@ -15,7 +18,7 @@ export const apiErrorMessage = (error: unknown) =>
       "The server is unavailable. Please try again.")
     : "Something went wrong. Please try again.";
 
-const nonCrudAction = /\/(login|logout|sync|test|capture|password|time|checkout|check-in|check-out)(\/|$)|\/pos\/(sales|returns)(\/|$)/i;
+const nonCrudAction = /\/(login|logout|sync|test|capture|password|time|checkout|check-in|check-out)(\/|$)|\/pos\/(sales|returns)(\/|$)|\/notifications(\/|$)/i;
 
 apiClient.interceptors.response.use(
   (response) => {

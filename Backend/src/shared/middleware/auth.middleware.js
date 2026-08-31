@@ -13,7 +13,14 @@ export async function requireAuth(req, res, next) {
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },
       include: {
-        employee: { select: { id: true } },
+        employee: {
+          select: {
+            id: true,
+            departmentId: true,
+            isTeamLeader: true,
+            teamLeaderId: true,
+          },
+        },
         roles: {
           include: {
             role: {

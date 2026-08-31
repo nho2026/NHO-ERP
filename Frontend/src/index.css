@@ -69,46 +69,46 @@
 }
 
 :root[data-theme="dark"] {
-  --background: #061522;
-  --foreground: #f0f7fa;
-  --card: #0d202d;
-  --card-foreground: #f0f7fa;
-  --popover: #122a39;
-  --popover-foreground: #f0f7fa;
+  --background: #070707;
+  --foreground: #ffffff;
+  --card: #0f0f0f;
+  --card-foreground: #ffffff;
+  --popover: #151515;
+  --popover-foreground: #ffffff;
   --primary: #58a9e3;
-  --primary-foreground: #041e31;
-  --secondary: #123753;
-  --secondary-foreground: #e6f4ff;
-  --muted: #183342;
-  --muted-foreground: #8ea5b2;
-  --accent: #123f61;
-  --accent-foreground: #f0f7fa;
+  --primary-foreground: #03131e;
+  --secondary: #202020;
+  --secondary-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
+  --accent: #252525;
+  --accent-foreground: #ffffff;
   --destructive: #fb7185;
-  --border: #294454;
-  --input: #294454;
+  --border: #303030;
+  --input: #3a3a3a;
   --ring: #58a9e3;
   color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #061522;
-    --foreground: #f0f7fa;
-    --card: #0d202d;
-    --card-foreground: #f0f7fa;
-    --popover: #122a39;
-    --popover-foreground: #f0f7fa;
+    --background: #070707;
+    --foreground: #ffffff;
+    --card: #0f0f0f;
+    --card-foreground: #ffffff;
+    --popover: #151515;
+    --popover-foreground: #ffffff;
     --primary: #58a9e3;
-    --primary-foreground: #041e31;
-    --secondary: #123753;
-    --secondary-foreground: #e6f4ff;
-    --muted: #183342;
-    --muted-foreground: #8ea5b2;
-    --accent: #123f61;
-    --accent-foreground: #f0f7fa;
+    --primary-foreground: #03131e;
+    --secondary: #202020;
+    --secondary-foreground: #ffffff;
+    --muted: #1a1a1a;
+    --muted-foreground: #a3a3a3;
+    --accent: #252525;
+    --accent-foreground: #ffffff;
     --destructive: #fb7185;
-    --border: #294454;
-    --input: #294454;
+    --border: #303030;
+    --input: #3a3a3a;
     --ring: #58a9e3;
     color-scheme: dark;
   }
@@ -143,6 +143,19 @@
   width: 100vw;
   max-width: none;
   min-height: 100svh;
+}
+
+.electron-titlebar {
+  -webkit-app-region: drag;
+}
+
+.electron-titlebar button,
+.electron-titlebar a,
+.electron-titlebar input,
+.electron-titlebar select,
+.electron-titlebar [role="button"],
+.electron-window-controls {
+  -webkit-app-region: no-drag;
 }
 
 html[lang="en"],
@@ -216,6 +229,26 @@ html[lang="ku"] [data-sonner-toaster] {
   background: color-mix(in srgb, var(--foreground) 32%, transparent);
 }
 
+.content-scrollbar {
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 32%, transparent)
+    transparent;
+  scrollbar-width: thin;
+}
+.content-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.content-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.content-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted-foreground) 32%, transparent);
+}
+.content-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--primary) 72%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -224,6 +257,12 @@ html[lang="ku"] [data-sonner-toaster] {
 
 .print-document {
   display: none;
+}
+
+/* Some documents, such as monthly payroll, are also the on-screen details
+   view. Keep those visible while retaining the shared print behavior. */
+.print-document.print-document-visible {
+  display: block;
 }
 
 @media print {

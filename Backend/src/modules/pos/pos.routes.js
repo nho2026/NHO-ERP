@@ -3,11 +3,19 @@ import { z } from "zod";
 import { prisma } from "../../shared/database/client.js";
 import { requireAuth } from "../../shared/middleware/auth.middleware.js";
 import { requirePermission } from "../../shared/middleware/permission.middleware.js";
+import { verifySecret } from "../../shared/security/password.js";
 
 const router = Router();
 router.use(requireAuth);
 const view = requirePermission("pos.use");
 const sell = requirePermission("pos.use");
+const requireSuperAdmin = (req, res, next) => {
+  if (!req.permissionKeys?.has("*"))
+    return res
+      .status(403)
+      .json({ message: "Only a Super Administrator can cancel sales." });
+  next();
+};
 const saleInclude = { warehouse: true, items: { include: { product: true } } };
 router.get("/sales", view, async (req, res, next) => {
   try {
@@ -231,8 +239,13 @@ router.post("/sales/return", sell, async (req, res, next) => {
     next(e);
   }
 });
-router.post("/sales/:id/cancel", sell, async (req, res, next) => {
+router.post("/sales/:id/cancel", requireSuperAdmin, async (req, res, next) => {
   try {
+    const { password } = z
+      .object({ password: z.string().min(1).max(128) })
+      .parse(req.body);
+    if (!(await verifySecret(password, req.user.passwordHash)))
+      return res.status(403).json({ message: "The password is incorrect." });
     const sale = await returnSale({ id: req.params.id });
     res.json(sale);
   } catch (e) {

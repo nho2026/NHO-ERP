@@ -41,10 +41,14 @@ import {
 } from "@/shared/components/ui/alert-dialog";
 import { printPosInvoice } from "../components/print-pos-invoice";
 import logo from "@/assets/icons/logo.png";
+import { storedUser } from "@/features/auth/access";
 export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
   const { t } = useTranslation();
+  const canCancelSales = storedUser()?.permissions?.includes("*") === true;
   const [page, setPage] = useState(1);
   const [cancelTarget, setCancelTarget] = useState<RecordItem | null>(null);
+  const [cancelPassword, setCancelPassword] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
   const sales = useApiResource(useCallback(() => posApi.list(page), [page]));
   const [products, setProducts] = useState<RecordItem[]>([]),
     [warehouses, setWarehouses] = useState<RecordItem[]>([]),
@@ -124,7 +128,7 @@ export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
             {t("pos.salesDescription")}
           </p>
         </div>
-        <Card>
+        <Card className="overflow-hidden rounded-2xl">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -168,7 +172,7 @@ export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
                       >
                         <Printer />
                       </Button>
-                      {s.status !== "cancelled" && (
+                      {canCancelSales && s.status !== "cancelled" && (
                         <Button
                           size="sm"
                           variant="destructive"
@@ -207,7 +211,12 @@ export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
         </Card>
         <AlertDialog
           open={cancelTarget !== null}
-          onOpenChange={(open) => !open && setCancelTarget(null)}
+          onOpenChange={(open) => {
+            if (!open && !isCancelling) {
+              setCancelTarget(null);
+              setCancelPassword("");
+            }
+          }}
         >
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -215,18 +224,37 @@ export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
               <AlertDialogDescription>
                 {t("pos.cancelConfirm")}
               </AlertDialogDescription>
+              <Input
+                type="password"
+                value={cancelPassword}
+                onChange={(event) => setCancelPassword(event.target.value)}
+                placeholder={t("pos.cancelPassword")}
+                aria-label={t("pos.cancelPassword")}
+                autoComplete="current-password"
+                autoFocus
+              />
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
               <AlertDialogAction
-                onClick={async () => {
+                disabled={!cancelPassword || isCancelling}
+                onClick={async (event) => {
+                  event.preventDefault();
                   if (!cancelTarget) return;
-                  await posApi.cancel(cancelTarget.id);
-                  setCancelTarget(null);
-                  await sales.refresh();
+                  setIsCancelling(true);
+                  try {
+                    await posApi.cancel(cancelTarget.id, cancelPassword);
+                    setCancelTarget(null);
+                    setCancelPassword("");
+                    await sales.refresh();
+                  } catch (error) {
+                    toast.error(apiErrorMessage(error));
+                  } finally {
+                    setIsCancelling(false);
+                  }
                 }}
               >
-                {t("pos.cancel")}
+                {isCancelling ? t("pos.cancelling") : t("pos.cancel")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

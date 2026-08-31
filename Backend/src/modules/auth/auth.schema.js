@@ -6,7 +6,10 @@ export const loginSchema = z.discriminatedUnion("method", [
     password: z.string().min(6),
     remember: z.boolean().default(false),
   }),
-  z.object({ method: z.literal("pin"), pin: z.string().regex(/^\d{6}$/) }),
+  z.object({
+    method: z.literal("pin"),
+    pin: z.string().regex(/^\d{6}$/),
+  }),
 ]);
 export const profileSchema = z.object({
   name: z.string().trim().min(2).max(120),

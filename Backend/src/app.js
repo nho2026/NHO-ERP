@@ -21,6 +21,11 @@ import posRoutes from "./modules/pos/pos.routes.js";
 import taskRoutes from "./modules/task-management/task-management.routes.js";
 import feedbackRoutes from "./modules/feedback/feedback.routes.js";
 import publicFeedbackRoutes from "./modules/feedback/public-feedback.routes.js";
+import notificationRoutes from "./modules/notifications/notifications.routes.js";
+import employeePortalRoutes from "./modules/employee-portal/employee-portal.routes.js";
+import meetingRoutes from "./modules/meetings/meetings.routes.js";
+import targetRoutes from "./modules/targets/targets.routes.js";
+import crmRoutes from "./modules/crm/crm.routes.js";
 import { errorHandler } from "./shared/errors/error.middleware.js";
 
 export const app = express();
@@ -29,16 +34,16 @@ app.use(helmet());
 const allowedOrigins = new Set([
   env.frontendUrl,
   ...env.publicWebsiteUrls,
-  "http://192.168.137.2:5173",
+  "http://192.168.1.90:3000",
 ]);
 app.use(
   cors({
     origin(origin, callback) {
       if (
         !origin ||
+        !env.production ||
         allowedOrigins.has(origin) ||
-        (!env.production &&
-          /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin))
+        env.publicWebsiteUrls.includes(origin)
       )
         return callback(null, true);
       callback(new Error("Origin is not allowed by CORS."));
@@ -74,5 +79,10 @@ app.use("/api/pos", posRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/public/feedback", publicFeedbackRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/employee-portal", employeePortalRoutes);
+app.use("/api/meetings", meetingRoutes);
+app.use("/api/targets", targetRoutes);
+app.use("/api/crm", crmRoutes);
 app.use((_req, res) => res.status(404).json({ message: "Route not found." }));
 app.use(errorHandler);

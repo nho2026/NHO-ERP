@@ -7,7 +7,7 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
+  <div className="relative w-full overflow-auto bg-card">
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}
@@ -23,7 +23,10 @@ const TableHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <thead
     ref={ref}
-    className={cn("bg-primary/6 [&_tr]:border-b [&_tr]:border-primary/15", className)}
+    className={cn(
+      "bg-card shadow-[inset_0_-1px_0_var(--border)] [&_tr]:border-b [&_tr]:border-border",
+      className,
+    )}
     {...props}
   />
 ));
@@ -34,8 +37,9 @@ const TableBody = React.forwardRef<
   React.HTMLAttributes<HTMLTableSectionElement> & {
     pageSize?: number;
     autoPaginate?: boolean;
+    emptyMessage?: React.ReactNode;
   }
->(({ className, children, pageSize = 50, autoPaginate = true, ...props }, ref) => {
+>(({ className, children, pageSize = 50, autoPaginate = true, emptyMessage, ...props }, ref) => {
   const { t } = useTranslation();
   const [page, setPage] = React.useState(1);
   const childList = React.Children.toArray(children);
@@ -68,8 +72,18 @@ const TableBody = React.forwardRef<
       {...props}
     >
       {visibleChildren}
+      {childList.length === 0 && (
+        <tr className="border-0 bg-card hover:bg-card">
+          <td
+            colSpan={100}
+            className="h-10 px-4 text-center text-sm text-muted-foreground"
+          >
+            {emptyMessage ?? t("resourceState.notFound")}
+          </td>
+        </tr>
+      )}
       {autoPaginate && dataRows.length > pageSize && (
-        <tr className="border-t bg-muted/20 hover:bg-muted/20">
+        <tr className="border-t bg-card hover:bg-card">
           <td colSpan={100} className="p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs text-muted-foreground">
@@ -128,7 +142,7 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b transition-colors hover:bg-primary/5 data-[state=selected]:bg-primary/10",
+      "border-b border-border/80 bg-card transition-colors hover:bg-muted/45 data-[state=selected]:bg-primary/8",
       className,
     )}
     {...props}

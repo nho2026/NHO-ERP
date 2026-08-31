@@ -27,6 +27,7 @@ export type AuthUser = {
   createdAt?: string;
   employee?: {
     id: string; employeeCode: string; firstName: string; lastName: string; hireDate: string; status: string;
+    departmentId?: string | null; isTeamLeader?: boolean; teamLeaderId?: string | null;
     position?: { name: string } | null; department?: { name: string } | null;
     devicePeople?: { id: string; employeeNo: string; device: { id: string; name: string } }[];
   } | null;

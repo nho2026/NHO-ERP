@@ -61,7 +61,8 @@ export const posApi = {
       .then((r) => r.data),
   create: (data: Record<string, unknown>) =>
     apiClient.post("/pos/sales", data).then((r) => r.data),
-  cancel: (id: string) => apiClient.post(`/pos/sales/${id}/cancel`),
+  cancel: (id: string, password: string) =>
+    apiClient.post(`/pos/sales/${id}/cancel`, { password }),
   returnByNumber: (saleNumber: string) =>
     apiClient.post("/pos/sales/return", { saleNumber }).then((r) => r.data),
 };

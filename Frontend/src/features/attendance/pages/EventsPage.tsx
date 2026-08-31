@@ -1,18 +1,23 @@
-import { useCallback, useEffect, useState } from "react";
-import { endOfMonth, format, startOfMonth } from "date-fns";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { addMonths, format, subMonths } from "date-fns";
 import {
   Check,
+  CalendarRange,
   ChevronDownIcon,
+  ChevronLeft,
+  ChevronRight,
   LogIn,
   LogOut,
   RefreshCw,
   Search,
   UsersRound,
 } from "lucide-react";
+import type { DateRange } from "react-day-picker";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   attendanceApi,
+  attendanceEventsStreamUrl,
   type Person,
 } from "../api/attendance.api";
 import { useApiResource } from "@/shared/hooks/useApiResource";
@@ -62,42 +67,115 @@ function currentEmployees(people: Person[]) {
     a.employeeNo.localeCompare(b.employeeNo, undefined, { numeric: true }),
   );
 }
-function MonthFilter({
-  date,
+function DateRangeFilter({
+  range,
   onChange,
 }: {
-  date?: Date;
-  onChange: (date?: Date) => void;
+  range?: DateRange;
+  onChange: (range?: DateRange) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<DateRange | undefined>(range);
+  const [calendarMonth, setCalendarMonth] = useState<Date>(
+    range?.from ?? new Date(),
+  );
   const { t, i18n } = useTranslation();
-  const label = date
-    ? new Intl.DateTimeFormat(i18n.resolvedLanguage, {
-        month: "long",
-        year: "numeric",
-      }).format(date)
-    : t("attendanceFilters.pickMonth");
+  const dateLabel = (date: Date) =>
+    new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(date);
+  const label = range?.from
+    ? range.to
+      ? `${dateLabel(range.from)} — ${dateLabel(range.to)}`
+      : `${dateLabel(range.from)} — ${t("datePicker.pickDate")}`
+    : t("attendanceFilters.pickDateRange", { defaultValue: "Select date range" });
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) {
+          setDraft(range);
+          setCalendarMonth(range?.from ?? new Date());
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="w-[190px] justify-between font-normal"
+          className="w-[290px] max-w-full justify-between font-normal"
         >
-          {label}
-          <ChevronDownIcon />
+          <span className="flex min-w-0 items-center gap-2">
+            <CalendarRange className="size-4 shrink-0 text-primary" />
+            <span className="truncate">{label}</span>
+          </span>
+          <ChevronDownIcon className="size-4 shrink-0" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-[292px] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl p-0 shadow-xl" align="start">
+        <div className="border-b bg-muted/35 px-3 py-2.5">
+          <p className="text-xs font-semibold">
+            {t("attendanceFilters.chooseDateRange", { defaultValue: "Choose date range" })}
+          </p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">
+            {t("attendanceFilters.chooseStartEnd", { defaultValue: "Select a start date, then an end date" })}
+          </p>
+        </div>
+        <div className="flex items-center justify-between px-3 pt-3">
+          <Button type="button" size="icon" variant="outline" className="size-7" onClick={() => setCalendarMonth((month) => subMonths(month, 1))} aria-label={t("datePicker.previousMonth", { defaultValue: "Previous month" })}>
+            <ChevronLeft className="size-4 rtl:rotate-180" />
+          </Button>
+          <strong className="text-xs">
+            {new Intl.DateTimeFormat(i18n.resolvedLanguage, { month: "long", year: "numeric" }).format(calendarMonth)}
+          </strong>
+          <Button type="button" size="icon" variant="outline" className="size-7" onClick={() => setCalendarMonth((month) => addMonths(month, 1))} aria-label={t("datePicker.nextMonth", { defaultValue: "Next month" })}>
+            <ChevronRight className="size-4 rtl:rotate-180" />
+          </Button>
+        </div>
         <Calendar
-          mode="single"
-          selected={date}
-          onSelect={(value) => {
-            onChange(value);
-            setOpen(false);
+          mode="range"
+          selected={draft}
+          onSelect={setDraft}
+          month={calendarMonth}
+          onMonthChange={setCalendarMonth}
+          hideNavigation
+          numberOfMonths={1}
+          className="relative w-full p-3"
+          classNames={{
+            month: "w-full space-y-2",
+            month_caption: "hidden",
+            month_grid: "w-full border-collapse",
+            weekdays: "grid grid-cols-7",
+            weekday: "text-center text-[9px] font-semibold uppercase text-muted-foreground",
+            week: "mt-0.5 grid grid-cols-7",
+            day: "relative grid h-8 place-items-center p-0 text-center text-xs",
+            day_button: "grid size-8 place-items-center rounded-md font-medium transition-colors duration-150 hover:bg-primary/10 hover:text-primary",
+            selected: "bg-transparent text-foreground",
+            range_start: "bg-transparent! text-primary-foreground! [&>button]:bg-primary! [&>button]:text-primary-foreground! [&>button:hover]:bg-primary!",
+            range_end: "bg-transparent! text-primary-foreground! [&>button]:bg-primary! [&>button]:text-primary-foreground! [&>button:hover]:bg-primary!",
+            range_middle: "bg-transparent! text-foreground! [&>button]:bg-primary/8! [&>button:hover]:bg-primary/18! [&>button:hover]:text-primary!",
           }}
-          defaultMonth={date}
         />
+        <div className="flex items-center gap-1.5 border-t bg-muted/20 p-2.5">
+          <Button type="button" size="sm" variant="ghost" onClick={() => {
+            setDraft(undefined);
+            onChange(undefined);
+            setOpen(false);
+          }}>
+            {t("common.clear", { defaultValue: "Clear" })}
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="ms-auto" onClick={() => setOpen(false)}>
+            {t("common.cancel", { defaultValue: "Cancel" })}
+          </Button>
+          <Button type="button" size="sm" disabled={!draft?.from || !draft?.to} onClick={() => {
+            onChange(draft);
+            setOpen(false);
+          }}>
+            {t("common.apply", { defaultValue: "Apply" })}
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );
@@ -192,38 +270,53 @@ function EmployeeFilter({
 export default function EventsPage() {
   const { t, i18n } = useTranslation();
   const [filters, setFilters] = useState<Record<string, string>>({}),
-    [month, setMonth] = useState<Date>(),
+    [dateRange, setDateRange] = useState<DateRange>(),
     [syncing, setSyncing] = useState(false);
   const events = useApiResource(
       useCallback(() => attendanceApi.events(filters), [filters]),
     ),
     people = useApiResource(useCallback(() => attendanceApi.people(), []));
+  const visibleEvents = useMemo(() => {
+    const from = filters.from
+      ? new Date(`${filters.from}T00:00:00`).getTime()
+      : Number.NEGATIVE_INFINITY;
+    const to = filters.to
+      ? new Date(`${filters.to}T23:59:59.999`).getTime()
+      : Number.POSITIVE_INFINITY;
+    return (events.data ?? []).filter((event) => {
+      const occurredAt = new Date(event.occurredAt).getTime();
+      return (
+        occurredAt >= from &&
+        occurredAt <= to &&
+        (!filters.employeeNo || event.employeeNo.includes(filters.employeeNo)) &&
+        (!filters.eventType || event.eventType === filters.eventType)
+      );
+    });
+  }, [events.data, filters.employeeNo, filters.eventType, filters.from, filters.to]);
   const verificationLabel = (value?: string) => {
     if (!value) return "—";
-    const mode = value.toLowerCase();
-    const labels: string[] = [];
-    if (mode.includes("face")) labels.push(t("attendanceFilters.face"));
-    if (mode === "fp" || mode.includes("finger") || mode.includes("fp"))
-      labels.push(t("attendanceFilters.fingerprint"));
-    if (mode.includes("card")) labels.push(t("attendanceFilters.card"));
-    if (
-      mode.includes("password") ||
-      mode.includes("pwd") ||
-      mode.includes("pw")
-    )
-      labels.push(t("attendanceFilters.password"));
-    return labels.length ? labels.join(" · ") : value;
+    const mode = value.replaceAll(/[^a-z]/gi, "").toLowerCase();
+    if (["fp", "finger", "fingerprint"].includes(mode))
+      return t("attendanceFilters.fingerprint");
+    if (mode === "face") return t("attendanceFilters.face");
+    if (mode === "card") return t("attendanceFilters.card");
+    if (["pin", "pw", "password", "employeenoandpw"].includes(mode))
+      return t("attendanceFilters.password");
+    return "—";
   };
   useEffect(() => {
-    const timer = setInterval(() => void events.refresh(), 10000);
-    return () => clearInterval(timer);
+    const stream = new EventSource(attendanceEventsStreamUrl(), {
+      withCredentials: true,
+    });
+    stream.addEventListener("attendance", () => void events.refresh());
+    return () => stream.close();
   }, [events.refresh]);
-  const chooseMonth = (date?: Date) => {
-    setMonth(date);
+  const chooseDateRange = (range?: DateRange) => {
+    setDateRange(range);
     setFilters((v) => ({
       ...v,
-      from: date ? format(startOfMonth(date), "yyyy-MM-dd") : "",
-      to: date ? format(endOfMonth(date), "yyyy-MM-dd") : "",
+      from: range?.from ? format(range.from, "yyyy-MM-dd") : "",
+      to: range?.to ? format(range.to, "yyyy-MM-dd") : "",
     }));
   };
   return (
@@ -235,7 +328,7 @@ export default function EventsPage() {
             value={filters.employeeNo ?? ""}
             onChange={(employeeNo) => setFilters((v) => ({ ...v, employeeNo }))}
           />
-          <MonthFilter date={month} onChange={chooseMonth} />
+          <DateRangeFilter range={dateRange} onChange={chooseDateRange} />
           <Select
             value={filters.eventType || "all"}
             onValueChange={(eventType) =>
@@ -260,6 +353,15 @@ export default function EventsPage() {
               </SelectItem>
             </SelectContent>
           </Select>
+          <Badge
+            variant="secondary"
+            className="h-9 rounded-lg px-3 font-semibold tabular-nums"
+          >
+            {visibleEvents.length}{" "}
+            {t("attendanceFilters.matchingEvents", {
+              defaultValue: "matching events",
+            })}
+          </Badge>
           <Button
             variant="outline"
             className="ms-auto"
@@ -306,12 +408,12 @@ export default function EventsPage() {
             <TableResourceState
               isLoading={events.isLoading}
               error={events.error}
-              isEmpty={!events.data?.length}
+              isEmpty={!visibleEvents.length}
               colSpan={5}
             />
             {!events.isLoading &&
               !events.error &&
-              events.data?.map((e) => (
+              visibleEvents.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell>
                     <b>{e.personName ?? t("attendanceFilters.unknownUser")}</b>

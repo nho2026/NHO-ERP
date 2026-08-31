@@ -12,7 +12,6 @@ export type Device = {
   workingDaysPerMonth: number;
   checkInTime: string;
   checkOutTime: string;
-  eventType: "check_in" | "check_out";
 };
 export type Person = {
   id: string;
@@ -25,6 +24,13 @@ export type Person = {
   hasFace: boolean;
   hasPassword: boolean;
   device?: { name: string };
+  employee?: {
+    id: string;
+    employeeCode: string;
+    firstName: string;
+    lastName: string;
+    user?: { id: string; name: string; username: string };
+  };
 };
 export type AttendanceEvent = {
   id: string;
@@ -34,6 +40,7 @@ export type AttendanceEvent = {
   occurredAt: string;
   verification?: string;
   device: { name: string };
+  person?: { id: string; employeeId?: string };
 };
 export type DeviceSyncResult = {
   synced: number;
@@ -115,4 +122,9 @@ export const attendanceApi = {
         timeout: 180_000,
       })
       .then((response) => response.data),
+};
+
+export const attendanceEventsStreamUrl = () => {
+  const base = import.meta.env.VITE_API_URL ?? "/api";
+  return `${base.replace(/\/$/, "")}/attendance/events/stream`;
 };

@@ -63,6 +63,7 @@ export const updateTaskSchema = z.object({
   dueDate: optionalDate,
   estimatedMinutes: z.coerce.number().int().min(0).nullable().optional(),
   assigneeIds: z.array(z.string()).min(1).optional(),
+  reviewNote: z.string().trim().max(5000).nullable().optional(),
 });
 export const commentSchema = z.object({
   body: z.string().trim().min(1).max(5000),

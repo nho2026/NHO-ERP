@@ -9,9 +9,12 @@ const syncDevice = async (d) => {
   for (const user of await new HikvisionClient(d).allUsers()) {
     const employeeNo = String(user.employeeNo ?? user.employeeNoString ?? "");
     if (!employeeNo) continue;
+    const matchedEmployeeId = await model.employee(employeeNo);
     await model.upsert(d.id, employeeNo, {
       name: user.name || `Employee #${employeeNo}`,
-      employeeId: await model.employee(employeeNo),
+      // Never erase an explicit ERP employee link when the terminal number
+      // does not happen to equal the ERP employee code.
+      employeeId: matchedEmployeeId ?? undefined,
       hasPassword: Boolean(user.password),
     });
     count++;
@@ -83,18 +86,40 @@ export const peopleService = {
       });
     return model.create({
       ...input,
-      employeeId: await model.employee(input.employeeNo),
+      employeeId: input.employeeId ?? (await model.employee(input.employeeNo)),
     });
   },
   async update(id, data) {
     const p = await model.find(id),
       api = new HikvisionClient(p.device);
-    await api.updateUser({ ...p, ...data });
-    if (data.cardNo !== undefined && data.cardNo !== p.cardNo) {
+    let recreated = false;
+    try {
+      await api.updateUser({ ...p, ...data });
+    } catch (error) {
+      if (error.deviceStatus !== "employeeNoNotExist") throw error;
+      // The local record may outlive a terminal user deleted directly on the
+      // device. Repair that drift instead of making the user recreate the ERP
+      // link manually.
+      await api.addUser({ ...p, ...data });
+      recreated = true;
+      const cardNo = data.cardNo === undefined ? p.cardNo : data.cardNo;
+      if (cardNo) await api.addCard(p.employeeNo, cardNo);
+    }
+    if (!recreated && data.cardNo !== undefined && data.cardNo !== p.cardNo) {
       if (p.cardNo) await api.deleteCards(p.employeeNo);
       if (data.cardNo) await api.addCard(p.employeeNo, data.cardNo);
     }
-    return model.update(id, data);
+    return model.update(
+      id,
+      recreated
+        ? {
+            ...data,
+            hasFingerprint: false,
+            hasFace: false,
+            hasPassword: false,
+          }
+        : data,
+    );
   },
   async remove(id, user, password) {
     await admin(user, password);

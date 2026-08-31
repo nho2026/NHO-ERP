@@ -1,0 +1,197 @@
+import { useCallback, useMemo, useState } from "react";
+import { Calculator, Printer } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { hrApi } from "../api/hr.api";
+import { attendanceApi } from "@/features/attendance/api/attendance.api";
+import { useApiResource } from "@/shared/hooks/useApiResource";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { Button } from "@/shared/components/ui/button";
+import { MonthPicker } from "@/shared/components/ui/month-picker";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
+import { printDocument } from "@/features/accounting/components/print-document";
+import {
+  activeSalaryFor,
+  deviceAttendanceRecords,
+  duration,
+  employeeLabel,
+  lostMinutes,
+  monthValue,
+  payrollAmounts,
+  scheduledMinutes,
+  PENALTY_MULTIPLIER,
+  WORK_DAYS,
+} from "./monthly-hr";
+
+export default function PayrollPage() {
+  const { t, i18n } = useTranslation();
+  const tx = (key: string, fallback: string) =>
+    t(`hrMonthly.${key}`, { defaultValue: fallback });
+  const [month, setMonth] = useState(monthValue());
+  const employees = useApiResource(
+    useCallback(() => hrApi.employees.list(), []),
+  );
+  const salaries = useApiResource(useCallback(() => hrApi.salaries.list(), []));
+  const people = useApiResource(useCallback(() => attendanceApi.people(), []));
+  const events = useApiResource(
+    useCallback(
+      () => attendanceApi.events({ from: `${month}-01`, to: `${month}-31` }),
+      [month],
+    ),
+  );
+  const deviceRecords = useMemo(
+    () =>
+      deviceAttendanceRecords(
+        events.data ?? [],
+        people.data ?? [],
+        employees.data ?? [],
+        month,
+      ),
+    [events.data, people.data, employees.data, month],
+  );
+  const rows = useMemo(
+    () =>
+      (employees.data ?? []).map((employee) => {
+        const salary = activeSalaryFor(employee.id, salaries.data ?? [], month);
+        const records = deviceRecords.filter(
+          (record) => record.employeeId === employee.id,
+        );
+        const minutesLost = records.reduce(
+          (sum, row) => sum + lostMinutes(row),
+          0,
+        );
+        return {
+          employee,
+          salary,
+          minutesLost,
+          ...payrollAmounts(
+            Number(salary?.baseSalary ?? 0),
+            minutesLost,
+            scheduledMinutes(employee) / 60,
+          ),
+        };
+      }),
+    [employees.data, salaries.data, deviceRecords, month],
+  );
+  const money = (value: number, currency?: unknown) =>
+    `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${String(currency ?? "")}`.trim();
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">
+            {tx("payrollTitle", "Monthly payroll")}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {tx(
+              "payrollSubtitle",
+              "All employees, with salary automatically adjusted from monthly attendance.",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <MonthPicker
+            value={month}
+            onValueChange={setMonth}
+            locale={i18n.resolvedLanguage}
+            label={tx("attendanceMonth", "Attendance month")}
+          />
+          <Button variant="outline" onClick={printDocument}>
+            <Printer className="size-4" />
+            {tx("print", "Print")}
+          </Button>
+        </div>
+      </div>
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="flex gap-3 p-4">
+          <Calculator className="mt-0.5 size-5 text-primary" />
+          <div>
+            <p className="font-semibold">
+              {tx("formulaTitle", "Attendance deduction formula")}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {tx(
+                "formula",
+                "Salary − ((salary ÷ (26 days × employee scheduled hours)) × lost hours × 3)",
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {WORK_DAYS} {tx("days", "days")} ·{" "}
+              {tx("employeeSchedule", "employee schedule")} · ×
+              {PENALTY_MULTIPLIER} {tx("penalty", "penalty")}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+      {(employees.error || salaries.error || people.error || events.error) && (
+        <p className="text-sm text-destructive">
+          {employees.error || salaries.error || people.error || events.error}
+        </p>
+      )}
+      <Card className="print-document print-document-visible salary-list-print">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>#</TableHead>
+                  <TableHead>{t("hr.employee")}</TableHead>
+                  <TableHead>{t("hr.baseSalary")}</TableHead>
+                  <TableHead>{tx("lostHours", "Lost hours")}</TableHead>
+                  <TableHead>{tx("hourlyRate", "Hourly rate")}</TableHead>
+                  <TableHead>{t("hr.deductions")}</TableHead>
+                  <TableHead>{t("hr.net")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row, index) => (
+                  <TableRow key={row.employee.id}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>
+                      <p className="font-medium">
+                        {employeeLabel(row.employee)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {String(row.employee.employeeCode)}
+                      </p>
+                    </TableCell>
+                    {row.salary ? (
+                      <>
+                        <TableCell>
+                          {money(
+                            Number(row.salary.baseSalary),
+                            row.salary.currencyId,
+                          )}
+                        </TableCell>
+                        <TableCell>{duration(row.minutesLost)}</TableCell>
+                        <TableCell>
+                          {money(row.hourlyRate, row.salary.currencyId)}
+                        </TableCell>
+                        <TableCell className="text-destructive">
+                          − {money(row.deduction, row.salary.currencyId)}
+                        </TableCell>
+                        <TableCell className="font-bold text-emerald-700">
+                          {money(row.netSalary, row.salary.currencyId)}
+                        </TableCell>
+                      </>
+                    ) : (
+                      <TableCell colSpan={5} className="text-muted-foreground">
+                        {tx("noSalary", "No active salary for this month")}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

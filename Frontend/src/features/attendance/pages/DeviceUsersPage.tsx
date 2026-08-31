@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { attendanceApi, type Person } from "../api/attendance.api";
+import { hrApi } from "@/features/hr/api/hr.api";
 import { DeleteConfirmationDialog } from "../components/DeleteConfirmationDialog";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { apiErrorMessage } from "@/shared/api/client";
@@ -49,8 +50,12 @@ export default function DeviceUsersPage() {
     useCallback(() => attendanceApi.devices(), []),
   );
   const people = useApiResource(useCallback(() => attendanceApi.people(), []));
+  const employees = useApiResource(
+    useCallback(() => hrApi.employees.list(), []),
+  );
   const [open, setOpen] = useState(false);
   const [deviceId, setDeviceId] = useState("");
+  const [employeeNo, setEmployeeNo] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [credential, setCredential] = useState<{
@@ -69,6 +74,15 @@ export default function DeviceUsersPage() {
   const [editing, setEditing] = useState<Person | null>(null);
   const [editBusy, setEditBusy] = useState(false);
   const [editError, setEditError] = useState("");
+  const nextEmployeeNo = (selectedDeviceId: string) => {
+    const highest = (people.data ?? [])
+      .filter((person) => person.deviceId === selectedDeviceId)
+      .reduce((maximum, person) => {
+        const value = Number(person.employeeNo);
+        return Number.isSafeInteger(value) ? Math.max(maximum, value) : maximum;
+      }, 0);
+    return String(highest + 1);
+  };
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setBusy(true);
@@ -89,11 +103,13 @@ export default function DeviceUsersPage() {
     try {
       await attendanceApi.addPerson({
         deviceId,
+        employeeId: f.get("employeeId") || undefined,
         employeeNo,
         name: f.get("name"),
         cardNo: f.get("cardNo") || undefined,
       });
       setOpen(false);
+      setEmployeeNo("");
       await people.refresh();
     } catch (cause) {
       setError(apiErrorMessage(cause));
@@ -137,6 +153,7 @@ export default function DeviceUsersPage() {
     const form = new FormData(e.currentTarget);
     try {
       await attendanceApi.updatePerson(editing.id, {
+        employeeId: form.get("employeeId") || null,
         name: String(form.get("name") ?? "").trim(),
         cardNo: String(form.get("cardNo") ?? "").trim() || null,
       });
@@ -157,6 +174,17 @@ export default function DeviceUsersPage() {
             onOpenChange={(value) => {
               setOpen(value);
               setError("");
+              if (value) {
+                const selectedDevice =
+                  deviceId ||
+                  (devices.data?.length === 1 ? devices.data[0].id : "");
+                if (selectedDevice) {
+                  setDeviceId(selectedDevice);
+                  setEmployeeNo(nextEmployeeNo(selectedDevice));
+                }
+              } else {
+                setEmployeeNo("");
+              }
             }}
           >
             <DialogTrigger asChild>
@@ -170,7 +198,13 @@ export default function DeviceUsersPage() {
                 <DialogTitle>{t("deviceUsers.addTitle")}</DialogTitle>
               </DialogHeader>
               <form className="space-y-3" onSubmit={submit}>
-                <Select value={deviceId} onValueChange={setDeviceId}>
+                <Select
+                  value={deviceId}
+                  onValueChange={(value) => {
+                    setDeviceId(value);
+                    setEmployeeNo(nextEmployeeNo(value));
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={t("deviceUsers.chooseDevice")} />
                   </SelectTrigger>
@@ -186,10 +220,32 @@ export default function DeviceUsersPage() {
                   name="employeeNo"
                   inputMode="numeric"
                   pattern="[0-9]{1,32}"
+                  value={employeeNo}
+                  onChange={(event) => setEmployeeNo(event.target.value)}
                   placeholder={t("deviceUsers.employeeNumberPlaceholder")}
                   required
                 />
-                <Input name="name" placeholder={t("deviceUsers.fullName")} required />
+                <p className="-mt-1 text-xs text-muted-foreground">
+                  {t("deviceUsers.employeeNumberAuto")}
+                </p>
+                <Select name="employeeId">
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("deviceUsers.linkEmployee")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.data?.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        {String(employee.employeeCode)} —{" "}
+                        {String(employee.firstName)} {String(employee.lastName)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  name="name"
+                  placeholder={t("deviceUsers.fullName")}
+                  required
+                />
                 <Input
                   name="cardNo"
                   inputMode="numeric"
@@ -213,6 +269,7 @@ export default function DeviceUsersPage() {
             <TableRow>
               <TableHead>{t("table.headers.user")}</TableHead>
               <TableHead>{t("table.headers.device")}</TableHead>
+              <TableHead>{t("deviceUsers.erpEmployeeUser")}</TableHead>
               <TableHead>{t("table.headers.credentials")}</TableHead>
               <TableHead className="text-end">{t("table.actions")}</TableHead>
             </TableRow>
@@ -222,7 +279,7 @@ export default function DeviceUsersPage() {
               isLoading={people.isLoading}
               error={people.error}
               isEmpty={!people.data?.length}
-              colSpan={4}
+              colSpan={5}
             />
             {!people.isLoading &&
               !people.error &&
@@ -236,16 +293,56 @@ export default function DeviceUsersPage() {
                   </TableCell>
                   <TableCell>{p.device?.name}</TableCell>
                   <TableCell>
+                    {p.employee ? (
+                      <>
+                        <b>
+                          {p.employee.firstName} {p.employee.lastName}
+                        </b>
+                        <small className="block text-muted-foreground">
+                          {p.employee.employeeCode}
+                          {p.employee.user
+                            ? ` · @${p.employee.user.username}`
+                            : ` · ${t("deviceUsers.noSystemUser")}`}
+                        </small>
+                      </>
+                    ) : (
+                      <span className="text-destructive">
+                        {t("deviceUsers.notLinked")}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <div className="flex flex-wrap gap-2">
                       {[
-                        { method: "card" as Credential, active: Boolean(p.cardNo), Icon: CreditCard },
-                        { method: "fingerprint" as Credential, active: p.hasFingerprint, Icon: Fingerprint },
-                        { method: "face" as Credential, active: p.hasFace, Icon: ScanFace },
-                        { method: "pin" as Credential, active: p.hasPassword, Icon: KeyRound },
+                        {
+                          method: "card" as Credential,
+                          active: Boolean(p.cardNo),
+                          Icon: CreditCard,
+                        },
+                        {
+                          method: "fingerprint" as Credential,
+                          active: p.hasFingerprint,
+                          Icon: Fingerprint,
+                        },
+                        {
+                          method: "face" as Credential,
+                          active: p.hasFace,
+                          Icon: ScanFace,
+                        },
+                        {
+                          method: "pin" as Credential,
+                          active: p.hasPassword,
+                          Icon: KeyRound,
+                        },
                       ].map(({ method, active, Icon }) => (
-                        <div key={method} className="inline-flex overflow-hidden rounded-md border shadow-xs">
+                        <div
+                          key={method}
+                          className="inline-flex overflow-hidden rounded-md border shadow-xs"
+                        >
                           <Button
-                            title={t(`attendancePage.credentials.${method}.set`)}
+                            title={t(
+                              `attendancePage.credentials.${method}.set`,
+                            )}
                             variant={active ? "secondary" : "ghost"}
                             size="icon"
                             className="rounded-none border-0 shadow-none"
@@ -256,7 +353,9 @@ export default function DeviceUsersPage() {
                           {active && (
                             <Button
                               title={t("attendancePage.removeCredential", {
-                                credential: t(`attendancePage.credentials.${method}.label`),
+                                credential: t(
+                                  `attendancePage.credentials.${method}.label`,
+                                ),
                               })}
                               variant="ghost"
                               size="icon"
@@ -318,7 +417,7 @@ export default function DeviceUsersPage() {
             </DialogHeader>
             <form className="space-y-4" onSubmit={enroll}>
               <p className="text-sm text-muted-foreground">
-                {t("deviceUsers.assigningTo")} {" "}
+                {t("deviceUsers.assigningTo")}{" "}
                 <b className="text-foreground">{credential?.person.name}</b> on
                 {t("deviceUsers.onTerminal")}
               </p>
@@ -360,7 +459,9 @@ export default function DeviceUsersPage() {
                 {credentialBusy && (
                   <LoaderCircle className="size-4 animate-spin" />
                 )}
-                {credentialBusy ? t("deviceUsers.waiting") : t("deviceUsers.start")}
+                {credentialBusy
+                  ? t("deviceUsers.waiting")
+                  : t("deviceUsers.start")}
               </Button>
             </form>
           </DialogContent>
@@ -382,6 +483,22 @@ export default function DeviceUsersPage() {
                   aria-label="Employee number"
                   disabled
                 />
+                <Select
+                  name="employeeId"
+                  defaultValue={editing.employeeId ?? undefined}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("deviceUsers.linkEmployee")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.data?.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        {String(employee.employeeCode)} —{" "}
+                        {String(employee.firstName)} {String(employee.lastName)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   name="name"
                   defaultValue={editing.name}
@@ -405,7 +522,9 @@ export default function DeviceUsersPage() {
                 )}
                 <Button className="w-full gap-2" disabled={editBusy}>
                   {editBusy && <LoaderCircle className="size-4 animate-spin" />}
-                  {editBusy ? t("deviceUsers.updating") : t("deviceUsers.update")}
+                  {editBusy
+                    ? t("deviceUsers.updating")
+                    : t("deviceUsers.update")}
                 </Button>
               </form>
             )}
@@ -434,12 +553,16 @@ export default function DeviceUsersPage() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{t("attendancePage.removeCredentialTitle")}</DialogTitle>
+              <DialogTitle>
+                {t("attendancePage.removeCredentialTitle")}
+              </DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
               {t("attendancePage.removeCredentialDescription", {
                 credential: removingCredential
-                  ? t(`attendancePage.credentials.${removingCredential.method}.label`)
+                  ? t(
+                      `attendancePage.credentials.${removingCredential.method}.label`,
+                    )
                   : "",
                 name: removingCredential?.person.name ?? "",
               })}

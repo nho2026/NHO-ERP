@@ -58,6 +58,37 @@ import {
 } from "@/shared/components/ui/alert-dialog";
 type Resource =
   "products" | "categories" | "brands" | "warehouses" | "stock" | "movements";
+
+const toValidDate = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return null;
+
+  const date =
+    value instanceof Date
+      ? new Date(value.getTime())
+      : typeof value === "string" || typeof value === "number"
+        ? new Date(value)
+        : null;
+  if (!date) return null;
+
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const formatDateTime = (value: unknown) => {
+  const date = toValidDate(value);
+  return date
+    ? new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(date)
+    : "—";
+};
+
+const formatDate = (value: unknown) =>
+  toValidDate(value)?.toLocaleDateString() ?? "—";
+
+const toDateInputValue = (value: unknown) =>
+  toValidDate(value)?.toISOString().slice(0, 10) ?? "";
+
 const configs = {
   categories: {
     fields: ["name", "description", "status"],
@@ -211,13 +242,10 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
             : key === "warehouse"
               ? row.warehouse?.name
               : key === "occurredAt"
-                ? new Intl.DateTimeFormat(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  }).format(new Date(row[key]))
+                ? formatDateTime(row[key])
                 : key === "discount"
                   ? row.discountType && row.discountValue
-                    ? `${row.discountType === "percentage" ? `${row.discountValue}%` : `${Number(row.discountValue).toLocaleString()} IQD`} · ${row.discountStart ? new Date(row.discountStart).toLocaleDateString() : t("inventory.values.now")} — ${row.discountEnd ? new Date(row.discountEnd).toLocaleDateString() : t("inventory.values.noExpiry")}`
+                    ? `${row.discountType === "percentage" ? `${row.discountValue}%` : `${Number(row.discountValue).toLocaleString()} IQD`} · ${row.discountStart ? formatDate(row.discountStart) : t("inventory.values.now")} — ${row.discountEnd ? formatDate(row.discountEnd) : t("inventory.values.noExpiry")}`
                     : t("inventory.values.noDiscount")
                   : String(row[key] ?? "—");
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -768,11 +796,7 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
                     <FormDatePicker
                       key={k}
                       name={k}
-                      initialValue={
-                        editing?.[k]
-                          ? new Date(editing[k]).toISOString().slice(0, 10)
-                          : ""
-                      }
+                      initialValue={toDateInputValue(editing?.[k])}
                     />
                   ) : (
                     <Input

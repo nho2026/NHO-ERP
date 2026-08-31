@@ -3,9 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite --host",
+    "mobile:dev": "vite --host --mode mobile",
+    "electron:dev": "concurrently -k \"vite --host --mode electron\" \"wait-on http://localhost:3000 && electron --class=nho-erp .\"",
     "build": "tsc -b && vite build",
+    "electron:build": "tsc -b && vite build --base ./ && electron-builder",
+    "electron:build:windows": "tsc -b && vite build --base ./ && electron-builder --win",
+    "electron:build:linux": "tsc -b && vite build --base ./ && electron-builder --linux",
     "format": "prettier --write .",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -37,6 +43,7 @@
     "react-dom": "^19.2.7",
     "react-i18next": "^17.0.11",
     "react-router-dom": "^7.18.2",
+    "socket.io-client": "^4.8.3",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3"
@@ -48,8 +55,12 @@
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-react": "^6.0.3",
     "babel-plugin-react-compiler": "^1.0.0",
+    "concurrently": "^9.2.4",
+    "electron": "^37.10.3",
+    "electron-builder": "^26.15.3",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
@@ -58,6 +69,44 @@
     "shadcn": "^4.18.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.62.0",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "wait-on": "^8.0.5"
+  },
+  "build": {
+    "appId": "com.nho.erp",
+    "productName": "NHO ERP",
+    "executableName": "nho-erp",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "src/assets/icons/nho-logo-rounded.png",
+        "to": "icon.png"
+      }
+    ],
+    "win": {
+      "icon": "src/assets/icons/nho-logo-rounded.png",
+      "target": "nsis"
+    },
+    "linux": {
+      "icon": "src/assets/icons/nho-logo-rounded.png",
+      "desktop": {
+        "entry": {
+          "Name": "NHO ERP",
+          "StartupWMClass": "nho-erp"
+        }
+      },
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office"
+    }
   }
 }
