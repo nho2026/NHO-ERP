@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pencil, Plus, Printer, Search, Trash2 } from "lucide-react";
+import { Gift, Pencil, Plus, Printer, Search, Trash2 } from "lucide-react";
 import { hrApi, type HrRecord } from "../api/hr.api";
 import { usersApi } from "@/features/access-control/api/access.api";
 import { healthcareApi } from "@/features/healthcare/api/healthcare.api";
@@ -237,6 +237,33 @@ const configs: Record<
       ["status", "Status"],
     ],
   },
+  adjustments: {
+    title: "Rewards & punishments",
+    fields: [
+      {
+        name: "employeeId",
+        label: "Employee",
+        type: "employee",
+        required: true,
+      },
+      {
+        name: "type",
+        label: "Type",
+        type: "select",
+        options: ["reward", "punishment"],
+        required: true,
+      },
+      { name: "amount", label: "Amount", type: "number", required: true },
+      { name: "reason", label: "Reason", type: "textarea", required: true },
+    ],
+    columns: [
+      ["employee", "Employee"],
+      ["appliedAt", "Date & time"],
+      ["type", "Type"],
+      ["amount", "Amount"],
+      ["reason", "Reason"],
+    ],
+  },
   advances: {
     title: "Salary advances",
     fields: [
@@ -356,6 +383,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [adjustmentEmployee, setAdjustmentEmployee] = useState<HrRecord | null>(null);
   const positions = useApiResource(
     useCallback(() => hrApi.positions.list(), []),
   );
@@ -373,6 +401,9 @@ export default function HrPage({ resource }: { resource?: Resource }) {
     salaries,
     attendance: useApiResource(useCallback(() => hrApi.attendance.list(), [])),
     payrolls: useApiResource(useCallback(() => hrApi.payrolls.list(), [])),
+    adjustments: useApiResource(
+      useCallback(() => hrApi.adjustments.list(), []),
+    ),
     advances: useApiResource(useCallback(() => hrApi.advances.list(), [])),
   };
   const current = resources[tab];
@@ -403,9 +434,9 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                   e.id,
                   `${e.employeeCode} — ${e.firstName} ${e.lastName}`,
                 ])
-          : field.type === "position"
-            ? positions.data?.map((p) => [p.id, String(p.name)])
-            : field.type === "salary"
+            : field.type === "position"
+              ? positions.data?.map((p) => [p.id, String(p.name)])
+              : field.type === "salary"
                 ? salaries.data?.map((s) => [
                     s.id,
                     `${employeeName(s)} — ${s.baseSalary} ${s.currencyId}`,
@@ -531,7 +562,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                           <TableRow key={row.id}>
                             {configs[key].columns.map(([field]) => (
                               <TableCell key={field}>
-                                {field === "status" ? (
+                                {field === "status" || field === "type" ? (
                                   <Badge variant="secondary">
                                     {tr(String(display(row, field)))}
                                   </Badge>
@@ -541,6 +572,16 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                               </TableCell>
                             ))}
                             <TableCell className="whitespace-nowrap">
+                              {key === "employees" && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title={t("hr.rewardPunishment", { defaultValue: "Reward or punishment" })}
+                                  onClick={() => { setError(""); setAdjustmentEmployee(row); }}
+                                >
+                                  <Gift className="size-4 text-amber-600" />
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -601,7 +642,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
               return (
                 <label
                   key={`${editing?.id ?? "new"}-${field.name}`}
-                  className="space-y-1 text-xs font-medium"
+                  className={`space-y-1 text-xs font-medium ${field.type === "textarea" || (tab === "adjustments" && field.name === "amount") ? "sm:col-span-2" : ""}`}
                 >
                   <span>{tr(field.label)}</span>
                   {choices ? (
@@ -630,6 +671,14 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                         ))}
                       </SelectContent>
                     </Select>
+                  ) : field.type === "textarea" ? (
+                    <textarea
+                      name={field.name}
+                      defaultValue={String(initial ?? "")}
+                      required={field.required}
+                      rows={4}
+                      className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    />
                   ) : field.type === "date" ||
                     field.type === "datetime-local" ? (
                     <FormDatePicker
@@ -668,6 +717,31 @@ export default function HrPage({ resource }: { resource?: Resource }) {
             <Button disabled={busy} className="sm:col-span-2">
               {busy ? t("hr.saving") : t("hr.save")}
             </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={Boolean(adjustmentEmployee)} onOpenChange={(open) => { if (!open && !busy) setAdjustmentEmployee(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("hr.rewardPunishment", { defaultValue: "Reward or punishment" })} · {adjustmentEmployee ? employeeName(adjustmentEmployee) : ""}</DialogTitle>
+          </DialogHeader>
+          <form className="grid gap-4" onSubmit={async (event) => {
+            event.preventDefault();
+            if (!adjustmentEmployee) return;
+            const form = new FormData(event.currentTarget);
+            setBusy(true); setError("");
+            try {
+              await hrApi.adjustments.create({ employeeId: adjustmentEmployee.id, type: form.get("type"), amount: Number(form.get("amount")), reason: form.get("reason") });
+              setAdjustmentEmployee(null);
+              await resources.adjustments.refresh();
+            } catch (cause) { setError(apiErrorMessage(cause)); }
+            finally { setBusy(false); }
+          }}>
+            <label className="grid gap-1 text-sm font-medium">{t("hr.type", { defaultValue: "Type" })}<Select name="type" defaultValue="reward" required><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="reward">{t("hr.reward", { defaultValue: "Reward" })}</SelectItem><SelectItem value="punishment">{t("hr.punishment", { defaultValue: "Punishment" })}</SelectItem></SelectContent></Select></label>
+            <label className="grid gap-1 text-sm font-medium">{t("hr.amount", { defaultValue: "Amount" })}<Input name="amount" type="number" min="0.01" step="0.01" required /></label>
+            <label className="grid gap-1 text-sm font-medium">{t("hr.reason", { defaultValue: "Reason" })}<textarea name="reason" required rows={4} className="w-full resize-y rounded-md border bg-background px-3 py-2 text-sm" /></label>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button disabled={busy}>{busy ? t("hr.saving") : t("hr.save")}</Button>
           </form>
         </DialogContent>
       </Dialog>

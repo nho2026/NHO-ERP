@@ -1,4 +1,5 @@
 import { prisma } from "../../shared/database/client.js";
+import { payrollAdjustmentData } from "../hr/payroll-adjustments/payroll-adjustments.service.js";
 
 const fail = (status, message) => {
   throw Object.assign(new Error(message), { status });
@@ -62,8 +63,23 @@ export const targetService = {
     const ownsTarget = target.employeeId === user.employee?.id;
     const leadsEmployee = target.employee.teamLeaderId === user.employee?.id;
     if (!isManager(permissions) && !ownsTarget && !leadsEmployee) fail(403, "You cannot update this target.");
-    if (data.currentValue != null && data.currentValue >= target.targetValue && !data.status)
-      data.status = "completed";
-    return prisma.employeeTarget.update({ where: { id }, data, include });
+    const { rewardAmount, rewardReason, ...targetData } = data;
+    if (targetData.currentValue != null && targetData.currentValue >= target.targetValue && !targetData.status)
+      targetData.status = "completed";
+    if (rewardAmount != null && !isManager(permissions) && !user.employee?.isTeamLeader)
+      fail(403, "Only managers or team leaders can grant target rewards.");
+    if (rewardAmount != null && targetData.status !== "completed" && target.status !== "completed")
+      fail(422, "A reward can be granted only when the target is completed.");
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.employeeTarget.update({ where: { id }, data: targetData, include });
+      if (rewardAmount != null) {
+        await tx.payrollAdjustment.upsert({
+          where: { sourceType_sourceId: { sourceType: "target", sourceId: id } },
+          create: payrollAdjustmentData({ employeeId: target.employeeId, type: "reward", amount: rewardAmount, reason: rewardReason, sourceType: "target", sourceId: id }),
+          update: payrollAdjustmentData({ employeeId: target.employeeId, type: "reward", amount: rewardAmount, reason: rewardReason }),
+        });
+      }
+      return updated;
+    });
   },
 };

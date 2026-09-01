@@ -1,4 +1,5 @@
 import { prisma } from "../../../shared/database/client.js";
+import { payrollAdjustmentData } from "../../hr/payroll-adjustments/payroll-adjustments.service.js";
 const include = {
   createdBy: { select: { id: true, name: true } },
   reviewedBy: { select: { id: true, name: true } },
@@ -160,6 +161,16 @@ export const taskModel = {
             })),
           });
       }
+      return task;
+    }),
+  updateWithAdjustment: (id, data, adjustment) =>
+    prisma.$transaction(async (tx) => {
+      const task = await tx.task.update({ where: { id }, data, include });
+      await tx.payrollAdjustment.upsert({
+        where: { sourceType_sourceId: { sourceType: "task", sourceId: id } },
+        create: payrollAdjustmentData({ ...adjustment, sourceType: "task", sourceId: id }),
+        update: payrollAdjustmentData(adjustment),
+      });
       return task;
     }),
   remove: (id) => prisma.task.delete({ where: { id } }),

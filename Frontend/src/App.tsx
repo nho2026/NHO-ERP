@@ -31,6 +31,7 @@ import PayrollPage from "@/features/hr/pages/PayrollPage";
 import MeetingsPage from "@/features/meetings/MeetingsPage";
 import TargetsPage from "@/features/targets/pages/TargetsPage";
 import CrmPage, { CrmPipeline } from "@/features/crm/pages/CrmPage";
+import SystemLogsPage from "@/features/system-logs/pages/SystemLogsPage";
 import { Toaster } from "sonner";
 import { DirectionProvider } from "@radix-ui/react-direction";
 import { useTranslation } from "react-i18next";
@@ -94,6 +95,10 @@ export default function App() {
           <Route path="/users" element={secured("users.view", <UsersPage />)} />
           <Route path="/roles" element={secured("roles.view", <RolesPage />)} />
           <Route
+            path="/system-logs"
+            element={secured("system.logs.view", <SystemLogsPage />)}
+          />
+          <Route
             path="/employees"
             element={secured(
               "hr.employees.view",
@@ -155,12 +160,42 @@ export default function App() {
             path="/appointments"
             element={<Navigate to="/crm/appointments" replace />}
           />
-          <Route path="/crm/leads" element={secured("employees.view", <CrmPage resource="leads" />)} />
-          <Route path="/crm/patients" element={secured("employees.view", <CrmPage resource="patients" />)} />
-          <Route path="/crm/appointments" element={secured("healthcare.appointments.view", <div className="space-y-5"><CrmPipeline /><HealthcarePage resource="appointments" /></div>)} />
-          <Route path="/crm/surgery-appointments" element={secured("employees.view", <CrmPage resource="surgery-appointments" />)} />
-          <Route path="/crm/payments" element={secured("employees.view", <CrmPage resource="payments" />)} />
-          <Route path="/crm/surgeries" element={secured("employees.view", <CrmPage resource="surgeries" />)} />
+          <Route
+            path="/crm/leads"
+            element={secured("employees.view", <CrmPage resource="leads" />)}
+          />
+          <Route
+            path="/crm/patients"
+            element={secured("employees.view", <CrmPage resource="patients" />)}
+          />
+          <Route
+            path="/crm/appointments"
+            element={secured(
+              "healthcare.appointments.view",
+              <div className="space-y-5">
+                <CrmPipeline />
+                <HealthcarePage resource="appointments" />
+              </div>,
+            )}
+          />
+          <Route
+            path="/crm/surgery-appointments"
+            element={secured(
+              "employees.view",
+              <CrmPage resource="surgery-appointments" />,
+            )}
+          />
+          <Route
+            path="/crm/payments"
+            element={secured("employees.view", <CrmPage resource="payments" />)}
+          />
+          <Route
+            path="/crm/surgeries"
+            element={secured(
+              "employees.view",
+              <CrmPage resource="surgeries" />,
+            )}
+          />
           <Route
             path="/accounting/accounts"
             element={secured(

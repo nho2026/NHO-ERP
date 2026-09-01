@@ -19,5 +19,6 @@ export const hrApi = {
   salaries: resource("/employees/records/salaries"),
   attendance: resource("/employees/records/attendance"),
   payrolls: resource("/employees/records/payrolls"),
+  adjustments: resource("/employees/records/payroll-adjustments"),
   advances: resource("/advances/salary"),
 };

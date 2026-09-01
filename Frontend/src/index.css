@@ -270,6 +270,20 @@ html[lang="ku"] [data-sonner-toaster] {
     size: A4;
     margin: 12mm;
   }
+  body.printing-system-logs * {
+    visibility: hidden !important;
+  }
+  body.printing-system-logs .system-logs-print,
+  body.printing-system-logs .system-logs-print * {
+    visibility: visible !important;
+  }
+  body.printing-system-logs .system-logs-print {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    background: white;
+    color: #0f172a;
+  }
   body.printing-document {
     background: white !important;
     color: #0f172a !important;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { addMonths, format, subMonths } from "date-fns";
 import {
+  ArrowUpDown,
   Check,
   CalendarRange,
   ChevronDownIcon,
@@ -90,7 +91,9 @@ function DateRangeFilter({
     ? range.to
       ? `${dateLabel(range.from)} — ${dateLabel(range.to)}`
       : `${dateLabel(range.from)} — ${t("datePicker.pickDate")}`
-    : t("attendanceFilters.pickDateRange", { defaultValue: "Select date range" });
+    : t("attendanceFilters.pickDateRange", {
+        defaultValue: "Select date range",
+      });
   return (
     <Popover
       open={open}
@@ -114,23 +117,51 @@ function DateRangeFilter({
           <ChevronDownIcon className="size-4 shrink-0" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[292px] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl p-0 shadow-xl" align="start">
+      <PopoverContent
+        className="w-[292px] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl p-0 shadow-xl"
+        align="start"
+      >
         <div className="border-b bg-muted/35 px-3 py-2.5">
           <p className="text-xs font-semibold">
-            {t("attendanceFilters.chooseDateRange", { defaultValue: "Choose date range" })}
+            {t("attendanceFilters.chooseDateRange", {
+              defaultValue: "Choose date range",
+            })}
           </p>
           <p className="mt-0.5 text-[10px] text-muted-foreground">
-            {t("attendanceFilters.chooseStartEnd", { defaultValue: "Select a start date, then an end date" })}
+            {t("attendanceFilters.chooseStartEnd", {
+              defaultValue: "Select a start date, then an end date",
+            })}
           </p>
         </div>
         <div className="flex items-center justify-between px-3 pt-3">
-          <Button type="button" size="icon" variant="outline" className="size-7" onClick={() => setCalendarMonth((month) => subMonths(month, 1))} aria-label={t("datePicker.previousMonth", { defaultValue: "Previous month" })}>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="size-7"
+            onClick={() => setCalendarMonth((month) => subMonths(month, 1))}
+            aria-label={t("datePicker.previousMonth", {
+              defaultValue: "Previous month",
+            })}
+          >
             <ChevronLeft className="size-4 rtl:rotate-180" />
           </Button>
           <strong className="text-xs">
-            {new Intl.DateTimeFormat(i18n.resolvedLanguage, { month: "long", year: "numeric" }).format(calendarMonth)}
+            {new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+              month: "long",
+              year: "numeric",
+            }).format(calendarMonth)}
           </strong>
-          <Button type="button" size="icon" variant="outline" className="size-7" onClick={() => setCalendarMonth((month) => addMonths(month, 1))} aria-label={t("datePicker.nextMonth", { defaultValue: "Next month" })}>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="size-7"
+            onClick={() => setCalendarMonth((month) => addMonths(month, 1))}
+            aria-label={t("datePicker.nextMonth", {
+              defaultValue: "Next month",
+            })}
+          >
             <ChevronRight className="size-4 rtl:rotate-180" />
           </Button>
         </div>
@@ -148,31 +179,52 @@ function DateRangeFilter({
             month_caption: "hidden",
             month_grid: "w-full border-collapse",
             weekdays: "grid grid-cols-7",
-            weekday: "text-center text-[9px] font-semibold uppercase text-muted-foreground",
+            weekday:
+              "text-center text-[9px] font-semibold uppercase text-muted-foreground",
             week: "mt-0.5 grid grid-cols-7",
             day: "relative grid h-8 place-items-center p-0 text-center text-xs",
-            day_button: "grid size-8 place-items-center rounded-md font-medium transition-colors duration-150 hover:bg-primary/10 hover:text-primary",
+            day_button:
+              "grid size-8 place-items-center rounded-md font-medium transition-colors duration-150 hover:bg-primary/10 hover:text-primary",
             selected: "bg-transparent text-foreground",
-            range_start: "bg-transparent! text-primary-foreground! [&>button]:bg-primary! [&>button]:text-primary-foreground! [&>button:hover]:bg-primary!",
-            range_end: "bg-transparent! text-primary-foreground! [&>button]:bg-primary! [&>button]:text-primary-foreground! [&>button:hover]:bg-primary!",
-            range_middle: "bg-transparent! text-foreground! [&>button]:bg-primary/8! [&>button:hover]:bg-primary/18! [&>button:hover]:text-primary!",
+            range_start:
+              "bg-transparent! text-primary-foreground! [&>button]:bg-primary! [&>button]:text-primary-foreground! [&>button:hover]:bg-primary!",
+            range_end:
+              "bg-transparent! text-primary-foreground! [&>button]:bg-primary! [&>button]:text-primary-foreground! [&>button:hover]:bg-primary!",
+            range_middle:
+              "bg-transparent! text-foreground! [&>button]:bg-primary/8! [&>button:hover]:bg-primary/18! [&>button:hover]:text-primary!",
           }}
         />
         <div className="flex items-center gap-1.5 border-t bg-muted/20 p-2.5">
-          <Button type="button" size="sm" variant="ghost" onClick={() => {
-            setDraft(undefined);
-            onChange(undefined);
-            setOpen(false);
-          }}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setDraft(undefined);
+              onChange(undefined);
+              setOpen(false);
+            }}
+          >
             {t("common.clear", { defaultValue: "Clear" })}
           </Button>
-          <Button type="button" size="sm" variant="outline" className="ms-auto" onClick={() => setOpen(false)}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="ms-auto"
+            onClick={() => setOpen(false)}
+          >
             {t("common.cancel", { defaultValue: "Cancel" })}
           </Button>
-          <Button type="button" size="sm" disabled={!draft?.from || !draft?.to} onClick={() => {
-            onChange(draft);
-            setOpen(false);
-          }}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!draft?.from || !draft?.to}
+            onClick={() => {
+              onChange(draft);
+              setOpen(false);
+            }}
+          >
             {t("common.apply", { defaultValue: "Apply" })}
           </Button>
         </div>
@@ -271,7 +323,8 @@ export default function EventsPage() {
   const { t, i18n } = useTranslation();
   const [filters, setFilters] = useState<Record<string, string>>({}),
     [dateRange, setDateRange] = useState<DateRange>(),
-    [syncing, setSyncing] = useState(false);
+    [syncing, setSyncing] = useState(false),
+    [dateSort, setDateSort] = useState<"desc" | "asc">("desc");
   const events = useApiResource(
       useCallback(() => attendanceApi.events(filters), [filters]),
     ),
@@ -283,16 +336,30 @@ export default function EventsPage() {
     const to = filters.to
       ? new Date(`${filters.to}T23:59:59.999`).getTime()
       : Number.POSITIVE_INFINITY;
-    return (events.data ?? []).filter((event) => {
-      const occurredAt = new Date(event.occurredAt).getTime();
-      return (
-        occurredAt >= from &&
-        occurredAt <= to &&
-        (!filters.employeeNo || event.employeeNo.includes(filters.employeeNo)) &&
-        (!filters.eventType || event.eventType === filters.eventType)
-      );
-    });
-  }, [events.data, filters.employeeNo, filters.eventType, filters.from, filters.to]);
+    return (events.data ?? [])
+      .filter((event) => {
+        const occurredAt = new Date(event.occurredAt).getTime();
+        return (
+          occurredAt >= from &&
+          occurredAt <= to &&
+          (!filters.employeeNo ||
+            event.employeeNo.includes(filters.employeeNo)) &&
+          (!filters.eventType || event.eventType === filters.eventType)
+        );
+      })
+      .sort((a, b) => {
+        const difference =
+          new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime();
+        return dateSort === "desc" ? difference : -difference;
+      });
+  }, [
+    dateSort,
+    events.data,
+    filters.employeeNo,
+    filters.eventType,
+    filters.from,
+    filters.to,
+  ]);
   const verificationLabel = (value?: string) => {
     if (!value) return "—";
     const mode = value.replaceAll(/[^a-z]/gi, "").toLowerCase();
@@ -378,9 +445,11 @@ export default function EventsPage() {
                       .join(" · "),
                   });
                 else
-                  toast.success(t("attendanceFilters.syncComplete", {
-                    count: result.synced,
-                  }));
+                  toast.success(
+                    t("attendanceFilters.syncComplete", {
+                      count: result.synced,
+                    }),
+                  );
               } catch (error) {
                 toast.error(t("attendanceFilters.syncFailed"), {
                   description: apiErrorMessage(error),
@@ -401,7 +470,23 @@ export default function EventsPage() {
               <TableHead>Event</TableHead>
               <TableHead>Device</TableHead>
               <TableHead>Verification</TableHead>
-              <TableHead>Date & time</TableHead>
+              <TableHead
+                aria-sort={dateSort === "desc" ? "descending" : "ascending"}
+              >
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="-ms-3 h-8 gap-2 px-3"
+                  onClick={() =>
+                    setDateSort((current) =>
+                      current === "desc" ? "asc" : "desc",
+                    )
+                  }
+                >
+                  Date & time
+                  <ArrowUpDown className="size-3.5" />
+                </Button>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

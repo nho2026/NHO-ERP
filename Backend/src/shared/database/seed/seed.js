@@ -24,6 +24,7 @@ const catalog = [
   ["roles.delete", "Delete roles", "Access Control"],
   ["roles.assign_permissions", "Assign permissions", "Access Control"],
   ["permissions.view", "View permissions", "Access Control"],
+  ["system.logs.view", "View system logs", "System"],
   ["dashboard.view", "View dashboard", "Dashboard"],
   ["employees.view", "View employees", "Human Resources"],
   ["employees.manage", "Manage employees", "Human Resources"],
@@ -54,11 +55,31 @@ const catalog = [
   ["accounting.invoices.delete", "Delete invoices", "Accounting / Invoices"],
   ["accounting.payments.view", "View payments", "Accounting / Payments"],
   ["accounting.payments.create", "Create payments", "Accounting / Payments"],
-  ["accounting.service_advances.view", "View service advances", "Accounting / Service Advances"],
-  ["accounting.service_advances.create", "Create service advances", "Accounting / Service Advances"],
-  ["accounting.service_advances.update", "Update service advances", "Accounting / Service Advances"],
-  ["accounting.service_advances.delete", "Delete service advances", "Accounting / Service Advances"],
-  ["accounting.reports.view", "View accounting reports", "Accounting / Reports"],
+  [
+    "accounting.service_advances.view",
+    "View service advances",
+    "Accounting / Service Advances",
+  ],
+  [
+    "accounting.service_advances.create",
+    "Create service advances",
+    "Accounting / Service Advances",
+  ],
+  [
+    "accounting.service_advances.update",
+    "Update service advances",
+    "Accounting / Service Advances",
+  ],
+  [
+    "accounting.service_advances.delete",
+    "Delete service advances",
+    "Accounting / Service Advances",
+  ],
+  [
+    "accounting.reports.view",
+    "View accounting reports",
+    "Accounting / Reports",
+  ],
 ];
 
 async function seed() {
@@ -306,16 +327,23 @@ async function seed() {
       createdById: admin.id,
       assignees: { create: [{ employeeId: accountantEmployee.id }] },
       comments: {
-        create: [{ authorId: admin.id, body: "Please include the budget variance summary." }],
+        create: [
+          {
+            authorId: admin.id,
+            body: "Please include the budget variance summary.",
+          },
+        ],
       },
       timeEntries: {
-        create: [{
-          employeeId: accountantEmployee.id,
-          recordedById: admin.id,
-          workDate: new Date("2026-08-24T09:00:00Z"),
-          minutes: 180,
-          note: "Account reconciliation and variance review",
-        }],
+        create: [
+          {
+            employeeId: accountantEmployee.id,
+            recordedById: admin.id,
+            workDate: new Date("2026-08-24T09:00:00Z"),
+            minutes: 180,
+            note: "Account reconciliation and variance review",
+          },
+        ],
       },
     },
   });
@@ -333,16 +361,23 @@ async function seed() {
       createdById: admin.id,
       assignees: { create: [{ employeeId: doctorEmployee.id }] },
       comments: {
-        create: [{ authorId: doctorUser.id, body: "The first workflow draft is ready for review." }],
+        create: [
+          {
+            authorId: doctorUser.id,
+            body: "The first workflow draft is ready for review.",
+          },
+        ],
       },
       timeEntries: {
-        create: [{
-          employeeId: doctorEmployee.id,
-          recordedById: doctorUser.id,
-          workDate: new Date("2026-08-23T10:00:00Z"),
-          minutes: 240,
-          note: "Reviewed clinical steps and documented follow-up flow",
-        }],
+        create: [
+          {
+            employeeId: doctorEmployee.id,
+            recordedById: doctorUser.id,
+            workDate: new Date("2026-08-23T10:00:00Z"),
+            minutes: 240,
+            note: "Reviewed clinical steps and documented follow-up flow",
+          },
+        ],
       },
     },
   });

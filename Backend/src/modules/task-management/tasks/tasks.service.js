@@ -125,7 +125,7 @@ export const taskService = {
     const current = await taskModel.findAccess(id);
     if (!canSee(current, user, permissions)) fail(403, "You cannot update this task.");
     const hr = isHr(permissions);
-    const { assigneeIds, ...data } = input;
+    const { assigneeIds, adjustment, ...data } = input;
     if (assigneeIds) {
       ensureLeader(user, permissions);
       await validateAssignees(assigneeIds, user, permissions);
@@ -144,6 +144,8 @@ export const taskService = {
       data.completedAt = new Date();
       data.reviewedAt = new Date();
       data.reviewedBy = { connect: { id: user.id } };
+      if (adjustment && !current.assignees.some(({ employeeId }) => employeeId === adjustment.employeeId))
+        fail(422, "The reward or punishment employee must be assigned to this task.");
     } else if (data.status) {
       data.completedAt = null;
       if (data.status !== "review") {
@@ -151,7 +153,9 @@ export const taskService = {
         data.reviewedBy = { disconnect: true };
       }
     }
-    const task = await taskModel.update(id, {
+    if (adjustment && data.status !== "completed")
+      fail(422, "A reward or punishment can be added only when approving the task.");
+    const updateData = {
       ...data,
       ...(assigneeIds && {
         assignees: {
@@ -159,7 +163,10 @@ export const taskService = {
           create: assigneeIds.map((employeeId) => ({ employeeId })),
         },
       }),
-    });
+    };
+    const task = adjustment
+      ? await taskModel.updateWithAdjustment(id, updateData, adjustment)
+      : await taskModel.update(id, updateData);
     if (data.status && data.status !== current.status)
       await notifyStatus(task, user.id, data.status);
     return task;

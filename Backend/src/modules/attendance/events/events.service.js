@@ -26,10 +26,13 @@ export const eventsService = {
       devices.map(async (d) => {
         let synced = 0;
         try {
-          const from = input.from
-              ? `${input.from}T00:00:00Z`
-              : new Date(Date.now() - 86400000).toISOString(),
-            to = input.to ? `${input.to}T23:59:59Z` : new Date().toISOString(),
+          // A terminal purge is allowed only after its complete history has
+          // been imported through a fixed cutoff. Date filters cannot be used
+          // here because they could leave older terminal events uncopied.
+          // This terminal firmware rejects the Unix epoch as an event-search
+          // boundary. Year 2000 predates the device's supported event data.
+          const from = "2000-01-01T00:00:00Z",
+            to = new Date(),
             api = new HikvisionClient(d),
             searchID = crypto.randomUUID().replaceAll("-", ""),
             people = new Map(
@@ -39,51 +42,59 @@ export const eventsService = {
               ]),
             );
           let position = 0;
-          for (let page = 0; page < 100; page++) {
+          let complete = false;
+          for (let page = 0; page < 5000; page++) {
             const info =
                 (await api.events(from, to, position, searchID)).AcsEvent ?? {},
               list = info.InfoList ?? [];
-            await Promise.all(
-              list.map(async (event) => {
-                const employeeNo = String(
-                    event.employeeNoString ?? event.employeeNo ?? "",
-                  ).trim(),
-                  occurredAt = new Date(event.time),
-                  attendance = verifiedAttendanceEvent(event);
-                if (
-                  !employeeNo ||
-                  Number.isNaN(occurredAt.getTime()) ||
-                  !attendance ||
-                  (d.eventsClearedAt && occurredAt <= d.eventsClearedAt)
-                )
-                  return;
-                const p = people.get(employeeNo),
-                  serial = event.serialNo ?? event.serialNumber,
-                  deviceEventId =
-                    serial != null
-                      ? String(serial)
-                      : `${employeeNo}:${occurredAt.toISOString()}:${event.major ?? 0}:${event.minor ?? 0}`;
-                await m.upsert(d.id, deviceEventId, {
-                  personId: p?.id,
-                  employeeNo,
-                  personName: event.name ?? p?.name,
-                  eventType: attendance.eventType,
-                  occurredAt,
-                  verification: attendance.verification,
-                });
-                synced++;
-              }),
-            );
+            for (const event of list.sort(
+              (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
+            )) {
+              const employeeNo = String(
+                  event.employeeNoString ?? event.employeeNo ?? "",
+                ).trim(),
+                occurredAt = new Date(event.time),
+                attendance = verifiedAttendanceEvent(event);
+              if (
+                !employeeNo ||
+                Number.isNaN(occurredAt.getTime()) ||
+                !attendance ||
+                (d.eventsClearedAt && occurredAt <= d.eventsClearedAt)
+              )
+                continue;
+              const p = people.get(employeeNo),
+                serial = event.serialNo ?? event.serialNumber,
+                deviceEventId =
+                  serial != null
+                    ? String(serial)
+                    : `${employeeNo}:${occurredAt.toISOString()}:${event.major ?? 0}:${event.minor ?? 0}`;
+              const result = await m.saveUnique(d.id, deviceEventId, {
+                personId: p?.id,
+                employeeNo,
+                personName: event.name ?? p?.name,
+                eventType: attendance.eventType,
+                occurredAt,
+                verification: attendance.verification,
+              });
+              if (result.created) synced++;
+            }
             position += list.length;
             if (
               !list.length ||
               position >=
                 Number(info.totalMatches ?? info.numOfMatches ?? position)
-            )
+            ) {
+              complete = true;
               break;
+            }
           }
+          if (!complete)
+            throw new Error(
+              "The terminal event history exceeded the safe sync limit; device events were not deleted.",
+            );
+          await api.deleteEventsThrough(to);
           await m.status(d.id, { status: "online", lastSeenAt: new Date() });
-          return { synced };
+          return { deviceId: d.id, synced, deviceEventsDeletedThrough: to };
         } catch (error) {
           await m.status(d.id, { status: "offline" }).catch(() => {});
           return {
@@ -99,6 +110,16 @@ export const eventsService = {
     );
     return {
       synced: results.reduce((total, result) => total + result.synced, 0),
+      deviceEventsDeletedThrough: results.flatMap((result) =>
+        result.deviceEventsDeletedThrough
+          ? [
+              {
+                deviceId: result.deviceId,
+                through: result.deviceEventsDeletedThrough,
+              },
+            ]
+          : [],
+      ),
       errors: results.flatMap((result) => (result.error ? [result.error] : [])),
     };
   },

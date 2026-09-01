@@ -18,6 +18,7 @@ import { storedUser, hasPermission } from "@/features/auth/access";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
+import { DeleteConfirmationDialog } from "@/shared/components/ui/confirmation-dialog";
 import { FormDatePicker } from "@/shared/components/ui/form-date-picker";
 import {
   Select,
@@ -231,6 +232,38 @@ const labelOf = (x: CrmRecord, type?: Field["type"]): string =>
       : String(
           x.name ?? `${x.firstName ?? ""} ${x.lastName ?? ""}`.trim() ?? x.code,
         );
+const statusStyles: Record<string, string> = {
+  new: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300",
+  contacted:
+    "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300",
+  qualified:
+    "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-300",
+  converted:
+    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+  active:
+    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+  paid: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+  completed:
+    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+  scheduled:
+    "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300",
+  confirmed:
+    "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300",
+  pending:
+    "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
+  in_progress:
+    "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
+  refunded:
+    "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-300",
+  inactive:
+    "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300",
+  lost: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300",
+  cancelled:
+    "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300",
+};
+const statusClass = (status: unknown) =>
+  statusStyles[String(status)] ??
+  "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300";
 const pipelineSteps = [
   {
     path: "/crm/leads",
@@ -290,12 +323,20 @@ export function CrmPipeline() {
                 <Icon className="size-4" />
               </span>
               <span className="mt-2">
-                <strong className={`block text-[11px] ${pathname === path ? "text-primary" : "text-foreground"}`}>{label}</strong>
-                <small className="mt-0.5 block text-[8px] text-muted-foreground">{detail}</small>
+                <strong
+                  className={`block text-[11px] ${pathname === path ? "text-primary" : "text-foreground"}`}
+                >
+                  {label}
+                </strong>
+                <small className="mt-0.5 block text-[8px] text-muted-foreground">
+                  {detail}
+                </small>
               </span>
             </Link>
             {index < pipelineSteps.length - 1 && (
-              <span className="mt-4 h-px flex-1 bg-border"><ArrowRight className="ms-auto size-3 -translate-y-1.5 text-muted-foreground rtl:rotate-180" /></span>
+              <span className="mt-4 h-px flex-1 bg-border">
+                <ArrowRight className="ms-auto size-3 -translate-y-1.5 text-muted-foreground rtl:rotate-180" />
+              </span>
             )}
           </div>
         ))}
@@ -307,18 +348,19 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
   const config = configs[resource],
     user = storedUser(),
     canManage = hasPermission(user, "employees.manage");
+  const [page, setPage] = useState(1);
   const data = useApiResource(
-    useCallback(() => crmApi[resource].list(), [resource]),
+    useCallback(() => crmApi[resource].list(page), [resource, page]),
   );
   const lookups = useApiResource(useCallback(() => crmApi.lookups(), []));
   const [open, setOpen] = useState(false),
     [search, setSearch] = useState("");
   const rows = useMemo(
     () =>
-      (data.data ?? []).filter((x) =>
+      (data.data?.items ?? []).filter((x) =>
         JSON.stringify(x).toLowerCase().includes(search.toLowerCase()),
       ),
-    [data.data, search],
+    [data.data?.items, search],
   );
   const choices = (field: Field): CrmRecord[] =>
     field.type === "patient"
@@ -495,7 +537,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
               {canManage && <TableHead />}
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody autoPaginate={false} pagination={data.data ? { ...data.data.pagination, onPageChange: setPage, disabled: data.isLoading } : undefined}>
             {rows.map((row) => (
               <TableRow key={row.id}>
                 {config.columns.map((key) => (
@@ -508,17 +550,23 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                             void updateLeadStatus(row, status)
                           }
                         >
-                          <SelectTrigger className="h-8 capitalize">
+                          <SelectTrigger
+                            className={`h-8 capitalize font-semibold ${statusClass(row.status)}`}
+                          >
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {["new", "contacted", "qualified", "converted", "lost"].map(
-                              (status) => (
-                                <SelectItem key={status} value={status}>
-                                  {status}
-                                </SelectItem>
-                              ),
-                            )}
+                            {[
+                              "new",
+                              "contacted",
+                              "qualified",
+                              "converted",
+                              "lost",
+                            ].map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {status}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         {Boolean(row.convertedPatient) && (
@@ -529,7 +577,12 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                         )}
                       </div>
                     ) : key === "status" ? (
-                      <Badge variant="secondary">{show(row, key)}</Badge>
+                      <Badge
+                        variant="outline"
+                        className={`capitalize ${statusClass(row.status)}`}
+                      >
+                        {show(row, key)}
+                      </Badge>
                     ) : (
                       show(row, key)
                     )}
@@ -537,13 +590,15 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                 ))}
                 {canManage && (
                   <TableCell>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={async () => {
+                    <DeleteConfirmationDialog
+                      description="This permanently deletes this CRM record. This action cannot be undone."
+                      onConfirm={async () => {
                         try {
                           await crmApi[resource].remove(row.id);
-                          await data.refresh();
+                          await Promise.all([
+                            data.refresh(),
+                            lookups.refresh(),
+                          ]);
                         } catch (error) {
                           toast.error(
                             error instanceof Error
@@ -553,8 +608,10 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                         }
                       }}
                     >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
+                      <Button size="icon" variant="ghost">
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    </DeleteConfirmationDialog>
                   </TableCell>
                 )}
               </TableRow>

@@ -36,7 +36,7 @@ export const userService = {
   async remove(id, currentId) {
     if (id === currentId)
       throw forbidden("You cannot delete your own account.");
-    await userModel.remove(id);
+    await userModel.remove(id, currentId);
   },
   async changePassword(id, currentUser, input) {
     if (id !== currentUser.id) throw forbidden("Forbidden.", 403);

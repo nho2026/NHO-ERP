@@ -30,6 +30,8 @@ export const hasPermission = (
       return Boolean(user.permissions?.includes("finance.view"));
     return Boolean(user.permissions?.includes("journal.create"));
   }
+  if (permission === "system.logs.view")
+    return Boolean(user.permissions?.includes("roles.view"));
   const module = permission.split(".")[0];
   const legacy: Record<string, { view: string; manage: string }> = {
     tasks: { view: "employees.view", manage: "employees.manage" },

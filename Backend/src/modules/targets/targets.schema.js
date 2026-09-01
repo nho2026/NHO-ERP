@@ -20,4 +20,8 @@ export const createTargetSchema = z
 export const updateTargetSchema = z.object({
   currentValue: z.coerce.number().min(0).optional(),
   status: z.enum(["active", "completed", "paused", "cancelled"]).optional(),
+  rewardAmount: z.coerce.number().positive().optional(),
+  rewardReason: z.string().trim().min(2).max(5000).optional(),
+}).refine((data) => (data.rewardAmount == null) === (data.rewardReason == null), {
+  message: "Reward amount and reason are required together.",
 });

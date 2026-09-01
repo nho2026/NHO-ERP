@@ -71,6 +71,8 @@ export const payrollAmounts = (
   baseSalary: number,
   minutesLost: number,
   hoursPerDay = HOURS_PER_DAY,
+  rewardAmount = 0,
+  punishmentAmount = 0,
 ) => {
   const lostHours = minutesLost / 60;
   const hourlyRate = baseSalary / (WORK_DAYS * hoursPerDay);
@@ -78,7 +80,12 @@ export const payrollAmounts = (
   return {
     hourlyRate,
     deduction,
-    netSalary: Math.max(0, baseSalary - deduction),
+    rewardAmount,
+    punishmentAmount,
+    netSalary: Math.max(
+      0,
+      baseSalary + rewardAmount - deduction - punishmentAmount,
+    ),
   };
 };
 

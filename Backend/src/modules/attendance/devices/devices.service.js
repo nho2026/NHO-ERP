@@ -37,9 +37,18 @@ export const deviceService = {
   },
   async clearEvents(id, user, password) {
     await authorize(user, password);
-    const clearedAt = new Date(),
-      deleted = await deviceModel.clearEvents(id, clearedAt);
-    return { deleted: deleted.count, clearedAt };
+    const device = await deviceModel.findById(id),
+      api = new HikvisionClient(device),
+      clearedAt = new Date(),
+      result = await api.events(
+        "2000-01-01T00:00:00Z",
+        clearedAt,
+        0,
+        `clear${Date.now()}`,
+      ),
+      deleted = Number(result.AcsEvent?.totalMatches ?? 0);
+    await api.deleteEventsThrough(clearedAt);
+    return { deleted, clearedAt };
   },
   async test(id) {
     const d = await deviceModel.findById(id);

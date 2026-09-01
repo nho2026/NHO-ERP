@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CreditCard,
@@ -52,6 +52,22 @@ export default function DeviceUsersPage() {
   const people = useApiResource(useCallback(() => attendanceApi.people(), []));
   const employees = useApiResource(
     useCallback(() => hrApi.employees.list(), []),
+  );
+  const linkedEmployeeIds = useMemo(
+    () =>
+      new Set(
+        (people.data ?? [])
+          .map((person) => person.employeeId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    [people.data],
+  );
+  const unlinkedEmployees = useMemo(
+    () =>
+      (employees.data ?? []).filter(
+        (employee) => !linkedEmployeeIds.has(employee.id),
+      ),
+    [employees.data, linkedEmployeeIds],
   );
   const [open, setOpen] = useState(false);
   const [deviceId, setDeviceId] = useState("");
@@ -233,7 +249,7 @@ export default function DeviceUsersPage() {
                     <SelectValue placeholder={t("deviceUsers.linkEmployee")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.data?.map((employee) => (
+                    {unlinkedEmployees.map((employee) => (
                       <SelectItem key={employee.id} value={employee.id}>
                         {String(employee.employeeCode)} —{" "}
                         {String(employee.firstName)} {String(employee.lastName)}
@@ -491,12 +507,19 @@ export default function DeviceUsersPage() {
                     <SelectValue placeholder={t("deviceUsers.linkEmployee")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.data?.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {String(employee.employeeCode)} —{" "}
-                        {String(employee.firstName)} {String(employee.lastName)}
-                      </SelectItem>
-                    ))}
+                    {employees.data
+                      ?.filter(
+                        (employee) =>
+                          employee.id === editing.employeeId ||
+                          !linkedEmployeeIds.has(employee.id),
+                      )
+                      .map((employee) => (
+                        <SelectItem key={employee.id} value={employee.id}>
+                          {String(employee.employeeCode)} —{" "}
+                          {String(employee.firstName)}{" "}
+                          {String(employee.lastName)}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 <Input

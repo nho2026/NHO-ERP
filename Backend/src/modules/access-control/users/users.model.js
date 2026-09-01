@@ -5,7 +5,30 @@ export const userModel = {
     prisma.user.findMany({ include, orderBy: { createdAt: "desc" } }),
   create: (data) => prisma.user.create({ data, include }),
   update: (id, data) => prisma.user.update({ where: { id }, data, include }),
-  remove: (id) => prisma.user.delete({ where: { id } }),
+  remove: (id, replacementUserId) =>
+    prisma.$transaction(async (tx) => {
+      await tx.employeeTarget.updateMany({
+        where: { createdById: id },
+        data: { createdById: replacementUserId },
+      });
+      await tx.task.updateMany({
+        where: { createdById: id },
+        data: { createdById: replacementUserId },
+      });
+      await tx.warning.updateMany({
+        where: { senderId: id },
+        data: { senderId: replacementUserId },
+      });
+      await tx.taskTimeEntry.updateMany({
+        where: { recordedById: id },
+        data: { recordedById: replacementUserId },
+      });
+      await tx.meeting.updateMany({
+        where: { creatorId: id },
+        data: { creatorId: replacementUserId },
+      });
+      return tx.user.delete({ where: { id } });
+    }),
   updatePassword: (id, passwordHash) =>
     prisma.user.update({ where: { id }, data: { passwordHash } }),
 };

@@ -7,16 +7,4 @@ export const deviceModel = {
   create: (data) => prisma.attendanceDevice.create({ data }),
   update: (id, data) => prisma.attendanceDevice.update({ where: { id }, data }),
   remove: (id) => prisma.attendanceDevice.delete({ where: { id } }),
-  async clearEvents(id, clearedAt) {
-    return prisma.$transaction(async (tx) => {
-      const deleted = await tx.attendanceEvent.deleteMany({
-        where: { deviceId: id },
-      });
-      await tx.attendanceDevice.update({
-        where: { id },
-        data: { eventsClearedAt: clearedAt },
-      });
-      return deleted;
-    });
-  },
 };

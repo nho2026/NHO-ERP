@@ -13,6 +13,7 @@ export const authController = {
     const { user, token, remember } = await authService.login(
       req.validatedBody,
     );
+    req.auditUser = user;
     res.cookie("access_token", token, {
       httpOnly: true,
       secure: env.production,

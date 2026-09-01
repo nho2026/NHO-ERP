@@ -26,6 +26,8 @@ import employeePortalRoutes from "./modules/employee-portal/employee-portal.rout
 import meetingRoutes from "./modules/meetings/meetings.routes.js";
 import targetRoutes from "./modules/targets/targets.routes.js";
 import crmRoutes from "./modules/crm/crm.routes.js";
+import systemLogRoutes from "./modules/system-logs/system-logs.routes.js";
+import { auditApiRequest } from "./shared/middleware/audit-log.middleware.js";
 import { errorHandler } from "./shared/errors/error.middleware.js";
 
 export const app = express();
@@ -53,6 +55,7 @@ app.use(
 );
 app.use(express.json({ limit: "12mb" }));
 app.use(cookieParser());
+app.use(auditApiRequest);
 app.use(
   "/public",
   express.static(path.resolve(process.cwd(), "public"), {
@@ -84,5 +87,6 @@ app.use("/api/employee-portal", employeePortalRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/targets", targetRoutes);
 app.use("/api/crm", crmRoutes);
+app.use("/api/system-logs", systemLogRoutes);
 app.use((_req, res) => res.status(404).json({ message: "Route not found." }));
 app.use(errorHandler);

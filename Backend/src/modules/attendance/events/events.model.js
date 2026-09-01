@@ -8,19 +8,33 @@ export const eventsModel = {
     }),
   people: (deviceId) =>
     prisma.attendancePerson.findMany({ where: { deviceId } }),
-  upsert: (deviceId, deviceEventId, data) =>
-    prisma.attendanceEvent.upsert({
+  saveUnique: async (deviceId, deviceEventId, data) => {
+    const existing = await prisma.attendanceEvent.findUnique({
       where: { deviceId_deviceEventId: { deviceId, deviceEventId } },
-      update: {
-        personId: data.personId,
-        personName: data.personName,
+    });
+    if (existing) return { event: existing, created: false };
+
+    const duplicate = await prisma.attendanceEvent.findFirst({
+      where: {
+        deviceId,
         employeeNo: data.employeeNo,
         eventType: data.eventType,
-        occurredAt: data.occurredAt,
-        verification: data.verification,
+        occurredAt: {
+          gte: new Date(data.occurredAt.getTime() - 60 * 60 * 1000),
+          lte: new Date(data.occurredAt.getTime() + 60 * 60 * 1000),
+        },
       },
-      create: { deviceId, deviceEventId, ...data },
-    }),
+      orderBy: { occurredAt: "asc" },
+    });
+    if (duplicate) return { event: duplicate, created: false };
+
+    return {
+      event: await prisma.attendanceEvent.create({
+        data: { deviceId, deviceEventId, ...data },
+      }),
+      created: true,
+    };
+  },
   list: (where) =>
     prisma.attendanceEvent.findMany({
       where,

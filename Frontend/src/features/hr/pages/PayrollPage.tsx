@@ -38,6 +38,15 @@ export default function PayrollPage() {
     useCallback(() => hrApi.employees.list(), []),
   );
   const salaries = useApiResource(useCallback(() => hrApi.salaries.list(), []));
+  const adjustments = useApiResource(
+    useCallback(() => {
+      const [year, selectedMonth] = month.split("-");
+      return hrApi.adjustments.list({
+        year: Number(year),
+        month: Number(selectedMonth),
+      });
+    }, [month]),
+  );
   const people = useApiResource(useCallback(() => attendanceApi.people(), []));
   const events = useApiResource(
     useCallback(
@@ -66,18 +75,30 @@ export default function PayrollPage() {
           (sum, row) => sum + lostMinutes(row),
           0,
         );
+        const employeeAdjustments = (adjustments.data ?? []).filter(
+          (adjustment) => adjustment.employeeId === employee.id,
+        );
+        const rewardAmount = employeeAdjustments
+          .filter((adjustment) => adjustment.type === "reward")
+          .reduce((sum, adjustment) => sum + Number(adjustment.amount), 0);
+        const punishmentAmount = employeeAdjustments
+          .filter((adjustment) => adjustment.type === "punishment")
+          .reduce((sum, adjustment) => sum + Number(adjustment.amount), 0);
         return {
           employee,
           salary,
           minutesLost,
+          adjustments: employeeAdjustments,
           ...payrollAmounts(
             Number(salary?.baseSalary ?? 0),
             minutesLost,
             scheduledMinutes(employee) / 60,
+            rewardAmount,
+            punishmentAmount,
           ),
         };
       }),
-    [employees.data, salaries.data, deviceRecords, month],
+    [adjustments.data, employees.data, salaries.data, deviceRecords, month],
   );
   const money = (value: number, currency?: unknown) =>
     `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${String(currency ?? "")}`.trim();
@@ -129,9 +150,17 @@ export default function PayrollPage() {
           </div>
         </CardContent>
       </Card>
-      {(employees.error || salaries.error || people.error || events.error) && (
+      {(employees.error ||
+        salaries.error ||
+        adjustments.error ||
+        people.error ||
+        events.error) && (
         <p className="text-sm text-destructive">
-          {employees.error || salaries.error || people.error || events.error}
+          {employees.error ||
+            salaries.error ||
+            adjustments.error ||
+            people.error ||
+            events.error}
         </p>
       )}
       <Card className="print-document print-document-visible salary-list-print">
@@ -145,7 +174,12 @@ export default function PayrollPage() {
                   <TableHead>{t("hr.baseSalary")}</TableHead>
                   <TableHead>{tx("lostHours", "Lost hours")}</TableHead>
                   <TableHead>{tx("hourlyRate", "Hourly rate")}</TableHead>
-                  <TableHead>{t("hr.deductions")}</TableHead>
+                  <TableHead>
+                    {tx("attendanceDeduction", "Attendance deduction")}
+                  </TableHead>
+                  <TableHead>{tx("rewards", "Rewards")}</TableHead>
+                  <TableHead>{tx("punishments", "Punishments")}</TableHead>
+                  <TableHead>{tx("adjustmentReasons", "Reasons")}</TableHead>
                   <TableHead>{t("hr.net")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -176,12 +210,44 @@ export default function PayrollPage() {
                         <TableCell className="text-destructive">
                           − {money(row.deduction, row.salary.currencyId)}
                         </TableCell>
+                        <TableCell className="text-emerald-700">
+                          + {money(row.rewardAmount, row.salary.currencyId)}
+                        </TableCell>
+                        <TableCell className="text-destructive">
+                          − {money(row.punishmentAmount, row.salary.currencyId)}
+                        </TableCell>
+                        <TableCell className="min-w-56">
+                          {row.adjustments.length ? (
+                            <ul className="space-y-1 text-xs">
+                              {row.adjustments.map((adjustment) => (
+                                <li key={adjustment.id}>
+                                  <span
+                                    className={
+                                      adjustment.type === "reward"
+                                        ? "font-semibold text-emerald-700"
+                                        : "font-semibold text-destructive"
+                                    }
+                                  >
+                                    {adjustment.type === "reward" ? "+" : "−"}
+                                    {money(
+                                      Number(adjustment.amount),
+                                      row.salary?.currencyId,
+                                    )}
+                                  </span>{" "}
+                                  — {String(adjustment.reason)}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
                         <TableCell className="font-bold text-emerald-700">
                           {money(row.netSalary, row.salary.currencyId)}
                         </TableCell>
                       </>
                     ) : (
-                      <TableCell colSpan={5} className="text-muted-foreground">
+                      <TableCell colSpan={8} className="text-muted-foreground">
                         {tx("noSalary", "No active salary for this month")}
                       </TableCell>
                     )}

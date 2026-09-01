@@ -8,6 +8,8 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { hasPermission, storedUser } from "@/features/auth/access";
+import { Input } from "@/shared/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 
 const dateTime = (value: string | null | undefined) => value ? new Date(value).toLocaleString() : "—";
 const hours = (minutes: number) => `${(minutes / 60).toFixed(minutes % 60 ? 1 : 0)} h`;
@@ -19,6 +21,10 @@ export default function TaskDetailPage() {
   const [loading, setLoading] = useState(true);
   const [reviewNote, setReviewNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [adjustmentType, setAdjustmentType] = useState("none");
+  const [adjustmentEmployeeId, setAdjustmentEmployeeId] = useState("");
+  const [adjustmentAmount, setAdjustmentAmount] = useState("");
+  const [adjustmentReason, setAdjustmentReason] = useState("");
   const currentUser = storedUser();
   const isHr =
     hasPermission(currentUser, "employees.manage") ||
@@ -42,7 +48,11 @@ export default function TaskDetailPage() {
   const updateReview = async (status: string) => {
     setSaving(true);
     try {
-      await tasksApi.update(id!, { status, reviewNote: reviewNote || null });
+      const adjustment = status === "completed" && adjustmentType !== "none"
+        ? { employeeId: adjustmentEmployeeId, type: adjustmentType, amount: Number(adjustmentAmount), reason: adjustmentReason }
+        : undefined;
+      if (adjustment && (!adjustment.employeeId || !adjustment.amount || !adjustment.reason.trim())) throw new Error("Employee, amount, and reason are required for the adjustment.");
+      await tasksApi.update(id!, { status, reviewNote: reviewNote || null, adjustment });
       await load();
       toast.success(status === "completed" ? t("tasks.reviewApproved") : t("tasks.reviewSubmitted"));
     } catch (error) {
@@ -98,6 +108,10 @@ export default function TaskDetailPage() {
       <div className="space-y-5">
         <Card><CardHeader><CardTitle>{t("tasks.hrReview")}</CardTitle></CardHeader><CardContent className="space-y-3">
           <textarea className="min-h-24 w-full rounded-md border bg-background p-3 text-sm" value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} placeholder={t("tasks.reviewNote")} disabled={isHr && task.status !== "review"} />
+          {isHr && task.status === "review" && <div className="grid gap-3 rounded-lg border p-3">
+            <label className="grid gap-1 text-xs font-medium">Payroll action<Select value={adjustmentType} onValueChange={setAdjustmentType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">No adjustment</SelectItem><SelectItem value="reward">Reward</SelectItem><SelectItem value="punishment">Punishment</SelectItem></SelectContent></Select></label>
+            {adjustmentType !== "none" && <><label className="grid gap-1 text-xs font-medium">Employee<Select value={adjustmentEmployeeId} onValueChange={setAdjustmentEmployeeId}><SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger><SelectContent>{task.assignees.map(({ employee }) => <SelectItem key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}</SelectItem>)}</SelectContent></Select></label><label className="grid gap-1 text-xs font-medium">Amount<Input type="number" min="0.01" step="0.01" value={adjustmentAmount} onChange={(e) => setAdjustmentAmount(e.target.value)} /></label><label className="grid gap-1 text-xs font-medium">Reason<textarea className="min-h-20 rounded-md border bg-background p-2 text-sm" value={adjustmentReason} onChange={(e) => setAdjustmentReason(e.target.value)} /></label></>}
+          </div>}
           {task.reviewedBy && <p className="text-xs text-muted-foreground">{t("tasks.reviewedBy", { name: task.reviewedBy.name })} · {dateTime(task.reviewedAt)}</p>}
           {!isHr && !["review", "completed", "cancelled"].includes(task.status) && <Button disabled={saving} onClick={() => void updateReview("review")}>{t("tasks.submitForReview")}</Button>}
           {isHr && task.status === "review" && <div className="flex flex-wrap gap-2"><Button disabled={saving} onClick={() => void updateReview("completed")}>{t("tasks.approveCompletion")}</Button><Button variant="outline" disabled={saving} onClick={() => void updateReview("in_progress")}>{t("tasks.returnForChanges")}</Button></div>}

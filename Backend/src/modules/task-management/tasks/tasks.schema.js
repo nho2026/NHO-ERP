@@ -64,6 +64,15 @@ export const updateTaskSchema = z.object({
   estimatedMinutes: z.coerce.number().int().min(0).nullable().optional(),
   assigneeIds: z.array(z.string()).min(1).optional(),
   reviewNote: z.string().trim().max(5000).nullable().optional(),
+  adjustment: z
+    .object({
+      employeeId: z.string().min(1),
+      type: z.enum(["reward", "punishment"]),
+      amount: z.coerce.number().positive(),
+      reason: z.string().trim().min(2).max(5000),
+    })
+    .nullable()
+    .optional(),
 });
 export const commentSchema = z.object({
   body: z.string().trim().min(1).max(5000),

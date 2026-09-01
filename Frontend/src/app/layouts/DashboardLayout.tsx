@@ -52,6 +52,7 @@ import {
   Star,
   Sun,
   Goal,
+  ScrollText,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import logo from "@/assets/icons/logo.png";
@@ -76,7 +77,10 @@ import { getCurrentUser, logoutUser } from "@/features/auth/api/auth.api";
 import type { AuthUser } from "@/features/auth/types/auth.types";
 import { useTheme } from "@/shared/hooks/useTheme";
 import { WindowControls } from "@/shared/components/WindowControls";
-import { hasPermission, isCashier as userIsCashier } from "@/features/auth/access";
+import {
+  hasPermission,
+  isCashier as userIsCashier,
+} from "@/features/auth/access";
 import {
   notificationsApi,
   type NotificationItem,
@@ -89,11 +93,16 @@ function notificationRoute(notification: NotificationItem) {
   return undefined;
 }
 
-function notificationLabel(type: NotificationItem["type"], t: (key: string) => string) {
+function notificationLabel(
+  type: NotificationItem["type"],
+  t: (key: string) => string,
+) {
   if (type === "warning") return t("employeePortal.warnings");
   if (type === "meeting_created") return t("notificationCenter.meetingCreated");
-  if (type === "task_review_requested") return t("notificationCenter.taskReviewRequested");
-  if (type === "task_status_updated") return t("notificationCenter.taskStatusUpdated");
+  if (type === "task_review_requested")
+    return t("notificationCenter.taskReviewRequested");
+  if (type === "task_status_updated")
+    return t("notificationCenter.taskStatusUpdated");
   return t("notificationCenter.taskAssigned");
 }
 
@@ -130,7 +139,11 @@ const hrNavigation = [
     label: "navigation.salaryAdvances",
     icon: BadgeDollarSign,
   },
-  { to: "/hr/reports", label: "navigation.hrReports", icon: ChartNoAxesCombined },
+  {
+    to: "/hr/reports",
+    label: "navigation.hrReports",
+    icon: ChartNoAxesCombined,
+  },
   { to: "/hr/warnings", label: "hrWarnings.title", icon: TriangleAlert },
 ];
 const healthcareNavigation = [
@@ -141,8 +154,16 @@ const healthcareNavigation = [
 const crmNavigation = [
   { to: "/crm/leads", label: "navigation.crmLeads", icon: ContactRound },
   { to: "/crm/patients", label: "navigation.crmPatients", icon: UsersRound },
-  { to: "/crm/appointments", label: "navigation.doctorAppointments", icon: CalendarPlus },
-  { to: "/crm/surgery-appointments", label: "navigation.surgeryAppointments", icon: CalendarClock },
+  {
+    to: "/crm/appointments",
+    label: "navigation.doctorAppointments",
+    icon: CalendarPlus,
+  },
+  {
+    to: "/crm/surgery-appointments",
+    label: "navigation.surgeryAppointments",
+    icon: CalendarClock,
+  },
   { to: "/crm/payments", label: "navigation.crmPayments", icon: CreditCard },
   { to: "/crm/surgeries", label: "navigation.surgeries", icon: HeartPulse },
 ];
@@ -226,6 +247,7 @@ const posNavigation = [
 const accessNavigation = [
   { to: "/users", label: "navigation.users", icon: UsersRound },
   { to: "/roles", label: "navigation.roles", icon: ShieldCheck },
+  { to: "/system-logs", label: "navigation.systemLogs", icon: ScrollText },
 ];
 
 function LiveDateTime({ locale }: { locale: string }) {
@@ -426,26 +448,67 @@ export default function DashboardLayout() {
       ...accessNavigation,
     ];
     const item = allItems.find(({ to }) => location.pathname === to);
-    if (location.pathname === "/employee-portal") return t("employeePortal.title");
+    if (location.pathname === "/employee-portal")
+      return t("employeePortal.title");
     if (location.pathname === "/profile") return t("navigation.profile");
     return item ? t(item.label) : "NHO Workspace";
   })();
-  const normalizedNavigationSearch = navigationSearch.trim().toLocaleLowerCase(
-    i18n.resolvedLanguage,
-  );
+  const normalizedNavigationSearch = navigationSearch
+    .trim()
+    .toLocaleLowerCase(i18n.resolvedLanguage);
   const cashier = userIsCashier(user);
   const permissionForPath = (path: string) => {
     const keys: Record<string, string | undefined> = {
-      "/dashboard": "dashboard.view", "/meetings": undefined, "/targets": undefined, "/tasks": "tasks.list.view", "/tasks/reports": "tasks.reports.view",
-      "/attendance/devices": "attendance.devices.view", "/attendance/users": "attendance.users.view", "/attendance/events": "attendance.events.view",
-      "/employees": "hr.employees.view", "/positions": "hr.positions.view", "/salaries": "hr.salaries.view", "/hr-attendance": "hr.attendance.view", "/payrolls": "hr.payrolls.view", "/salary-advances": "hr.advances.view", "/hr/reports": "hr.employees.view",
+      "/dashboard": "dashboard.view",
+      "/meetings": undefined,
+      "/targets": undefined,
+      "/tasks": "tasks.list.view",
+      "/tasks/reports": "tasks.reports.view",
+      "/attendance/devices": "attendance.devices.view",
+      "/attendance/users": "attendance.users.view",
+      "/attendance/events": "attendance.events.view",
+      "/employees": "hr.employees.view",
+      "/positions": "hr.positions.view",
+      "/salaries": "hr.salaries.view",
+      "/hr-attendance": "hr.attendance.view",
+      "/payrolls": "hr.payrolls.view",
+      "/salary-advances": "hr.advances.view",
+      "/hr/reports": "hr.employees.view",
       "/hr/warnings": "hr.employees.update",
-      "/departments": "healthcare.departments.view", "/health-staff": "healthcare.staff.view", "/appointments": "healthcare.appointments.view", "/feedback": "healthcare.feedback.view",
-      "/crm/leads": "employees.view", "/crm/patients": "employees.view", "/crm/appointments": "healthcare.appointments.view", "/crm/surgery-appointments": "employees.view", "/crm/payments": "employees.view", "/crm/surgeries": "employees.view",
-      "/accounting/accounts": "accounting.accounts.view", "/accounting/journals": "accounting.journals.view", "/accounting/customers": "accounting.customers.view", "/accounting/invoices": "accounting.invoices.view", "/accounting/payments": "accounting.payments.view", "/accounting/service-advances": "accounting.service_advances.view", "/accounting/reports": "accounting.reports.view",
-      "/finance/budgets": "finance.budgets.view", "/finance/cash-flow": "finance.cash-flow.view", "/finance/forecasts": "finance.forecasts.view", "/finance/analysis": "finance.analysis.view", "/finance/funding": "finance.funding.view",
-      "/inventory/brands": "inventory.brands.view", "/inventory/products": "inventory.products.view", "/inventory/barcodes": "inventory.barcodes.view", "/inventory/categories": "inventory.categories.view", "/inventory/warehouses": "inventory.warehouses.view", "/inventory/stock": "inventory.stock.view", "/inventory/movements": "inventory.movements.view",
-      "/pos/checkout": "pos.checkout.view", "/pos/sales": "pos.sales.view", "/users": "users.view", "/roles": "roles.view",
+      "/departments": "healthcare.departments.view",
+      "/health-staff": "healthcare.staff.view",
+      "/appointments": "healthcare.appointments.view",
+      "/feedback": "healthcare.feedback.view",
+      "/crm/leads": "employees.view",
+      "/crm/patients": "employees.view",
+      "/crm/appointments": "healthcare.appointments.view",
+      "/crm/surgery-appointments": "employees.view",
+      "/crm/payments": "employees.view",
+      "/crm/surgeries": "employees.view",
+      "/accounting/accounts": "accounting.accounts.view",
+      "/accounting/journals": "accounting.journals.view",
+      "/accounting/customers": "accounting.customers.view",
+      "/accounting/invoices": "accounting.invoices.view",
+      "/accounting/payments": "accounting.payments.view",
+      "/accounting/service-advances": "accounting.service_advances.view",
+      "/accounting/reports": "accounting.reports.view",
+      "/finance/budgets": "finance.budgets.view",
+      "/finance/cash-flow": "finance.cash-flow.view",
+      "/finance/forecasts": "finance.forecasts.view",
+      "/finance/analysis": "finance.analysis.view",
+      "/finance/funding": "finance.funding.view",
+      "/inventory/brands": "inventory.brands.view",
+      "/inventory/products": "inventory.products.view",
+      "/inventory/barcodes": "inventory.barcodes.view",
+      "/inventory/categories": "inventory.categories.view",
+      "/inventory/warehouses": "inventory.warehouses.view",
+      "/inventory/stock": "inventory.stock.view",
+      "/inventory/movements": "inventory.movements.view",
+      "/pos/checkout": "pos.checkout.view",
+      "/pos/sales": "pos.sales.view",
+      "/users": "users.view",
+      "/roles": "roles.view",
+      "/system-logs": "system.logs.view",
     };
     return keys[path];
   };
@@ -471,7 +534,9 @@ export default function DashboardLayout() {
             `group relative flex h-11 items-center gap-3 rounded-xl px-3 text-[13px] font-semibold outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/25 ${collapsed ? "lg:justify-center lg:px-0" : ""} ${isActive ? "bg-primary/10 text-primary shadow-[inset_3px_0_0_var(--primary)] rtl:shadow-[inset_-3px_0_0_var(--primary)]" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
           }
         >
-          <Icon className={`size-[18px] shrink-0 stroke-[1.8] transition-transform group-hover:scale-105`} />
+          <Icon
+            className={`size-[18px] shrink-0 stroke-[1.8] transition-transform group-hover:scale-105`}
+          />
           <span className={collapsed ? "lg:hidden" : ""}>{t(label)}</span>
         </NavLink>
       ));
@@ -549,7 +614,10 @@ export default function DashboardLayout() {
               onClick={() => {
                 setCollapsed(false);
                 localStorage.setItem("nho-sidebar-collapsed", "false");
-                window.setTimeout(() => navigationSearchRef.current?.focus(), 320);
+                window.setTimeout(
+                  () => navigationSearchRef.current?.focus(),
+                  320,
+                );
               }}
             >
               <Search className="size-4.25" />
@@ -561,9 +629,16 @@ export default function DashboardLayout() {
           className="sidebar-scroll flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain pe-0.5"
         >
           <div className="space-y-1 pt-1">
-            <NavLink to="/employee-portal" className={({ isActive }) => `group flex h-11 items-center gap-3 rounded-xl px-3 text-[13px] font-semibold outline-none transition-all ${isActive ? "bg-primary/10 text-primary shadow-[inset_3px_0_0_var(--primary)] rtl:shadow-[inset_-3px_0_0_var(--primary)]" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+            <NavLink
+              to="/employee-portal"
+              className={({ isActive }) =>
+                `group flex h-11 items-center gap-3 rounded-xl px-3 text-[13px] font-semibold outline-none transition-all ${isActive ? "bg-primary/10 text-primary shadow-[inset_3px_0_0_var(--primary)] rtl:shadow-[inset_-3px_0_0_var(--primary)]" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
+              }
+            >
               <Lightbulb className="size-[18px] stroke-[1.8] transition-transform group-hover:scale-105" />
-              <span className={collapsed ? "lg:hidden" : ""}>{t("employeePortal.title")}</span>
+              <span className={collapsed ? "lg:hidden" : ""}>
+                {t("employeePortal.title")}
+              </span>
             </NavLink>
           </div>
           {cashier && (
@@ -590,7 +665,9 @@ export default function DashboardLayout() {
           )}
           <div className={cashier ? "hidden" : "contents"}>
             <div className="space-y-1">{navItems(primaryNavigation)}</div>
-            <div className={`mt-2 space-y-1 ${taskNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}>
+            <div
+              className={`mt-2 space-y-1 ${taskNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
+            >
               {collapsed ? (
                 <NavLink
                   to="/tasks"
@@ -608,7 +685,9 @@ export default function DashboardLayout() {
                     onClick={() => setTasksExpanded((value) => !value)}
                   >
                     <ListTodo className="size-4.25 shrink-0" />
-                    <span className="flex-1 text-start">{t("tasks.title")}</span>
+                    <span className="flex-1 text-start">
+                      {t("tasks.title")}
+                    </span>
                     <ChevronDown
                       className={`size-3.5 transition-transform ${tasksExpanded ? "rotate-180" : ""}`}
                     />
@@ -621,7 +700,9 @@ export default function DashboardLayout() {
                 </>
               )}
             </div>
-            <div className={`mt-2 space-y-1 ${attendanceNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}>
+            <div
+              className={`mt-2 space-y-1 ${attendanceNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
+            >
               {collapsed ? (
                 <NavLink
                   to="/attendance/devices"
@@ -646,7 +727,8 @@ export default function DashboardLayout() {
                       className={`size-3.5 transition-transform ${attendanceExpanded ? "rotate-180" : ""}`}
                     />
                   </button>
-                  {(attendanceExpanded || Boolean(normalizedNavigationSearch)) && (
+                  {(attendanceExpanded ||
+                    Boolean(normalizedNavigationSearch)) && (
                     <div className="ms-[18px] space-y-0.5 border-s border-primary/20 ps-3">
                       {navItems(attendanceNavigation)}
                     </div>
@@ -654,7 +736,9 @@ export default function DashboardLayout() {
                 </>
               )}
             </div>
-            <div className={`mt-2 space-y-1 ${inventoryNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}>
+            <div
+              className={`mt-2 space-y-1 ${inventoryNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
+            >
               {collapsed ? (
                 <NavLink
                   to="/inventory/products"
@@ -677,7 +761,8 @@ export default function DashboardLayout() {
                       className={`size-3.5 ${inventoryExpanded ? "rotate-180" : ""}`}
                     />
                   </button>
-                  {(inventoryExpanded || Boolean(normalizedNavigationSearch)) && (
+                  {(inventoryExpanded ||
+                    Boolean(normalizedNavigationSearch)) && (
                     <div className="ms-[18px] space-y-0.5 border-s border-primary/20 ps-3">
                       {navItems(inventoryNavigation)}
                     </div>
@@ -685,7 +770,9 @@ export default function DashboardLayout() {
                 </>
               )}
             </div>
-            <div className={`mt-2 space-y-1 ${posNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}>
+            <div
+              className={`mt-2 space-y-1 ${posNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
+            >
               {collapsed ? (
                 <NavLink
                   to="/pos/checkout"
@@ -716,7 +803,9 @@ export default function DashboardLayout() {
                 </>
               )}
             </div>
-            <div className={`mt-2 space-y-1 ${healthcareNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}>
+            <div
+              className={`mt-2 space-y-1 ${healthcareNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
+            >
               {collapsed ? (
                 <NavLink
                   to="/departments"
@@ -741,7 +830,8 @@ export default function DashboardLayout() {
                       className={`size-3.5 transition-transform ${healthcareExpanded ? "rotate-180" : ""}`}
                     />
                   </button>
-                  {(healthcareExpanded || Boolean(normalizedNavigationSearch)) && (
+                  {(healthcareExpanded ||
+                    Boolean(normalizedNavigationSearch)) && (
                     <div className="ms-[18px] space-y-0.5 border-s border-primary/20 ps-3">
                       {navItems(healthcareNavigation)}
                     </div>
@@ -749,19 +839,42 @@ export default function DashboardLayout() {
                 </>
               )}
             </div>
-            <div className={`mt-2 space-y-1 ${crmNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}>
+            <div
+              className={`mt-2 space-y-1 ${crmNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
+            >
               {collapsed ? (
-                <NavLink to="/crm/leads" title="CRM" className={({ isActive }) => `hidden h-9 items-center justify-center rounded-lg outline-none transition-colors lg:flex ${isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/7 hover:text-primary"}`}>
+                <NavLink
+                  to="/crm/leads"
+                  title="CRM"
+                  className={({ isActive }) =>
+                    `hidden h-9 items-center justify-center rounded-lg outline-none transition-colors lg:flex ${isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/7 hover:text-primary"}`
+                  }
+                >
                   <ContactRound className="size-4.25" />
                 </NavLink>
-              ) : (<>
-                <button className={sectionButtonClass(crmNavigation)} onClick={() => setCrmExpanded(value => !value)}>
-                  <ContactRound className="size-4.25 shrink-0" /><span className="flex-1 text-start">CRM</span><ChevronDown className={`size-3.5 transition-transform ${crmExpanded ? "rotate-180" : ""}`} />
-                </button>
-                {(crmExpanded || Boolean(normalizedNavigationSearch)) && <div className="ms-[18px] space-y-0.5 border-s border-primary/20 ps-3">{navItems(crmNavigation)}</div>}
-              </>)}
+              ) : (
+                <>
+                  <button
+                    className={sectionButtonClass(crmNavigation)}
+                    onClick={() => setCrmExpanded((value) => !value)}
+                  >
+                    <ContactRound className="size-4.25 shrink-0" />
+                    <span className="flex-1 text-start">CRM</span>
+                    <ChevronDown
+                      className={`size-3.5 transition-transform ${crmExpanded ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {(crmExpanded || Boolean(normalizedNavigationSearch)) && (
+                    <div className="ms-[18px] space-y-0.5 border-s border-primary/20 ps-3">
+                      {navItems(crmNavigation)}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            <div className={`mt-2 space-y-1 ${hrNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}>
+            <div
+              className={`mt-2 space-y-1 ${hrNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
+            >
               {collapsed ? (
                 <NavLink
                   to="/employees"
@@ -794,7 +907,9 @@ export default function DashboardLayout() {
                 </>
               )}
             </div>
-            <div className={`mt-2 space-y-1 ${accountingNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}>
+            <div
+              className={`mt-2 space-y-1 ${accountingNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
+            >
               {collapsed ? (
                 <NavLink
                   to="/accounting/accounts"
@@ -819,7 +934,8 @@ export default function DashboardLayout() {
                       className={`size-3.5 transition-transform ${accountingExpanded ? "rotate-180" : ""}`}
                     />
                   </button>
-                  {(accountingExpanded || Boolean(normalizedNavigationSearch)) && (
+                  {(accountingExpanded ||
+                    Boolean(normalizedNavigationSearch)) && (
                     <div className="ms-[18px] space-y-0.5 border-s border-primary/20 ps-3">
                       {navItems(accountingNavigation)}
                     </div>
@@ -827,7 +943,9 @@ export default function DashboardLayout() {
                 </>
               )}
             </div>
-            <div className={`mt-2 space-y-1 ${financeNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}>
+            <div
+              className={`mt-2 space-y-1 ${financeNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
+            >
               {collapsed ? (
                 <NavLink
                   to="/finance/budgets"
@@ -970,8 +1088,12 @@ export default function DashboardLayout() {
             )}
           </button>
           <div className="min-w-0">
-            <p className="truncate text-base font-bold tracking-tight md:text-lg">{pageTitle}</p>
-            <p className="hidden text-[10px] text-muted-foreground md:block">NHO Management System</p>
+            <p className="truncate text-base font-bold tracking-tight md:text-lg">
+              {pageTitle}
+            </p>
+            <p className="hidden text-[10px] text-muted-foreground md:block">
+              NHO Management System
+            </p>
           </div>
           <div className="ms-auto hidden w-full max-w-72 md:block">
             <label className="relative block">
@@ -988,10 +1110,14 @@ export default function DashboardLayout() {
                   }
                 }}
               />
-              <kbd className="absolute inset-e-3 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground">⌘ K</kbd>
+              <kbd className="absolute inset-e-3 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground">
+                ⌘ K
+              </kbd>
             </label>
           </div>
-          <div className="hidden 2xl:block"><LiveDateTime locale={i18n.resolvedLanguage ?? "en"} /></div>
+          <div className="hidden 2xl:block">
+            <LiveDateTime locale={i18n.resolvedLanguage ?? "en"} />
+          </div>
           <Select
             value={i18n.resolvedLanguage?.split("-")[0] ?? "en"}
             onValueChange={(v) => void i18n.changeLanguage(v)}
@@ -1028,7 +1154,7 @@ export default function DashboardLayout() {
                 size="icon"
                 aria-label={t("notificationCenter.title")}
               >
-                <Bell className="size-4" />
+                <Bell className="size-4 fill-red-500 text-red-500 dark:text-red-700" />
                 {unreadCount > 0 && (
                   <span className="absolute -end-1.5 -top-1.5 grid min-w-4.5 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-4 text-destructive-foreground">
                     {unreadCount > 99 ? "99+" : unreadCount}
@@ -1036,7 +1162,10 @@ export default function DashboardLayout() {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="z-10000 w-80 rounded-xl p-2">
+            <DropdownMenuContent
+              align="end"
+              className="z-10000 w-80 rounded-xl p-2"
+            >
               <DropdownMenuLabel className="flex items-center justify-between gap-3">
                 <span>{t("notificationCenter.title")}</span>
                 {unreadCount > 0 && (
@@ -1071,7 +1200,10 @@ export default function DashboardLayout() {
                         {notificationLabel(notification.type, t)}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {notification.warning?.title ?? notification.meeting?.title ?? notification.task?.title ?? t("notificationCenter.deletedTask")}
+                        {notification.warning?.title ??
+                          notification.meeting?.title ??
+                          notification.task?.title ??
+                          t("notificationCenter.deletedTask")}
                       </span>
                       <span className="mt-1 block text-[10px] text-muted-foreground">
                         {new Intl.DateTimeFormat(i18n.resolvedLanguage, {
@@ -1090,11 +1222,17 @@ export default function DashboardLayout() {
             onClick={() => navigate("/profile")}
           >
             <Avatar className="size-7 border">
-              <AvatarFallback className="bg-primary/10 text-[9px] font-bold text-primary">{initials}</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-[9px] font-bold text-primary">
+                {initials}
+              </AvatarFallback>
             </Avatar>
             <span className="hidden min-w-0 lg:block">
-              <strong className="block max-w-24 truncate text-[10px] leading-3.5">{user?.name ?? "Qasem Admin"}</strong>
-              <small className="block max-w-24 truncate text-[8px] text-muted-foreground">@{user?.username ?? "admin"}</small>
+              <strong className="block max-w-24 truncate text-[10px] leading-3.5">
+                {user?.name ?? "Qasem Admin"}
+              </strong>
+              <small className="block max-w-24 truncate text-[8px] text-muted-foreground">
+                @{user?.username ?? "admin"}
+              </small>
             </span>
             <ChevronDown className="size-3 text-muted-foreground" />
           </button>

@@ -7,7 +7,7 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto bg-card">
+  <div className="relative w-full overflow-auto rounded-xl bg-card">
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}
@@ -38,86 +38,117 @@ const TableBody = React.forwardRef<
     pageSize?: number;
     autoPaginate?: boolean;
     emptyMessage?: React.ReactNode;
+    pagination?: {
+      page: number;
+      totalPages: number;
+      total: number;
+      onPageChange: (page: number) => void;
+      disabled?: boolean;
+    };
   }
->(({ className, children, pageSize = 50, autoPaginate = true, emptyMessage, ...props }, ref) => {
-  const { t } = useTranslation();
-  const [page, setPage] = React.useState(1);
-  const childList = React.Children.toArray(children);
-  const dataRows = childList.filter(
-    (child) =>
-      React.isValidElement(child) &&
-      typeof child.type !== "string" &&
-      (child.type as { displayName?: string }).displayName === "TableRow",
-  );
-  const totalPages = Math.max(1, Math.ceil(dataRows.length / pageSize));
-  React.useEffect(() => {
-    setPage((value) => Math.min(value, totalPages));
-  }, [totalPages]);
-  const first = (page - 1) * pageSize;
-  let rowIndex = 0;
-  const visibleChildren = childList.filter((child) => {
-    const isRow =
-      React.isValidElement(child) &&
-      typeof child.type !== "string" &&
-      (child.type as { displayName?: string }).displayName === "TableRow";
-    if (!isRow || !autoPaginate) return true;
-    const visible = rowIndex >= first && rowIndex < first + pageSize;
-    rowIndex += 1;
-    return visible;
-  });
-  return (
-    <tbody
-      ref={ref}
-      className={cn("[&_tr:last-child]:border-0", className)}
-      {...props}
-    >
-      {visibleChildren}
-      {childList.length === 0 && (
-        <tr className="border-0 bg-card hover:bg-card">
-          <td
-            colSpan={100}
-            className="h-10 px-4 text-center text-sm text-muted-foreground"
-          >
-            {emptyMessage ?? t("resourceState.notFound")}
-          </td>
-        </tr>
-      )}
-      {autoPaginate && dataRows.length > pageSize && (
-        <tr className="border-t bg-card hover:bg-card">
-          <td colSpan={100} className="p-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-xs text-muted-foreground">
-                {t("pagination.summary", {
-                  page,
-                  totalPages,
-                  total: dataRows.length,
-                })}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="h-8 rounded-md border bg-background px-3 text-xs font-medium disabled:opacity-50"
-                  disabled={page <= 1}
-                  onClick={() => setPage((value) => Math.max(1, value - 1))}
-                >
-                  {t("pagination.previous")}
-                </button>
-                <button
-                  type="button"
-                  className="h-8 rounded-md border bg-background px-3 text-xs font-medium disabled:opacity-50"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-                >
-                  {t("pagination.next")}
-                </button>
+>(
+  (
+    {
+      className,
+      children,
+      pageSize = 10,
+      autoPaginate = true,
+      emptyMessage,
+      pagination,
+      ...props
+    },
+    ref,
+  ) => {
+    const { t } = useTranslation();
+    const [page, setPage] = React.useState(1);
+    const childList = React.Children.toArray(children);
+    const dataRows = childList.filter(
+      (child) =>
+        React.isValidElement(child) &&
+        typeof child.type !== "string" &&
+        (child.type as { displayName?: string }).displayName === "TableRow",
+    );
+    const totalPages =
+      pagination?.totalPages ??
+      Math.max(1, Math.ceil(dataRows.length / pageSize));
+    React.useEffect(() => {
+      setPage((value) => Math.min(value, totalPages));
+    }, [totalPages]);
+    const activePage = pagination?.page ?? page;
+    const first = (activePage - 1) * pageSize;
+    let rowIndex = 0;
+    const visibleChildren = childList.filter((child) => {
+      const isRow =
+        React.isValidElement(child) &&
+        typeof child.type !== "string" &&
+        (child.type as { displayName?: string }).displayName === "TableRow";
+      if (!isRow || !autoPaginate || pagination) return true;
+      const visible = rowIndex >= first && rowIndex < first + pageSize;
+      rowIndex += 1;
+      return visible;
+    });
+    return (
+      <tbody
+        ref={ref}
+        className={cn("[&_tr:last-child]:border-0", className)}
+        {...props}
+      >
+        {visibleChildren}
+        {childList.length === 0 && (
+          <tr className="border-0 bg-card hover:bg-card">
+            <td
+              colSpan={100}
+              className="h-10 px-4 text-center text-sm text-muted-foreground"
+            >
+              {emptyMessage ?? t("resourceState.notFound")}
+            </td>
+          </tr>
+        )}
+        {dataRows.length > 0 && (pagination || autoPaginate) && (
+          <tr className="border-t bg-card hover:bg-card">
+            <td colSpan={100} className="p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-xs text-muted-foreground">
+                  {t("pagination.summary", {
+                    page: activePage,
+                    totalPages,
+                    total: pagination?.total ?? dataRows.length,
+                  })}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="h-8 rounded-md border bg-background px-3 text-xs font-medium disabled:opacity-50"
+                    disabled={pagination?.disabled || activePage <= 1}
+                    onClick={() =>
+                      pagination
+                        ? pagination.onPageChange(activePage - 1)
+                        : setPage((value) => Math.max(1, value - 1))
+                    }
+                  >
+                    {t("pagination.previous")}
+                  </button>
+                  <button
+                    type="button"
+                    className="h-8 rounded-md border bg-background px-3 text-xs font-medium disabled:opacity-50"
+                    disabled={pagination?.disabled || activePage >= totalPages}
+                    onClick={() =>
+                      pagination
+                        ? pagination.onPageChange(activePage + 1)
+                        : setPage((value) => Math.min(totalPages, value + 1))
+                    }
+                  >
+                    {t("pagination.next")}
+                  </button>
+                </div>
               </div>
-            </div>
-          </td>
-        </tr>
-      )}
-    </tbody>
-  );
-});
+            </td>
+          </tr>
+        )}
+      </tbody>
+    );
+  },
+);
 TableBody.displayName = "TableBody";
 
 const TableFooter = React.forwardRef<

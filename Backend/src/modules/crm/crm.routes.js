@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../../shared/database/client.js";
 import { requireAuth } from "../../shared/middleware/auth.middleware.js";
 import { validate } from "../../shared/middleware/validation.middleware.js";
+import { pageResult, paginationArgs } from "../../shared/pagination/pagination.js";
 
 const nullable = z.string().trim().nullable().optional();
 const schemas = {
@@ -39,7 +40,12 @@ router.get("/lookups", run(async (req, res) => {
 router.get("/:resource", run(async (req, res) => {
   if (!canView(req)) return res.status(403).json({ message: "CRM access is required." });
   const resource = req.params.resource, model = prisma[models[resource]];
-  res.json(await model.findMany({ ...(includes[resource] && { include: includes[resource] }), orderBy: { createdAt: "desc" }, take: 1000 }));
+  const { page, pageSize, skip, take } = paginationArgs(req.query);
+  const [items, total] = await Promise.all([
+    model.findMany({ ...(includes[resource] && { include: includes[resource] }), orderBy: { createdAt: "desc" }, skip, take }),
+    model.count(),
+  ]);
+  res.json(pageResult(items, total, page, pageSize));
 }));
 router.post("/:resource", (req, res, next) => canManage(req) ? next() : res.status(403).json({ message: "CRM management access is required." }), (req, res, next) => validate(schemas[req.params.resource])(req, res, next), run(async (req, res) => {
   const resource = req.params.resource, model = prisma[models[resource]];

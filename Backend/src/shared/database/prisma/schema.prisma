@@ -31,7 +31,7 @@ model User {
   warningRecipients WarningRecipient[]
   createdMeetings   Meeting[]            @relation("MeetingCreator")
   meetingAttendance MeetingParticipant[]
-  createdTargets     EmployeeTarget[]     @relation("TargetCreator")
+  createdTargets    EmployeeTarget[]     @relation("TargetCreator")
 }
 
 model AttendanceDevice {
@@ -170,6 +170,7 @@ model Employee {
   salaries           EmployeeSalary[]
   attendance         EmployeeAttendance[]
   payrolls           Payroll[]
+  payrollAdjustments PayrollAdjustment[]
   salaryAdvances     SalaryAdvance[]
   taskAssignments    TaskAssignee[]
   taskTimeEntries    TaskTimeEntry[]
@@ -400,40 +401,40 @@ model MeetingParticipant {
 }
 
 model HealthStaff {
-  id                   String        @id @default(cuid())
-  employeeId           String        @unique
+  id                   String               @id @default(cuid())
+  employeeId           String               @unique
   departmentId         String?
   staffType            String
   specialization       String?
-  licenseNumber        String?       @unique
-  biography            String?       @db.Text
-  publicBookingEnabled Boolean       @default(false)
-  status               String        @default("active")
-  employee             Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  department           Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  licenseNumber        String?              @unique
+  biography            String?              @db.Text
+  publicBookingEnabled Boolean              @default(false)
+  status               String               @default("active")
+  employee             Employee             @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  department           Department?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   appointments         Appointment[]
   surgeryAppointments  SurgeryAppointment[]
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
   @@index([departmentId])
   @@index([staffType])
 }
 
 model CrmLead {
-  id          String   @id @default(cuid())
-  name        String
-  phone       String
-  email       String?
-  source      String?
-  interest    String?
-  notes       String?  @db.Text
-  status      String   @default("new")
+  id                 String         @id @default(cuid())
+  name               String
+  phone              String
+  email              String?
+  source             String?
+  interest           String?
+  notes              String?        @db.Text
+  status             String         @default("new")
   convertedPatientId String?
-  convertedPatient   Patient? @relation(fields: [convertedPatientId], references: [id], onDelete: SetNull)
+  convertedPatient   Patient?       @relation(fields: [convertedPatientId], references: [id], onDelete: SetNull)
   notifications      Notification[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   @@index([status, createdAt])
 }
@@ -463,34 +464,34 @@ model Patient {
 }
 
 model Surgery {
-  id           String               @id @default(cuid())
-  code         String               @unique
-  name         String
-  description  String?              @db.Text
+  id              String               @id @default(cuid())
+  code            String               @unique
+  name            String
+  description     String?              @db.Text
   durationMinutes Int
-  basePrice    Decimal              @db.Decimal(12, 2)
-  status       String               @default("active")
-  appointments SurgeryAppointment[]
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  basePrice       Decimal              @db.Decimal(12, 2)
+  status          String               @default("active")
+  appointments    SurgeryAppointment[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 }
 
 model SurgeryAppointment {
-  id              String           @id @default(cuid())
-  patientId       String
-  doctorId        String
-  surgeryId       String
-  scheduledAt     DateTime
-  operatingRoom   String?
-  status          String           @default("scheduled")
-  preOpNotes      String?          @db.Text
-  postOpNotes     String?          @db.Text
-  patient         Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  doctor          HealthStaff      @relation(fields: [doctorId], references: [id], onDelete: Restrict)
-  surgery         Surgery          @relation(fields: [surgeryId], references: [id], onDelete: Restrict)
-  payments        PatientPayment[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id            String           @id @default(cuid())
+  patientId     String
+  doctorId      String
+  surgeryId     String
+  scheduledAt   DateTime
+  operatingRoom String?
+  status        String           @default("scheduled")
+  preOpNotes    String?          @db.Text
+  postOpNotes   String?          @db.Text
+  patient       Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor        HealthStaff      @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  surgery       Surgery          @relation(fields: [surgeryId], references: [id], onDelete: Restrict)
+  payments      PatientPayment[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   @@index([scheduledAt, status])
   @@index([patientId])
@@ -600,6 +601,27 @@ model Payroll {
 
   @@unique([employeeId, year, month])
   @@index([salaryId])
+}
+
+model PayrollAdjustment {
+  id         String   @id @default(cuid())
+  employeeId String
+  year       Int
+  month      Int
+  type       String
+  amount     Float
+  reason     String   @db.Text
+  sourceType String?
+  sourceId   String?
+  appliedAt  DateTime @default(now())
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([sourceType, sourceId])
+  @@index([employeeId, year, month])
+  @@index([appliedAt])
+  @@index([year, month, type])
 }
 
 model SalaryAdvance {
@@ -1020,4 +1042,26 @@ model PosSaleItem {
 
   @@index([saleId])
   @@index([productId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  userName   String?
+  method     String
+  path       String
+  module     String
+  action     String
+  statusCode Int
+  ipAddress  String?
+  userAgent  String?  @db.Text
+  details    Json?
+  durationMs Int
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([module, createdAt])
+  @@index([action, createdAt])
+  @@index([statusCode, createdAt])
 }

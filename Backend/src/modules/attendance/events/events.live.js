@@ -12,10 +12,13 @@ const delay = (milliseconds) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 const xmlValue = (xml, name) =>
-  xml.match(new RegExp(`<(?:\\w+:)?${name}[^>]*>([^<]*)<\\/(?:\\w+:)?${name}>`, "i"))?.[1];
+  xml.match(
+    new RegExp(`<(?:\\w+:)?${name}[^>]*>([^<]*)<\\/(?:\\w+:)?${name}>`, "i"),
+  )?.[1];
 
 const parseXmlEvent = (xml) => ({
-  employeeNoString: xmlValue(xml, "employeeNoString") ?? xmlValue(xml, "employeeNo"),
+  employeeNoString:
+    xmlValue(xml, "employeeNoString") ?? xmlValue(xml, "employeeNo"),
   name: xmlValue(xml, "name"),
   time: xmlValue(xml, "dateTime") ?? xmlValue(xml, "time"),
   serialNo: xmlValue(xml, "serialNo") ?? xmlValue(xml, "serialNumber"),
@@ -88,16 +91,20 @@ export async function saveLiveEvent(device, event) {
   const attendance = verifiedAttendanceEvent(event);
   if (!employeeNo || Number.isNaN(occurredAt.getTime()) || !attendance)
     return null;
-  if (device.eventsClearedAt && occurredAt <= device.eventsClearedAt) return null;
+  if (device.eventsClearedAt && occurredAt <= device.eventsClearedAt)
+    return null;
   const person = await eventsModel.person(device.id, employeeNo),
     serial = event.serialNo ?? event.serialNumber,
-    deviceEventId = serial != null
-      ? String(serial)
-      : crypto
-          .createHash("sha256")
-          .update(`${employeeNo}:${occurredAt.toISOString()}:${major}:${minor}`)
-          .digest("hex"),
-    saved = await eventsModel.upsert(device.id, deviceEventId, {
+    deviceEventId =
+      serial != null
+        ? String(serial)
+        : crypto
+            .createHash("sha256")
+            .update(
+              `${employeeNo}:${occurredAt.toISOString()}:${major}:${minor}`,
+            )
+            .digest("hex"),
+    result = await eventsModel.saveUnique(device.id, deviceEventId, {
       personId: person?.id,
       employeeNo,
       personName: event.name ?? person?.name,
@@ -105,6 +112,8 @@ export async function saveLiveEvent(device, event) {
       occurredAt,
       verification: attendance.verification,
     });
+  if (!result.created) return null;
+  const saved = result.event;
   const message = { ...saved, device: { name: device.name } };
   for (const subscriber of subscribers) subscriber(message);
   return message;
@@ -116,15 +125,23 @@ const runStream = async (device, controller) => {
     try {
       const parser = createParser((event) => {
         void saveLiveEvent(device, event).catch((error) =>
-          console.error(`Attendance event save failed for ${device.name}:`, error),
+          console.error(
+            `Attendance event save failed for ${device.name}:`,
+            error,
+          ),
         );
       });
-      await eventsModel.status(device.id, { status: "online", lastSeenAt: new Date() });
+      await eventsModel.status(device.id, {
+        status: "online",
+        lastSeenAt: new Date(),
+      });
       await new HikvisionClient(device).alertStream(parser, controller.signal);
       retry = 1000;
     } catch (error) {
       if (controller.signal.aborted) break;
-      await eventsModel.status(device.id, { status: "offline" }).catch(() => {});
+      await eventsModel
+        .status(device.id, { status: "offline" })
+        .catch(() => {});
     }
     if (!controller.signal.aborted) {
       await delay(retry);

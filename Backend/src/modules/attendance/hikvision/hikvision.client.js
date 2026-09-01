@@ -548,7 +548,7 @@ export class HikvisionClient {
         AcsEventCond: {
           searchID,
           searchResultPosition: position,
-          maxResults: 100,
+          maxResults: 30,
           major: 0,
           minor: 0,
           startTime: deviceTime(startTime),
@@ -556,5 +556,42 @@ export class HikvisionClient {
         },
       },
     );
+  }
+  async deleteEventsThrough(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      const error = new Error("Invalid attendance cleanup cutoff.");
+      error.status = 400;
+      throw error;
+    }
+    const path = "/ISAPI/AccessControl/AcsEvent/StorageCfg?format=json";
+    const previous = await this.readRequest("GET", path),
+      deviceTime = String(
+        await this.readRequest("GET", "/ISAPI/System/time"),
+      ).match(/<localTime>([^<]+)<\/localTime>/)?.[1],
+      offset = deviceTime?.match(/([+-])(\d{2}):(\d{2})$/);
+    if (!offset) {
+      const error = new Error("Unable to determine the terminal timezone.");
+      error.status = 502;
+      throw error;
+    }
+    const offsetMinutes =
+        (offset[1] === "-" ? -1 : 1) *
+        (Number(offset[2]) * 60 + Number(offset[3])),
+      checkTime = new Date(date.getTime() + offsetMinutes * 60 * 1000)
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
+    try {
+      return await this.readRequest("PUT", path, {
+        EventStorageCfg: {
+          mode: "time",
+          checkTime,
+        },
+      });
+    } finally {
+      const config = previous.EventStorageCfg ?? previous;
+      await this.readRequest("PUT", path, { EventStorageCfg: config });
+    }
   }
 }

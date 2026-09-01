@@ -57,7 +57,11 @@ const validateLeadership = async (id, input) => {
       : null,
   ]);
   const departmentId = input.departmentId ?? current?.departmentId;
-  if (!leader?.isTeamLeader || !departmentId || leader.departmentId !== departmentId)
+  if (
+    !leader?.isTeamLeader ||
+    !departmentId ||
+    leader.departmentId !== departmentId
+  )
     throw Object.assign(
       new Error("The selected team leader must lead the same department."),
       { status: 422 },
@@ -80,10 +84,14 @@ export const employeeModel = {
   update: async (id, data) => {
     await validateLeadership(id, data);
     if (data.isTeamLeader === false) {
-      const members = await prisma.employee.count({ where: { teamLeaderId: id } });
+      const members = await prisma.employee.count({
+        where: { teamLeaderId: id },
+      });
       if (members)
         throw Object.assign(
-          new Error("Reassign this leader's employees before removing leadership."),
+          new Error(
+            "Reassign this leader's employees before removing leadership.",
+          ),
           { status: 409 },
         );
     }
@@ -119,6 +127,9 @@ export const employeeModel = {
       });
       if (staff) {
         await tx.appointment.deleteMany({ where: { doctorId: staff.id } });
+        await tx.surgeryAppointment.deleteMany({
+          where: { doctorId: staff.id },
+        });
         await tx.healthStaff.delete({ where: { id: staff.id } });
       }
       await tx.salaryAdvance.deleteMany({ where: { employeeId: id } });
