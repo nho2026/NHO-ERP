@@ -30,7 +30,11 @@ import HrAttendancePage from "@/features/hr/pages/HrAttendancePage";
 import PayrollPage from "@/features/hr/pages/PayrollPage";
 import MeetingsPage from "@/features/meetings/MeetingsPage";
 import TargetsPage from "@/features/targets/pages/TargetsPage";
-import CrmPage, { CrmPipeline } from "@/features/crm/pages/CrmPage";
+import CrmPage from "@/features/crm/pages/CrmPage";
+import PatientProfilePage from "@/features/crm/pages/PatientProfilePage";
+import CrmFormsPage from "@/features/crm/pages/CrmFormsPage";
+import LeadProgressPage from "@/features/crm/pages/LeadProgressPage";
+import LeadDetailPage from "@/features/crm/pages/LeadDetailPage";
 import SystemLogsPage from "@/features/system-logs/pages/SystemLogsPage";
 import { Toaster } from "sonner";
 import { DirectionProvider } from "@radix-ui/react-direction";
@@ -165,17 +169,30 @@ export default function App() {
             element={secured("employees.view", <CrmPage resource="leads" />)}
           />
           <Route
+            path="/crm/leads/progress"
+            element={secured("employees.view", <LeadProgressPage />)}
+          />
+          <Route
+            path="/crm/leads/:id"
+            element={secured("employees.view", <LeadDetailPage />)}
+          />
+          <Route
             path="/crm/patients"
             element={secured("employees.view", <CrmPage resource="patients" />)}
+          />
+          <Route
+            path="/crm/patients/:id"
+            element={secured("employees.view", <PatientProfilePage />)}
+          />
+          <Route
+            path="/crm/forms"
+            element={secured("employees.view", <CrmFormsPage />)}
           />
           <Route
             path="/crm/appointments"
             element={secured(
               "healthcare.appointments.view",
-              <div className="space-y-5">
-                <CrmPipeline />
-                <HealthcarePage resource="appointments" />
-              </div>,
+              <HealthcarePage resource="appointments" />,
             )}
           />
           <Route

@@ -422,26 +422,43 @@ model HealthStaff {
 }
 
 model CrmLead {
-  id                 String         @id @default(cuid())
+  id                 String                 @id @default(cuid())
+  code               String?                @unique
   name               String
   phone              String
+  age                Int?
+  gender             String?
+  address            String?
   email              String?
   source             String?
   interest           String?
-  notes              String?        @db.Text
-  status             String         @default("new")
+  notes              String?                @db.Text
+  status             String                 @default("new")
   convertedPatientId String?
-  convertedPatient   Patient?       @relation(fields: [convertedPatientId], references: [id], onDelete: SetNull)
+  convertedPatient   Patient?               @relation(fields: [convertedPatientId], references: [id], onDelete: SetNull)
   notifications      Notification[]
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  statusHistory      CrmLeadStatusHistory[]
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
 
   @@index([status, createdAt])
+  @@index([phone])
+}
+
+model CrmLeadStatusHistory {
+  id         String   @id @default(cuid())
+  leadId     String
+  fromStatus String?
+  toStatus   String
+  createdAt  DateTime @default(now())
+  lead       CrmLead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
 }
 
 model Patient {
-  id                  String               @id @default(cuid())
-  patientCode         String               @unique
+  id                  String                  @id @default(cuid())
+  patientCode         String                  @unique
   firstName           String
   lastName            String
   phone               String
@@ -450,17 +467,54 @@ model Patient {
   gender              String?
   address             String?
   bloodType           String?
-  allergies           String?              @db.Text
-  medicalNotes        String?              @db.Text
-  status              String               @default("active")
+  weightKg            Float?
+  heightCm            Float?
+  isMarried           Boolean                 @default(false)
+  childrenCount       Int                     @default(0)
+  hasDiabetes         Boolean                 @default(false)
+  hasHypertension     Boolean                 @default(false)
+  allergies           String?                 @db.Text
+  medicalNotes        String?                 @db.Text
+  status              String                  @default("active")
   surgeryAppointments SurgeryAppointment[]
   payments            PatientPayment[]
   sourceLeads         CrmLead[]
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  formSubmissions     PatientFormSubmission[]
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
 
   @@index([phone])
   @@index([status])
+}
+
+model CrmFormTemplate {
+  id          String                  @id @default(cuid())
+  code        String                  @unique
+  name        String
+  description String?                 @db.Text
+  category    String                  @default("clinical")
+  fields      Json
+  status      String                  @default("active")
+  submissions PatientFormSubmission[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([category, status])
+}
+
+model PatientFormSubmission {
+  id             String          @id @default(cuid())
+  patientId      String
+  formTemplateId String
+  data           Json
+  submittedById  String?
+  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  formTemplate   CrmFormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Restrict)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([patientId, createdAt])
+  @@index([formTemplateId])
 }
 
 model Surgery {

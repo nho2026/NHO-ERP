@@ -280,10 +280,14 @@ export async function seedBusinessModules(count = 10) {
   // Healthcare CRM: realistic leads, patients, surgeries, appointments, and payments.
   for (let index = 0; index < count; index += 1) {
     const data = {
+      code: `LEAD-${pad(index + 1)}`,
       name: patientNames[index % patientNames.length],
       phone: `075040${String(index + 1).padStart(5, "0")}`,
       email: `crm.patient${pad(index + 1)}@example.com`,
       source: ["website", "phone", "referral", "social_media"][index % 4],
+      age: 20 + (index % 50),
+      gender: index % 2 ? "female" : "male",
+      address: ["Erbil", "Sulaymaniyah", "Duhok", "Kirkuk"][index % 4],
       interest: ["General consultation", "Dental treatment", "Eye examination", "Surgery consultation"][index % 4],
       notes: `SEED: CRM lead ${index + 1}`,
       status: ["new", "contacted", "qualified", "qualified", "lost"][index % 5],

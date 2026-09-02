@@ -1,0 +1,17 @@
+import { z } from "zod";
+
+const booleanFilter = z
+  .enum(["true", "false"])
+  .transform((value) => value === "true");
+
+export const patientFilterSchema = z.object({
+  search: z.string().trim().max(191).optional(),
+  gender: z.enum(["male", "female", "other"]).optional(),
+  bloodType: z
+    .enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
+    .optional(),
+  status: z.enum(["active", "inactive"]).optional(),
+  isMarried: booleanFilter.optional(),
+  hasDiabetes: booleanFilter.optional(),
+  hasHypertension: booleanFilter.optional(),
+});

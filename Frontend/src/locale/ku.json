@@ -131,6 +131,8 @@
     "targets": "ئامانجەکان",
     "crmLeads": "کڕیارە چاوەڕوانەکان",
     "crmPatients": "نەخۆشەکان",
+    "leadProgressOverview": "پوختەی پێشکەوتنی پەیوەندییەکان",
+    "crmForms": "فۆرم و پشکنینەکان",
     "doctorAppointments": "نۆرەی پزیشک",
     "surgeryAppointments": "نۆرەی نەشتەرگەری",
     "crmPayments": "پارەدانەکان",
@@ -603,6 +605,128 @@
     "pickDateTime": "بەروار و کات هەڵبژێرە",
     "time": "کات",
     "done": "تەواو"
+  },
+  "crm": {
+    "eyebrow": "بەڕێوەبردنی پەیوەندی نەخۆش",
+    "progress": {
+      "eyebrow": "ڕێڕەوی پەیوەندییەکان",
+      "title": "پوختەی پێشکەوتنی پەیوەندییەکان",
+      "description": "بەدواداچوونی هەر پەیوەندییەک لە یەکەم پەیوەندی تا گۆڕینی بۆ نەخۆش.",
+      "search": "گەڕان لە پەیوەندییەکان…",
+      "filter": "پاڵاوتن",
+      "filterTitle": "پاڵاوتنی پێشکەوتن",
+      "filterDescription": "ئەنجامەکانی تەواوی ڕێڕەوەکە دیاری بکە.",
+      "allStatuses": "هەموو دۆخەکان",
+      "allGenders": "هەموو ڕەگەزەکان",
+      "lead": "پەیوەندی",
+      "contact": "پەیوەندی",
+      "lastUpdate": "دوا نوێکردنەوە",
+      "currentProgress": "پێشکەوتنی ئێستا",
+      "view": "بینینی پێشکەوتن"
+    },
+    "filterPatientsDescription": "پاڵاوتنی زانیاری پزیشکی و کەسی لە هەموو پەڕەکاندا.",
+    "placeholders": {
+      "selectField": "{{field}} هەڵبژێرە",
+      "leadSource": "بەڕێوەبەرایەتی، تۆڕە کۆمەڵایەتییەکان…",
+      "sourceExamples": "ماڵپەڕ، ڕەوانەکردن، تۆڕە کۆمەڵایەتییەکان…",
+      "fieldLabel": "ناونیشانی خانە",
+      "commaOptions": "هەڵبژاردەکان بە کۆما جیا بکەرەوە",
+      "selectGender": "ڕەگەز هەڵبژێرە",
+      "selectBloodType": "جۆری خوێن هەڵبژێرە",
+      "chooseForm": "فۆرمێک هەڵبژێرە"
+    },
+    "actions": {
+      "addRecord": "تۆمار زیاد بکە",
+      "editRecord": "تۆمار دەستکاری بکە",
+      "selectPatient": "نەخۆش هەڵبژێرە",
+      "searchPatients": "بە ناو یان کۆدی نەخۆش بگەڕێ…",
+      "searchRecords": "لە تۆمارەکان بگەڕێ…",
+      "filterLeads": "پاڵاوتنی پەیوەندییەکان",
+      "filterPatients": "پاڵاوتنی نەخۆشان",
+      "clear": "پاککردنەوە",
+      "applyFilters": "جێبەجێکردنی پاڵاوتن",
+      "grid": "تۆڕ",
+      "table": "خشتە",
+      "calendar": "ڕۆژژمێر"
+    },
+    "resources": {
+      "leads": {
+        "title": "پەیوەندییە نوێکان",
+        "description": "بەدواداچوونی نەخۆشی پێشبینیکراو لە یەکەم پەیوەندی تا گۆڕین."
+      },
+      "patients": {
+        "title": "نەخۆشان",
+        "description": "تۆمار و زانیاری پەیوەندی پزیشکی ناوەندی نەخۆشان."
+      },
+      "surgeries": {
+        "title": "نەشتەرگەرییەکان",
+        "description": "بەڕێوەبردنی لیستی نەشتەرگەری و پرۆسەکان."
+      },
+      "surgery-appointments": {
+        "title": "چاوپێکەوتنی نەشتەرگەری",
+        "description": "خشتەکردنی پرۆسەکان لەگەڵ نەخۆش و نەشتەرگەڕ و ژووری نەشتەرگەری."
+      },
+      "payments": {
+        "title": "پارەدانەکان",
+        "description": "تۆمارکردنی پارەدانی نەخۆش بۆ چاوپێکەوتن و نەشتەرگەری."
+      }
+    },
+    "values": {
+      "appointment_requested": "چاوپێکەوتن",
+      "all": "هەموو",
+      "male": "نێر",
+      "female": "مێ",
+      "other": "تر",
+      "active": "چالاک",
+      "inactive": "ناچالاک",
+      "new": "نوێ",
+      "contacted": "پەیوەندی کراوە",
+      "qualified": "گونجاو",
+      "converted": "گۆڕدراو",
+      "lost": "لەدەستچوو",
+      "scheduled": "خشتەکراو",
+      "confirmed": "پشتڕاستکراو",
+      "in_progress": "لە جێبەجێکردندایە",
+      "completed": "تەواو",
+      "cancelled": "هەڵوەشاوە",
+      "pending": "چاوەڕوان",
+      "paid": "دراوە",
+      "refunded": "گەڕێندراوەتەوە"
+    },
+    "fields": {
+      "code": "کۆد",
+      "name": "ناوی تەواو",
+      "phone": "تەلەفۆن",
+      "source": "سەرچاوە",
+      "age": "تەمەن",
+      "gender": "ڕەگەز",
+      "address": "ناونیشان",
+      "email": "ئیمەیڵ",
+      "interest": "خزمەتگوزاری داواکراو",
+      "notes": "تێبینی",
+      "status": "دۆخ",
+      "patientCode": "کۆدی نەخۆش",
+      "firstName": "ناوی یەکەم",
+      "lastName": "ناوی خێزان",
+      "dateOfBirth": "بەرواری لەدایکبوون",
+      "bloodType": "جۆری خوێن",
+      "allergies": "هەستیاری",
+      "medicalNotes": "تێبینی پزیشکی",
+      "description": "وەسف",
+      "durationMinutes": "ماوە (خولەک)",
+      "basePrice": "نرخی بنەڕەتی",
+      "patientId": "نەخۆش",
+      "doctorId": "پزیشک",
+      "surgeryId": "نەشتەرگەری",
+      "scheduledAt": "بەروار و کات",
+      "operatingRoom": "ژووری نەشتەرگەری",
+      "preOpNotes": "تێبینی پێش نەشتەرگەری",
+      "postOpNotes": "تێبینی دوای نەشتەرگەری",
+      "amount": "بڕ",
+      "paymentMethod": "شێوازی پارەدان",
+      "reference": "سەرچاوە",
+      "paidAt": "بەروار و کاتی پارەدان"
+    }
   },
   "healthcareAdmin": {
     "descriptions": {

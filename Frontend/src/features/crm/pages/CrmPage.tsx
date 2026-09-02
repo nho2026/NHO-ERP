@@ -1,16 +1,18 @@
 import { useCallback, useMemo, useState } from "react";
 import {
-  ArrowRight,
   CalendarDays,
-  CreditCard,
+  LayoutGrid,
+  List,
+  ListFilter,
+  MapPin,
+  Pencil,
   Plus,
+  Phone,
   Search,
-  Stethoscope,
   Trash2,
-  UserRound,
-  UsersRound,
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { crmApi, type CrmRecord, type CrmResource } from "../api/crm.api";
 import { useApiResource } from "@/shared/hooks/useApiResource";
@@ -18,6 +20,10 @@ import { storedUser, hasPermission } from "@/features/auth/access";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { PaginationControls } from "@/shared/components/ui/pagination-controls";
+import { SurgeryAppointmentCalendar } from "../components/SurgeryAppointmentCalendar";
+import { SearchableSelect } from "@/shared/components/ui/searchable-select";
 import { DeleteConfirmationDialog } from "@/shared/components/ui/confirmation-dialog";
 import { FormDatePicker } from "@/shared/components/ui/form-date-picker";
 import {
@@ -34,6 +40,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/shared/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/shared/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -59,6 +70,71 @@ type Field = {
   options?: string[];
   required?: boolean;
 };
+type LeadFilters = {
+  source: string;
+  gender: string;
+  status: string;
+  minAge: string;
+  maxAge: string;
+};
+const emptyLeadFilters: LeadFilters = {
+  source: "",
+  gender: "",
+  status: "",
+  minAge: "",
+  maxAge: "",
+};
+type PatientFilters = {
+  gender: string;
+  bloodType: string;
+  status: string;
+  isMarried: string;
+  hasDiabetes: string;
+  hasHypertension: string;
+};
+const emptyPatientFilters: PatientFilters = {
+  gender: "",
+  bloodType: "",
+  status: "",
+  isMarried: "",
+  hasDiabetes: "",
+  hasHypertension: "",
+};
+function PatientFilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+  allLabel,
+}: {
+  label: string;
+  value: string;
+  options: Array<[string, string]>;
+  onChange: (value: string) => void;
+  allLabel: string;
+}) {
+  return (
+    <label className="grid gap-1.5 text-xs font-medium">
+      {label}
+      <Select
+        value={value || "all"}
+        onValueChange={(next) => onChange(next === "all" ? "" : next)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">{allLabel}</SelectItem>
+          {options.map(([optionValue, optionLabel]) => (
+            <SelectItem key={optionValue} value={optionValue}>
+              {optionLabel}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </label>
+  );
+}
 const configs: Record<
   CrmResource,
   { title: string; description: string; fields: Field[]; columns: string[] }
@@ -67,10 +143,19 @@ const configs: Record<
     title: "Leads",
     description: "Track prospective patients from first contact to conversion.",
     fields: [
+      { name: "code", label: "Lead code", required: true },
       { name: "name", label: "Full name", required: true },
       { name: "phone", label: "Phone", required: true },
+      { name: "source", label: "Lead source", required: true },
+      { name: "age", label: "Age", type: "number" },
+      {
+        name: "gender",
+        label: "Gender",
+        type: "select",
+        options: ["male", "female", "other"],
+      },
+      { name: "address", label: "Address" },
       { name: "email", label: "Email" },
-      { name: "source", label: "Lead source" },
       { name: "interest", label: "Interested service" },
       { name: "notes", label: "Notes", type: "textarea" },
       {
@@ -81,7 +166,16 @@ const configs: Record<
         required: true,
       },
     ],
-    columns: ["name", "phone", "interest", "source", "status"],
+    columns: [
+      "code",
+      "name",
+      "phone",
+      "source",
+      "age",
+      "gender",
+      "address",
+      "status",
+    ],
   },
   patients: {
     title: "Patients",
@@ -264,96 +358,60 @@ const statusStyles: Record<string, string> = {
 const statusClass = (status: unknown) =>
   statusStyles[String(status)] ??
   "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300";
-const pipelineSteps = [
-  {
-    path: "/crm/leads",
-    label: "Lead",
-    detail: "Qualify & convert",
-    icon: UsersRound,
-  },
-  {
-    path: "/crm/patients",
-    label: "Patient",
-    detail: "Patient profile",
-    icon: UserRound,
-  },
-  {
-    path: "/crm/appointments",
-    label: "Doctor appointment",
-    detail: "Consultation",
-    icon: Stethoscope,
-  },
-  {
-    path: "/crm/surgery-appointments",
-    label: "Surgery appointment",
-    detail: "Schedule procedure",
-    icon: CalendarDays,
-  },
-  {
-    path: "/crm/payments",
-    label: "Surgery & payment",
-    detail: "Complete journey",
-    icon: CreditCard,
-  },
-];
-export function CrmPipeline() {
-  const { pathname } = useLocation();
-  return (
-    <section className="overflow-x-auto rounded-xl border bg-card px-4 py-3 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[.14em] text-primary">
-            Patient journey
-          </p>
-          <p className="text-[10px] text-muted-foreground">
-            From first contact to completed treatment
-          </p>
-        </div>
-      </div>
-      <div className="flex min-w-[720px] items-start">
-        {pipelineSteps.map(({ path, label, detail, icon: Icon }, index) => (
-          <div key={path} className="flex flex-1 items-start">
-            <Link
-              to={path}
-              className="group flex min-w-28 flex-col items-center text-center"
-            >
-              <span
-                className={`grid size-9 place-items-center rounded-full border-2 transition-all ${pathname === path ? "border-primary bg-primary text-primary-foreground shadow-[0_0_0_4px_color-mix(in_srgb,var(--primary)_12%,transparent)]" : "border-border bg-muted/55 text-muted-foreground group-hover:border-primary/45 group-hover:text-primary"}`}
-              >
-                <Icon className="size-4" />
-              </span>
-              <span className="mt-2">
-                <strong
-                  className={`block text-[11px] ${pathname === path ? "text-primary" : "text-foreground"}`}
-                >
-                  {label}
-                </strong>
-                <small className="mt-0.5 block text-[8px] text-muted-foreground">
-                  {detail}
-                </small>
-              </span>
-            </Link>
-            {index < pipelineSteps.length - 1 && (
-              <span className="mt-4 h-px flex-1 bg-border">
-                <ArrowRight className="ms-auto size-3 -translate-y-1.5 text-muted-foreground rtl:rotate-180" />
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
+const patientAge = (dateOfBirth: unknown) => {
+  if (!dateOfBirth) return "—";
+  const birth = new Date(String(dateOfBirth));
+  if (Number.isNaN(birth.getTime())) return "—";
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  if (
+    today.getMonth() < birth.getMonth() ||
+    (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())
+  )
+    age -= 1;
+  return String(age);
+};
 export default function CrmPage({ resource }: { resource: CrmResource }) {
+  const { t } = useTranslation();
   const config = configs[resource],
     user = storedUser(),
     canManage = hasPermission(user, "employees.manage");
   const [page, setPage] = useState(1);
+  const [leadFilters, setLeadFilters] = useState<LeadFilters>(emptyLeadFilters);
+  const [draftFilters, setDraftFilters] =
+    useState<LeadFilters>(emptyLeadFilters);
+  const [patientFilters, setPatientFilters] =
+    useState<PatientFilters>(emptyPatientFilters);
+  const [draftPatientFilters, setDraftPatientFilters] =
+    useState<PatientFilters>(emptyPatientFilters);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [patientView, setPatientView] = useState<"grid" | "table">("grid");
+  const [surgeryView, setSurgeryView] = useState<"calendar" | "table">(
+    "calendar",
+  );
+  const [surgeryDraftAt, setSurgeryDraftAt] = useState("");
   const data = useApiResource(
-    useCallback(() => crmApi[resource].list(page), [resource, page]),
+    useCallback(
+      () =>
+        crmApi[resource].list(
+          page,
+          50,
+          resource === "leads"
+            ? Object.fromEntries(
+                Object.entries(leadFilters).filter(([, value]) => value),
+              )
+            : resource === "patients"
+              ? Object.fromEntries(
+                  Object.entries(patientFilters).filter(([, value]) => value),
+                )
+              : {},
+        ),
+      [resource, page, leadFilters, patientFilters],
+    ),
   );
   const lookups = useApiResource(useCallback(() => crmApi.lookups(), []));
   const [open, setOpen] = useState(false),
+    [editingRecord, setEditingRecord] = useState<CrmRecord | null>(null),
     [search, setSearch] = useState("");
   const rows = useMemo(
     () =>
@@ -382,10 +440,17 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       if (field.type === "number" && raw) payload[field.name] = Number(raw);
     }
     try {
-      await crmApi[resource].create(payload);
+      if (editingRecord) {
+        await crmApi[resource].update(editingRecord.id, payload);
+      } else {
+        await crmApi[resource].create(payload);
+      }
       setOpen(false);
+      setEditingRecord(null);
       await Promise.all([data.refresh(), lookups.refresh()]);
-      toast.success("Saved successfully.");
+      toast.success(
+        editingRecord ? "Record updated successfully." : "Saved successfully.",
+      );
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Unable to save record.",
@@ -400,7 +465,10 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
     const value = row[key];
     if (key.endsWith("At") && value)
       return new Date(String(value)).toLocaleString();
-    return String(value ?? "—").replaceAll("_", " ");
+    const display = String(value ?? "—").replaceAll("_", " ");
+    return typeof value === "string"
+      ? t(`crm.values.${value}`, { defaultValue: display })
+      : display;
   };
   const updateLeadStatus = async (row: CrmRecord, status: string) => {
     try {
@@ -417,49 +485,118 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       );
     }
   };
+  const activeFilterCount = Object.values(leadFilters).filter(Boolean).length;
+  const applyLeadFilters = () => {
+    if (
+      draftFilters.minAge &&
+      draftFilters.maxAge &&
+      Number(draftFilters.minAge) > Number(draftFilters.maxAge)
+    ) {
+      toast.error("Minimum age cannot be greater than maximum age.");
+      return;
+    }
+    setPage(1);
+    setLeadFilters(draftFilters);
+    setFilterOpen(false);
+  };
+  const clearLeadFilters = () => {
+    setPage(1);
+    setDraftFilters(emptyLeadFilters);
+    setLeadFilters(emptyLeadFilters);
+    setFilterOpen(false);
+  };
+  const activePatientFilterCount =
+    Object.values(patientFilters).filter(Boolean).length;
+  const applyPatientFilters = () => {
+    setPage(1);
+    setPatientFilters(draftPatientFilters);
+    setFilterOpen(false);
+  };
+  const clearPatientFilters = () => {
+    setPage(1);
+    setDraftPatientFilters(emptyPatientFilters);
+    setPatientFilters(emptyPatientFilters);
+    setFilterOpen(false);
+  };
   return (
     <div className="mx-auto max-w-[1500px] space-y-5">
-      <CrmPipeline />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">
-            Healthcare CRM
+            {t("crm.eyebrow")}
           </p>
-          <h1 className="mt-1 text-2xl font-bold">{config.title}</h1>
+          <h1 className="mt-1 text-2xl font-bold">
+            {t(`crm.resources.${resource}.title`, {
+              defaultValue: config.title,
+            })}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {config.description}
+            {t(`crm.resources.${resource}.description`, {
+              defaultValue: config.description,
+            })}
           </p>
         </div>
         {canManage && (
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog
+            open={open}
+            onOpenChange={(nextOpen) => {
+              setOpen(nextOpen);
+              if (!nextOpen) setEditingRecord(null);
+            }}
+          >
             <DialogTrigger asChild>
-              <Button>
+              <Button
+                onClick={() => {
+                  setEditingRecord(null);
+                  setSurgeryDraftAt("");
+                }}
+              >
                 <Plus />
-                Add record
+                {t("crm.actions.addRecord")}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Add {config.title.toLowerCase()}</DialogTitle>
+                <DialogTitle>
+                  {editingRecord
+                    ? t("crm.actions.editRecord")
+                    : t("crm.actions.addRecord")}
+                </DialogTitle>
               </DialogHeader>
-              <form className="grid gap-4 sm:grid-cols-2" onSubmit={submit}>
+              <form
+                key={editingRecord?.id ?? surgeryDraftAt ?? "create"}
+                className="grid gap-4 sm:grid-cols-2"
+                onSubmit={submit}
+              >
                 {config.fields.map((field) => (
                   <label
                     key={field.name}
                     className={`grid gap-1.5 text-sm font-medium ${field.type === "textarea" ? "sm:col-span-2" : ""}`}
                   >
-                    {field.label}
+                    {t(`crm.fields.${field.name}`, {
+                      defaultValue: field.label,
+                    })}
                     {field.type === "select" ? (
-                      <Select name={field.name} required={field.required}>
+                      <Select
+                        name={field.name}
+                        required={field.required}
+                        defaultValue={String(editingRecord?.[field.name] ?? "")}
+                      >
                         <SelectTrigger>
                           <SelectValue
-                            placeholder={`Select ${field.label.toLowerCase()}`}
+                            placeholder={t("crm.placeholders.selectField", {
+                              field: t(`crm.fields.${field.name}`, {
+                                defaultValue: field.label,
+                              }),
+                            })}
                           />
                         </SelectTrigger>
                         <SelectContent>
                           {field.options?.map((x) => (
                             <SelectItem key={x} value={x}>
-                              {x.replaceAll("_", " ")}
+                              {t(`crm.values.${x}`, {
+                                defaultValue: x.replaceAll("_", " "),
+                              })}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -467,8 +604,27 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                     ) : field.type === "date" || field.type === "datetime" ? (
                       <FormDatePicker
                         name={field.name}
+                        initialValue={String(
+                          editingRecord?.[field.name] ??
+                            (field.name === "scheduledAt"
+                              ? surgeryDraftAt
+                              : ""),
+                        )}
                         includeTime={field.type === "datetime"}
                         required={field.required}
+                      />
+                    ) : field.type === "patient" ? (
+                      <SearchableSelect
+                        name={field.name}
+                        required={field.required}
+                        defaultValue={String(editingRecord?.[field.name] ?? "")}
+                        placeholder={t("crm.actions.selectPatient")}
+                        searchPlaceholder={t("crm.actions.searchPatients")}
+                        options={choices(field).map((patient) => ({
+                          value: patient.id,
+                          label: labelOf(patient, field.type),
+                          searchText: String(patient.patientCode ?? ""),
+                        }))}
                       />
                     ) : field.type &&
                       [
@@ -477,10 +633,18 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                         "surgery",
                         "surgeryAppointment",
                       ].includes(field.type) ? (
-                      <Select name={field.name} required={field.required}>
+                      <Select
+                        name={field.name}
+                        required={field.required}
+                        defaultValue={String(editingRecord?.[field.name] ?? "")}
+                      >
                         <SelectTrigger>
                           <SelectValue
-                            placeholder={`Select ${field.label.toLowerCase()}`}
+                            placeholder={t("crm.placeholders.selectField", {
+                              field: t(`crm.fields.${field.name}`, {
+                                defaultValue: field.label,
+                              }),
+                            })}
                           />
                         </SelectTrigger>
                         <SelectContent>
@@ -494,6 +658,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                     ) : field.type === "textarea" ? (
                       <textarea
                         name={field.name}
+                        defaultValue={String(editingRecord?.[field.name] ?? "")}
                         className="min-h-24 rounded-md border bg-background p-3"
                       />
                     ) : (
@@ -501,124 +666,616 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                         name={field.name}
                         type={field.type === "number" ? "number" : "text"}
                         step={field.type === "number" ? "any" : undefined}
+                        defaultValue={String(editingRecord?.[field.name] ?? "")}
                         required={field.required}
                       />
                     )}
                   </label>
                 ))}
                 <Button className="sm:col-span-2" type="submit">
-                  Save
+                  {editingRecord ? "Save changes" : "Save"}
                 </Button>
               </form>
             </DialogContent>
           </Dialog>
         )}
       </header>
-      <div className="relative max-w-md">
-        <Search className="absolute start-3 top-2.5 size-4 text-muted-foreground" />
-        <Input
-          className="ps-9"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={`Search ${config.title.toLowerCase()}…`}
-        />
+      <div className="flex max-w-2xl flex-wrap items-center gap-2">
+        <div className="relative min-w-64 flex-1">
+          <Search className="absolute start-3 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            className="ps-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("crm.actions.searchRecords")}
+          />
+        </div>
+        {resource === "leads" && (
+          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="relative">
+                <ListFilter />
+                {t("crm.actions.filterLeads")}
+                {activeFilterCount > 0 && (
+                  <Badge className="ms-1 h-5 min-w-5 justify-center rounded-full px-1.5">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 p-4">
+              <div className="mb-4">
+                <p className="font-semibold">{t("crm.actions.filterLeads")}</p>
+                <p className="text-xs text-muted-foreground">
+                  Narrow results across every page.
+                </p>
+              </div>
+              <div className="grid gap-3">
+                <label className="grid gap-1.5 text-xs font-medium">
+                  Source
+                  <Input
+                    value={draftFilters.source}
+                    onChange={(event) =>
+                      setDraftFilters((current) => ({
+                        ...current,
+                        source: event.target.value,
+                      }))
+                    }
+                    placeholder={t("crm.placeholders.leadSource")}
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="grid gap-1.5 text-xs font-medium">
+                    Gender
+                    <Select
+                      value={draftFilters.gender || "all"}
+                      onValueChange={(gender) =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          gender: gender === "all" ? "" : gender,
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-medium">
+                    Status
+                    <Select
+                      value={draftFilters.status || "all"}
+                      onValueChange={(status) =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          status: status === "all" ? "" : status,
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        {[
+                          "new",
+                          "contacted",
+                          "qualified",
+                          "converted",
+                          "lost",
+                        ].map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status.replaceAll("_", " ")}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="grid gap-1.5 text-xs font-medium">
+                    Minimum age
+                    <Input
+                      type="number"
+                      min={0}
+                      max={150}
+                      value={draftFilters.minAge}
+                      onChange={(event) =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          minAge: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-medium">
+                    Maximum age
+                    <Input
+                      type="number"
+                      min={0}
+                      max={150}
+                      value={draftFilters.maxAge}
+                      onChange={(event) =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          maxAge: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+                <div className="mt-1 flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={clearLeadFilters}
+                  >
+                    {t("crm.actions.clear")}
+                  </Button>
+                  <Button type="button" onClick={applyLeadFilters}>
+                    {t("crm.actions.applyFilters")}
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
+        {resource === "patients" && (
+          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <ListFilter /> {t("crm.actions.filterPatients")}
+                {activePatientFilterCount > 0 && (
+                  <Badge className="ms-1 h-5 min-w-5 justify-center rounded-full px-1.5">
+                    {activePatientFilterCount}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-96 p-4">
+              <div className="mb-4">
+                <p className="font-semibold">
+                  {t("crm.actions.filterPatients")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t("crm.filterPatientsDescription")}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <PatientFilterSelect
+                  allLabel={t("crm.values.all")}
+                  label="Gender"
+                  value={draftPatientFilters.gender}
+                  options={[
+                    ["male", "Male"],
+                    ["female", "Female"],
+                    ["other", "Other"],
+                  ]}
+                  onChange={(gender) =>
+                    setDraftPatientFilters((current) => ({
+                      ...current,
+                      gender,
+                    }))
+                  }
+                />
+                <PatientFilterSelect
+                  allLabel={t("crm.values.all")}
+                  label="Blood type"
+                  value={draftPatientFilters.bloodType}
+                  options={[
+                    "A+",
+                    "A-",
+                    "B+",
+                    "B-",
+                    "AB+",
+                    "AB-",
+                    "O+",
+                    "O-",
+                  ].map((value) => [value, value])}
+                  onChange={(bloodType) =>
+                    setDraftPatientFilters((current) => ({
+                      ...current,
+                      bloodType,
+                    }))
+                  }
+                />
+                <PatientFilterSelect
+                  allLabel={t("crm.values.all")}
+                  label="Status"
+                  value={draftPatientFilters.status}
+                  options={[
+                    ["active", "Active"],
+                    ["inactive", "Inactive"],
+                  ]}
+                  onChange={(status) =>
+                    setDraftPatientFilters((current) => ({
+                      ...current,
+                      status,
+                    }))
+                  }
+                />
+                <PatientFilterSelect
+                  allLabel={t("crm.values.all")}
+                  label="Marital status"
+                  value={draftPatientFilters.isMarried}
+                  options={[
+                    ["true", "Married"],
+                    ["false", "Not married"],
+                  ]}
+                  onChange={(isMarried) =>
+                    setDraftPatientFilters((current) => ({
+                      ...current,
+                      isMarried,
+                    }))
+                  }
+                />
+                <PatientFilterSelect
+                  allLabel={t("crm.values.all")}
+                  label="Diabetes"
+                  value={draftPatientFilters.hasDiabetes}
+                  options={[
+                    ["true", "Has diabetes"],
+                    ["false", "No diabetes"],
+                  ]}
+                  onChange={(hasDiabetes) =>
+                    setDraftPatientFilters((current) => ({
+                      ...current,
+                      hasDiabetes,
+                    }))
+                  }
+                />
+                <PatientFilterSelect
+                  allLabel={t("crm.values.all")}
+                  label="Blood pressure"
+                  value={draftPatientFilters.hasHypertension}
+                  options={[
+                    ["true", "Has high pressure"],
+                    ["false", "No high pressure"],
+                  ]}
+                  onChange={(hasHypertension) =>
+                    setDraftPatientFilters((current) => ({
+                      ...current,
+                      hasHypertension,
+                    }))
+                  }
+                />
+              </div>
+              <div className="mt-4 flex justify-end gap-2 border-t pt-4">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={clearPatientFilters}
+                >
+                  {t("crm.actions.clear")}
+                </Button>
+                <Button type="button" onClick={applyPatientFilters}>
+                  {t("crm.actions.applyFilters")}
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
+        {resource === "patients" && (
+          <div className="flex rounded-lg border p-1">
+            <Button
+              type="button"
+              size="sm"
+              variant={patientView === "grid" ? "default" : "ghost"}
+              onClick={() => setPatientView("grid")}
+            >
+              <LayoutGrid /> {t("crm.actions.grid")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={patientView === "table" ? "default" : "ghost"}
+              onClick={() => setPatientView("table")}
+            >
+              <List /> {t("crm.actions.table")}
+            </Button>
+          </div>
+        )}
+        {resource === "surgery-appointments" && (
+          <div className="flex rounded-lg border p-1">
+            <Button
+              type="button"
+              size="sm"
+              variant={surgeryView === "calendar" ? "default" : "ghost"}
+              onClick={() => setSurgeryView("calendar")}
+            >
+              <CalendarDays /> {t("crm.actions.calendar")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={surgeryView === "table" ? "default" : "ghost"}
+              onClick={() => setSurgeryView("table")}
+            >
+              <List /> {t("crm.actions.table")}
+            </Button>
+          </div>
+        )}
       </div>
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {config.columns.map((x) => (
-                <TableHead key={x}>
-                  {x
-                    .replaceAll(/([A-Z])/g, " $1")
-                    .replace(/^./, (c) => c.toUpperCase())}
-                </TableHead>
-              ))}
-              {canManage && <TableHead />}
-            </TableRow>
-          </TableHeader>
-          <TableBody autoPaginate={false} pagination={data.data ? { ...data.data.pagination, onPageChange: setPage, disabled: data.isLoading } : undefined}>
-            {rows.map((row) => (
-              <TableRow key={row.id}>
-                {config.columns.map((key) => (
-                  <TableCell key={key}>
-                    {key === "status" && resource === "leads" && canManage ? (
-                      <div className="flex w-44 items-center gap-2">
-                        <Select
-                          value={String(row.status)}
-                          onValueChange={(status) =>
-                            void updateLeadStatus(row, status)
-                          }
-                        >
-                          <SelectTrigger
-                            className={`h-8 capitalize font-semibold ${statusClass(row.status)}`}
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[
-                              "new",
-                              "contacted",
-                              "qualified",
-                              "converted",
-                              "lost",
-                            ].map((status) => (
-                              <SelectItem key={status} value={status}>
-                                {status}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {Boolean(row.convertedPatient) && (
-                          <span
-                            className="size-2 shrink-0 rounded-full bg-emerald-500"
-                            title="Patient created"
-                          />
-                        )}
+      {resource === "surgery-appointments" && surgeryView === "calendar" ? (
+        <SurgeryAppointmentCalendar
+          appointments={rows}
+          onCreate={(day) => {
+            const year = day.getFullYear();
+            const month = String(day.getMonth() + 1).padStart(2, "0");
+            const date = String(day.getDate()).padStart(2, "0");
+            setEditingRecord(null);
+            setSurgeryDraftAt(`${year}-${month}-${date}T09:00`);
+            setOpen(true);
+          }}
+          onEdit={(appointment) => {
+            setSurgeryDraftAt("");
+            setEditingRecord(appointment);
+            setOpen(true);
+          }}
+        />
+      ) : resource === "patients" && patientView === "grid" ? (
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            {rows.map((patient) => (
+              <Card
+                key={patient.id}
+                className="group overflow-hidden transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
+              >
+                <Link
+                  to={`/crm/patients/${patient.id}`}
+                  className="block h-full"
+                >
+                  <div className="bg-gradient-to-br from-primary/10 via-cyan-500/5 to-transparent p-4 pb-3">
+                    <div className="flex items-start gap-3">
+                      <span className="grid size-12 shrink-0 place-items-center rounded-xl border border-primary/15 bg-background text-sm font-bold text-primary shadow-sm transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                        {String(patient.firstName ?? "P").charAt(0)}
+                        {String(patient.lastName ?? "").charAt(0)}
+                      </span>
+                      <div className="min-w-0 flex-1 pt-0.5">
+                        <h2 className="truncate font-bold group-hover:text-primary">
+                          {String(patient.firstName)} {String(patient.lastName)}
+                        </h2>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {String(patient.patientCode)}
+                        </p>
                       </div>
-                    ) : key === "status" ? (
                       <Badge
                         variant="outline"
-                        className={`capitalize ${statusClass(row.status)}`}
+                        className={`shrink-0 capitalize ${statusClass(patient.status)}`}
                       >
-                        {show(row, key)}
+                        {String(patient.status)}
                       </Badge>
-                    ) : (
-                      show(row, key)
-                    )}
-                  </TableCell>
-                ))}
-                {canManage && (
-                  <TableCell>
-                    <DeleteConfirmationDialog
-                      description="This permanently deletes this CRM record. This action cannot be undone."
-                      onConfirm={async () => {
-                        try {
-                          await crmApi[resource].remove(row.id);
-                          await Promise.all([
-                            data.refresh(),
-                            lookups.refresh(),
-                          ]);
-                        } catch (error) {
-                          toast.error(
-                            error instanceof Error
-                              ? error.message
-                              : "Unable to delete record.",
-                          );
-                        }
-                      }}
-                    >
-                      <Button size="icon" variant="ghost">
-                        <Trash2 className="size-4 text-destructive" />
-                      </Button>
-                    </DeleteConfirmationDialog>
-                  </TableCell>
-                )}
-              </TableRow>
+                    </div>
+                  </div>
+                  <CardContent className="p-4 pt-3">
+                    <div className="grid grid-cols-3 divide-x rounded-xl border bg-muted/20 py-2.5 rtl:divide-x-reverse">
+                      <div className="text-center">
+                        <p className="text-[9px] uppercase tracking-wide text-muted-foreground">
+                          Age
+                        </p>
+                        <p className="mt-0.5 text-sm font-bold">
+                          {patientAge(patient.dateOfBirth)}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[9px] uppercase tracking-wide text-muted-foreground">
+                          Blood
+                        </p>
+                        <p className="mt-0.5 text-sm font-bold text-red-600">
+                          {String(patient.bloodType ?? "—")}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[9px] uppercase tracking-wide text-muted-foreground">
+                          Visits
+                        </p>
+                        <p className="mt-0.5 text-sm font-bold">
+                          {String(
+                            (
+                              patient._count as
+                                Record<string, unknown> | undefined
+                            )?.surgeryAppointments ?? 0,
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-2 text-xs">
+                      <span className="flex items-center gap-2 truncate">
+                        <Phone className="size-3.5 shrink-0 text-primary" />
+                        {String(patient.phone)}
+                      </span>
+                      <span className="flex items-center gap-2 truncate">
+                        <MapPin className="size-3.5 shrink-0 text-primary" />
+                        {String(patient.address ?? "Address not recorded")}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
+                      <Badge
+                        variant="secondary"
+                        className="h-5 capitalize text-[10px]"
+                      >
+                        {String(patient.gender ?? "Unknown")}
+                      </Badge>
+                      {Boolean(patient.hasDiabetes) && (
+                        <Badge className="h-5 bg-amber-100 text-[10px] text-amber-700 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-300">
+                          Diabetes
+                        </Badge>
+                      )}
+                      {Boolean(patient.hasHypertension) && (
+                        <Badge className="h-5 bg-red-100 text-[10px] text-red-700 hover:bg-red-100 dark:bg-red-950 dark:text-red-300">
+                          High pressure
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between border-t pt-3 text-[11px]">
+                      <span className="text-muted-foreground">
+                        {String(
+                          (
+                            patient._count as
+                              Record<string, unknown> | undefined
+                          )?.formSubmissions ?? 0,
+                        )}{" "}
+                        clinical forms
+                      </span>
+                      <span className="font-semibold text-primary">
+                        View profile →
+                      </span>
+                    </div>
+                  </CardContent>
+                </Link>
+              </Card>
             ))}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
+          {data.data && (
+            <div className="overflow-hidden rounded-xl border bg-card">
+              <PaginationControls
+                page={data.data.pagination.page}
+                totalPages={data.data.pagination.totalPages}
+                total={data.data.pagination.total}
+                onPageChange={setPage}
+              />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {config.columns.map((x) => (
+                  <TableHead key={x}>
+                    {t(`crm.fields.${x}`, {
+                      defaultValue: x
+                        .replaceAll(/([A-Z])/g, " $1")
+                        .replace(/^./, (c) => c.toUpperCase()),
+                    })}
+                  </TableHead>
+                ))}
+                {canManage && <TableHead />}
+              </TableRow>
+            </TableHeader>
+            <TableBody
+              autoPaginate={false}
+              pagination={
+                data.data
+                  ? {
+                      ...data.data.pagination,
+                      onPageChange: setPage,
+                      disabled: data.isLoading,
+                    }
+                  : undefined
+              }
+            >
+              {rows.map((row) => (
+                <TableRow key={row.id}>
+                  {config.columns.map((key) => (
+                    <TableCell key={key}>
+                      {key === "status" && resource === "leads" && canManage ? (
+                        <div className="flex w-44 items-center gap-2">
+                          <Select
+                            value={String(row.status)}
+                            onValueChange={(status) =>
+                              void updateLeadStatus(row, status)
+                            }
+                          >
+                            <SelectTrigger
+                              className={`h-8 capitalize font-semibold ${statusClass(row.status)}`}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[
+                                "new",
+                                "contacted",
+                                "qualified",
+                                "converted",
+                                "lost",
+                              ].map((status) => (
+                                <SelectItem key={status} value={status}>
+                                  {status}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {Boolean(row.convertedPatient) && (
+                            <span
+                              className="size-2 shrink-0 rounded-full bg-emerald-500"
+                              title="Patient created"
+                            />
+                          )}
+                        </div>
+                      ) : key === "name" && resource === "patients" ? (
+                        <Link
+                          to={`/crm/patients/${row.id}`}
+                          className="font-semibold text-primary hover:underline"
+                        >
+                          {show(row, key)}
+                        </Link>
+                      ) : key === "status" ? (
+                        <Badge
+                          variant="outline"
+                          className={`capitalize ${statusClass(row.status)}`}
+                        >
+                          {show(row, key)}
+                        </Badge>
+                      ) : (
+                        show(row, key)
+                      )}
+                    </TableCell>
+                  ))}
+                  {canManage && (
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        {resource === "leads" && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Edit lead"
+                            onClick={() => {
+                              setEditingRecord(row);
+                              setOpen(true);
+                            }}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                        )}
+                        <DeleteConfirmationDialog
+                          description="This permanently deletes this CRM record. This action cannot be undone."
+                          onConfirm={async () => {
+                            try {
+                              await crmApi[resource].remove(row.id);
+                              await Promise.all([
+                                data.refresh(),
+                                lookups.refresh(),
+                              ]);
+                            } catch (error) {
+                              toast.error(
+                                error instanceof Error
+                                  ? error.message
+                                  : "Unable to delete record.",
+                              );
+                            }
+                          }}
+                        >
+                          <Button size="icon" variant="ghost">
+                            <Trash2 className="size-4 text-destructive" />
+                          </Button>
+                        </DeleteConfirmationDialog>
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

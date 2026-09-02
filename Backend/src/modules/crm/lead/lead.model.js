@@ -1,0 +1,103 @@
+import { prisma } from "../../../shared/database/client.js";
+
+const select = {
+  id: true,
+  code: true,
+  name: true,
+  phone: true,
+  source: true,
+  age: true,
+  gender: true,
+  address: true,
+  email: true,
+  interest: true,
+  notes: true,
+  status: true,
+  convertedPatient: true,
+  statusHistory: { orderBy: { createdAt: "desc" } },
+  createdAt: true,
+  updatedAt: true,
+};
+
+export const leadModel = {
+  findAll: (skip, take, where) =>
+    Promise.all([
+      prisma.crmLead.findMany({
+        select,
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+      }),
+      prisma.crmLead.count({ where }),
+    ]),
+  findById: (id) => prisma.crmLead.findUniqueOrThrow({ where: { id }, select }),
+  create: (data) =>
+    prisma.$transaction(async (tx) => {
+      const lead = await tx.crmLead.create({ data });
+      await tx.crmLeadStatusHistory.create({
+        data: { leadId: lead.id, toStatus: lead.status },
+      });
+      return tx.crmLead.findUniqueOrThrow({ where: { id: lead.id }, select });
+    }),
+  update: (id, data) =>
+    prisma.$transaction(async (tx) => {
+      const current = await tx.crmLead.findUniqueOrThrow({ where: { id } });
+      await tx.crmLead.update({ where: { id }, data });
+      if (data.status && data.status !== current.status) {
+        await tx.crmLeadStatusHistory.create({
+          data: {
+            leadId: id,
+            fromStatus: current.status,
+            toStatus: data.status,
+          },
+        });
+      }
+      return tx.crmLead.findUniqueOrThrow({ where: { id }, select });
+    }),
+  remove: (id) => prisma.crmLead.delete({ where: { id } }),
+  convert: (lead, data) =>
+    prisma.$transaction(async (tx) => {
+      const parts = lead.name.trim().split(/\s+/);
+      const firstName = parts.shift() || lead.name;
+      const lastName = parts.join(" ") || "Patient";
+      const patient = await tx.patient.create({
+        data: {
+          patientCode: `LEAD-${lead.id
+            .replace(/[^a-z0-9]/gi, "")
+            .slice(-10)
+            .toUpperCase()}`,
+          firstName,
+          lastName,
+          phone: lead.phone,
+          email: lead.email,
+          dateOfBirth: lead.age
+            ? new Date(Date.UTC(new Date().getUTCFullYear() - lead.age, 0, 1))
+            : null,
+          gender: lead.gender,
+          address: lead.address,
+          medicalNotes: lead.notes
+            ? `Converted from CRM lead. ${lead.notes}`
+            : "Converted from CRM lead.",
+          status: "active",
+        },
+      });
+      const updated = await tx.crmLead.update({
+        where: { id: lead.id },
+        data: { ...data, convertedPatientId: patient.id },
+      });
+      if (lead.status !== "converted") {
+        await tx.crmLeadStatusHistory.create({
+          data: {
+            leadId: lead.id,
+            fromStatus: lead.status,
+            toStatus: "converted",
+          },
+        });
+      }
+      return tx.crmLead.findUniqueOrThrow({
+        where: { id: updated.id },
+        select,
+      });
+    }),
+};

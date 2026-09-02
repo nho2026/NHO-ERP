@@ -1,6 +1,31 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  List,
+  Pencil,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Stethoscope,
+  Trash2,
+} from "lucide-react";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  isSameMonth,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from "date-fns";
 import { healthcareApi, type HealthcareRecord } from "../api/healthcare.api";
 import { hrApi } from "@/features/hr/api/hr.api";
 import { apiErrorMessage } from "@/shared/api/client";
@@ -25,6 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -205,6 +231,392 @@ function display(record: HealthcareRecord, key: string): string | number {
   return String(value).replaceAll("_", " ");
 }
 
+const appointmentColors: Record<string, string> = {
+  pending:
+    "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300",
+  confirmed:
+    "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300",
+  completed:
+    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300",
+  cancelled:
+    "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300",
+  no_show:
+    "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
+};
+const appointmentDots: Record<string, string> = {
+  pending: "bg-amber-500",
+  confirmed: "bg-blue-500",
+  completed: "bg-emerald-500",
+  cancelled: "bg-red-500",
+  no_show: "bg-slate-500",
+};
+
+function AppointmentCalendar({
+  appointments,
+  onEdit,
+  onCreate,
+}: {
+  appointments: HealthcareRecord[];
+  onEdit: (appointment: HealthcareRecord) => void;
+  onCreate: (day: Date) => void;
+}) {
+  const [month, setMonth] = useState(startOfMonth(new Date()));
+  const [selectedDay, setSelectedDay] = useState(new Date());
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [doctorFilter, setDoctorFilter] = useState("all");
+  const doctors = Array.from(
+    new Map(
+      appointments.map((appointment) => [
+        String((appointment.doctor as HealthcareRecord | undefined)?.id ?? ""),
+        personName(
+          nested(
+            nested(appointment, "doctor") ?? ({ id: "" } as HealthcareRecord),
+            "employee",
+          ),
+        ),
+      ]),
+    ).entries(),
+  ).filter(([id]) => id);
+  const filteredAppointments = appointments.filter(
+    (appointment) =>
+      (statusFilter === "all" || appointment.status === statusFilter) &&
+      (doctorFilter === "all" ||
+        String((appointment.doctor as HealthcareRecord | undefined)?.id) ===
+          doctorFilter),
+  );
+  const days = eachDayOfInterval({
+    start: startOfWeek(startOfMonth(month)),
+    end: endOfWeek(endOfMonth(month)),
+  });
+  const forDay = (day: Date) =>
+    filteredAppointments
+      .filter((appointment) =>
+        isSameDay(new Date(String(appointment.scheduledAt)), day),
+      )
+      .sort(
+        (a, b) =>
+          new Date(String(a.scheduledAt)).getTime() -
+          new Date(String(b.scheduledAt)).getTime(),
+      );
+  const selectedAppointments = forDay(selectedDay);
+  const monthAppointments = filteredAppointments.filter((appointment) =>
+    isSameMonth(new Date(String(appointment.scheduledAt)), month),
+  );
+  const todayAppointments = filteredAppointments.filter((appointment) =>
+    isSameDay(new Date(String(appointment.scheduledAt)), new Date()),
+  ).length;
+  return (
+    <div className="grid min-h-[700px] xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="min-w-0 border-e">
+        <div className="border-b bg-gradient-to-r from-primary/10 via-cyan-500/5 to-transparent p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="grid size-11 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md">
+                <CalendarDays />
+              </span>
+              <div>
+                <h2 className="text-xl font-bold">
+                  {format(month, "MMMM yyyy")}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Doctor appointment schedule
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 rounded-xl border bg-background/80 p-1 shadow-sm backdrop-blur">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  const today = new Date();
+                  setMonth(startOfMonth(today));
+                  setSelectedDay(today);
+                }}
+              >
+                Today
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => setMonth((current) => subMonths(current, 1))}
+              >
+                <ChevronLeft className="rtl:rotate-180" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => setMonth((current) => addMonths(current, 1))}
+              >
+                <ChevronRight className="rtl:rotate-180" />
+              </Button>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[
+              [
+                "This month",
+                monthAppointments.length,
+                "bg-primary/10 text-primary",
+              ],
+              [
+                "Today",
+                todayAppointments,
+                "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
+              ],
+              [
+                "Confirmed",
+                monthAppointments.filter((item) => item.status === "confirmed")
+                  .length,
+                "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+              ],
+              [
+                "Completed",
+                monthAppointments.filter((item) => item.status === "completed")
+                  .length,
+                "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+              ],
+            ].map(([label, value, color]) => (
+              <div
+                key={String(label)}
+                className="rounded-lg border bg-background/70 px-3 py-2"
+              >
+                <p className="text-[10px] text-muted-foreground">{label}</p>
+                <p
+                  className={`mt-0.5 inline-flex rounded-md px-2 py-0.5 text-sm font-bold ${color}`}
+                >
+                  {value}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-background/70 p-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <SlidersHorizontal className="size-4 text-muted-foreground" />
+              <Select value={doctorFilter} onValueChange={setDoctorFilter}>
+                <SelectTrigger className="h-8 w-48 bg-background text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All doctors</SelectItem>
+                  {doctors.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-8 w-40 bg-background text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {[
+                    "pending",
+                    "confirmed",
+                    "completed",
+                    "cancelled",
+                    "no_show",
+                  ].map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status.replaceAll("_", " ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {[
+                "pending",
+                "confirmed",
+                "completed",
+                "cancelled",
+                "no_show",
+              ].map((status) => (
+                <span
+                  key={status}
+                  className="flex items-center gap-1.5 text-[10px] capitalize text-muted-foreground"
+                >
+                  <span
+                    className={`size-2 rounded-full ${appointmentDots[status]}`}
+                  />
+                  {status.replaceAll("_", " ")}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="overflow-x-auto bg-muted/10 p-4">
+          <div className="min-w-[820px] overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div className="grid grid-cols-7 border-b bg-muted/40">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                <div
+                  key={day}
+                  className="border-e px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground last:border-e-0"
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7">
+              {days.map((day) => {
+                const dayAppointments = forDay(day);
+                const selected = isSameDay(day, selectedDay);
+                const today = isSameDay(day, new Date());
+                return (
+                  <button
+                    key={day.toISOString()}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDay(day);
+                      if (!isSameMonth(day, month)) setMonth(startOfMonth(day));
+                      onCreate(day);
+                    }}
+                    className={`group/day relative min-h-28 border-b border-e p-2.5 text-start transition-all duration-200 hover:z-10 hover:bg-primary/[0.04] hover:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_25%,transparent)] ${!isSameMonth(day, month) ? "bg-muted/25 text-muted-foreground/35" : day.getDay() === 0 || day.getDay() === 6 ? "bg-muted/[0.12]" : "bg-card"} ${selected ? "z-10 bg-primary/[0.06] shadow-[inset_0_0_0_2px_var(--primary)]" : ""}`}
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span
+                        className={`grid size-7 place-items-center rounded-lg text-xs font-bold transition-colors ${today ? "rounded-full bg-primary text-primary-foreground shadow-sm" : selected ? "bg-primary/10 text-primary" : "text-foreground"}`}
+                      >
+                        {format(day, "d")}
+                      </span>
+                      {dayAppointments.length > 0 && (
+                        <span className="grid min-w-5 place-items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                          {dayAppointments.length}
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      {dayAppointments.slice(0, 3).map((appointment) => (
+                        <div
+                          key={appointment.id}
+                          className={`flex items-center gap-1.5 truncate rounded-lg border px-2 py-1.5 text-[9px] font-semibold shadow-sm transition-transform group-hover/day:translate-x-0.5 rtl:group-hover/day:-translate-x-0.5 ${appointmentColors[String(appointment.status)] ?? appointmentColors.pending}`}
+                        >
+                          <span
+                            className={`size-1.5 shrink-0 rounded-full ${appointmentDots[String(appointment.status)] ?? appointmentDots.pending}`}
+                          />
+                          <span className="shrink-0">
+                            {format(
+                              new Date(String(appointment.scheduledAt)),
+                              "HH:mm",
+                            )}
+                          </span>
+                          <span className="truncate">
+                            {String(appointment.patientName)}
+                          </span>
+                        </div>
+                      ))}
+                      {dayAppointments.length > 3 && (
+                        <p className="px-1 text-[9px] font-semibold text-primary">
+                          +{dayAppointments.length - 3} more
+                        </p>
+                      )}
+                      {!dayAppointments.length && isSameMonth(day, month) && (
+                        <span
+                          className={`mt-4 block text-center text-[9px] font-medium text-muted-foreground/50 transition-opacity ${selected ? "opacity-100" : "opacity-0 group-hover/day:opacity-100"}`}
+                        >
+                          Available
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+      <aside className="bg-muted/20 p-4">
+        <div className="mb-4 rounded-2xl bg-gradient-to-br from-slate-950 to-blue-900 p-4 text-white shadow-md">
+          <div className="flex items-start justify-between">
+            <span className="grid size-10 place-items-center rounded-xl bg-white/10">
+              <CalendarCheck />
+            </span>
+            <Badge className="bg-white/15 text-white hover:bg-white/15">
+              {selectedAppointments.length} scheduled
+            </Badge>
+          </div>
+          <p className="mt-4 text-xs text-blue-200">Daily agenda</p>
+          <h3 className="mt-0.5 text-lg font-bold">
+            {format(selectedDay, "EEEE, MMMM d")}
+          </h3>
+        </div>
+        <ScrollArea className="h-[520px] pe-2">
+          <div className="space-y-3 pe-2">
+            {selectedAppointments.length ? (
+              selectedAppointments.map((appointment) => (
+                <button
+                  key={appointment.id}
+                  type="button"
+                  onClick={() => onEdit(appointment)}
+                  className="relative w-full overflow-hidden rounded-xl border bg-card p-3 ps-4 text-start shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                >
+                  <span
+                    className={`absolute inset-y-0 start-0 w-1 ${appointmentDots[String(appointment.status)] ?? appointmentDots.pending}`}
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1.5 text-sm font-bold">
+                      <Clock3 className="size-3.5 text-primary" />
+                      {format(
+                        new Date(String(appointment.scheduledAt)),
+                        "h:mm a",
+                      )}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={`capitalize ${appointmentColors[String(appointment.status)] ?? ""}`}
+                    >
+                      {String(appointment.status).replaceAll("_", " ")}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 font-semibold">
+                    {String(appointment.patientName)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {String(appointment.patientPhone)}
+                  </p>
+                  <div className="mt-3 grid gap-1 border-t pt-2 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Stethoscope className="size-3" />
+                      {personName(
+                        nested(
+                          nested(appointment, "doctor") ??
+                            ({ id: "" } as HealthcareRecord),
+                          "employee",
+                        ),
+                      )}
+                    </span>
+                    <span>
+                      {String(
+                        nested(appointment, "department")?.name ??
+                          "Department not assigned",
+                      )}
+                    </span>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-xs">
+                    {String(appointment.reason ?? "General appointment")}
+                  </p>
+                </button>
+              ))
+            ) : (
+              <div className="rounded-xl border border-dashed p-8 text-center">
+                <CalendarDays className="mx-auto size-8 text-muted-foreground/50" />
+                <p className="mt-2 text-sm font-medium">No appointments</p>
+                <p className="text-xs text-muted-foreground">
+                  This day is available.
+                </p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </aside>
+    </div>
+  );
+}
+
 export default function HealthcarePage({
   resource,
 }: {
@@ -234,6 +646,10 @@ export default function HealthcarePage({
   );
   const [editing, setEditing] = useState<HealthcareRecord | null | undefined>();
   const [search, setSearch] = useState("");
+  const [appointmentView, setAppointmentView] = useState<"calendar" | "list">(
+    "calendar",
+  );
+  const [appointmentDraftAt, setAppointmentDraftAt] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const rows = useMemo(
@@ -320,85 +736,126 @@ export default function HealthcarePage({
                 })}
               />
             </div>
-            <Button
-              onClick={() => {
+            <div className="flex items-center gap-2">
+              {resource === "appointments" && (
+                <div className="flex rounded-lg border p-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={
+                      appointmentView === "calendar" ? "default" : "ghost"
+                    }
+                    onClick={() => setAppointmentView("calendar")}
+                  >
+                    <CalendarDays /> Calendar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={appointmentView === "list" ? "default" : "ghost"}
+                    onClick={() => setAppointmentView("list")}
+                  >
+                    <List /> List
+                  </Button>
+                </div>
+              )}
+              <Button
+                onClick={() => {
+                  setError("");
+                  setAppointmentDraftAt("");
+                  setEditing(null);
+                }}
+              >
+                <Plus className="size-4" />
+                {t("healthcareAdmin.addRecord")}
+              </Button>
+            </div>
+          </div>
+          {resource === "appointments" && appointmentView === "calendar" ? (
+            <AppointmentCalendar
+              appointments={rows}
+              onCreate={(day) => {
                 setError("");
+                setAppointmentDraftAt(`${format(day, "yyyy-MM-dd")}T09:00`);
                 setEditing(null);
               }}
-            >
-              <Plus className="size-4" />
-              {t("healthcareAdmin.addRecord")}
-            </Button>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {config.columns.map(([, label]) => (
-                    <TableHead key={label}>{tr(label)}</TableHead>
-                  ))}
-                  <TableHead>{t("healthcareAdmin.actions")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableResourceState
-                  isLoading={data.isLoading}
-                  error={data.error}
-                  isEmpty={!rows.length}
-                  colSpan={config.columns.length + 1}
-                />
-                {!data.isLoading &&
-                  !data.error &&
-                  rows.map((row) => (
-                    <TableRow key={row.id}>
-                      {config.columns.map(([key]) => (
-                        <TableCell key={key}>
-                          {key === "status" ||
-                          key === "publicBookingEnabled" ? (
-                            <Badge variant="secondary">
-                              {tr(String(display(row, key)))}
-                            </Badge>
-                          ) : (
-                            display(row, key)
-                          )}
-                        </TableCell>
-                      ))}
-                      <TableCell className="whitespace-nowrap">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setError("");
-                            setEditing(row);
-                          }}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <DeleteConfirmationDialog
-                          description={t("healthcareAdmin.deleteConfirm")}
-                          onConfirm={async () => {
-                            try {
-                              await healthcareApi[resource].remove(row.id);
-                              await data.refresh();
-                            } catch (cause) {
-                              setError(apiErrorMessage(cause));
-                            }
-                          }}
-                        >
+              onEdit={(appointment) => {
+                setError("");
+                setAppointmentDraftAt("");
+                setEditing(appointment);
+              }}
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {config.columns.map(([, label]) => (
+                      <TableHead key={label}>{tr(label)}</TableHead>
+                    ))}
+                    <TableHead>{t("healthcareAdmin.actions")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableResourceState
+                    isLoading={data.isLoading}
+                    error={data.error}
+                    isEmpty={!rows.length}
+                    colSpan={config.columns.length + 1}
+                  />
+                  {!data.isLoading &&
+                    !data.error &&
+                    rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {config.columns.map(([key]) => (
+                          <TableCell key={key}>
+                            {key === "status" ||
+                            key === "publicBookingEnabled" ? (
+                              <Badge variant="secondary">
+                                {tr(String(display(row, key)))}
+                              </Badge>
+                            ) : (
+                              display(row, key)
+                            )}
+                          </TableCell>
+                        ))}
+                        <TableCell className="whitespace-nowrap">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-destructive"
+                            onClick={() => {
+                              setError("");
+                              setEditing(row);
+                            }}
                           >
-                            <Trash2 className="size-4" />
+                            <Pencil className="size-4" />
                           </Button>
-                        </DeleteConfirmationDialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </div>
+                          <DeleteConfirmationDialog
+                            description={t("healthcareAdmin.deleteConfirm")}
+                            onConfirm={async () => {
+                              try {
+                                await healthcareApi[resource].remove(row.id);
+                                await data.refresh();
+                              } catch (cause) {
+                                setError(apiErrorMessage(cause));
+                              }
+                            }}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </DeleteConfirmationDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
       <Dialog
@@ -423,10 +880,12 @@ export default function HealthcarePage({
               const initialValue =
                 field.type === "datetime-local" && initial
                   ? new Date(String(initial)).toISOString().slice(0, 16)
-                  : String(initial ?? "");
+                  : field.name === "scheduledAt" && appointmentDraftAt
+                    ? appointmentDraftAt
+                    : String(initial ?? "");
               return (
                 <label
-                  key={`${editing?.id ?? "new"}-${field.name}`}
+                  key={`${editing?.id ?? appointmentDraftAt ?? "new"}-${field.name}`}
                   className="space-y-1 text-xs font-medium"
                 >
                   <span>{tr(field.label)}</span>

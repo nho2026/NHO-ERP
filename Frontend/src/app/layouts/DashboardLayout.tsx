@@ -53,6 +53,7 @@ import {
   Sun,
   Goal,
   ScrollText,
+  FileText,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import logo from "@/assets/icons/logo.png";
@@ -153,7 +154,13 @@ const healthcareNavigation = [
 ];
 const crmNavigation = [
   { to: "/crm/leads", label: "navigation.crmLeads", icon: ContactRound },
+  {
+    to: "/crm/leads/progress",
+    label: "navigation.leadProgressOverview",
+    icon: ChartLine,
+  },
   { to: "/crm/patients", label: "navigation.crmPatients", icon: UsersRound },
+  { to: "/crm/forms", label: "navigation.crmForms", icon: FileText },
   {
     to: "/crm/appointments",
     label: "navigation.doctorAppointments",
@@ -480,7 +487,9 @@ export default function DashboardLayout() {
       "/appointments": "healthcare.appointments.view",
       "/feedback": "healthcare.feedback.view",
       "/crm/leads": "employees.view",
+      "/crm/leads/progress": "employees.view",
       "/crm/patients": "employees.view",
+      "/crm/forms": "employees.view",
       "/crm/appointments": "healthcare.appointments.view",
       "/crm/surgery-appointments": "employees.view",
       "/crm/payments": "employees.view",

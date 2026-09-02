@@ -129,6 +129,8 @@
     "targets": "الأهداف",
     "crmLeads": "العملاء المحتملون",
     "crmPatients": "المرضى",
+    "leadProgressOverview": "نظرة عامة على تقدم العملاء المحتملين",
+    "crmForms": "النماذج والفحوصات",
     "doctorAppointments": "مواعيد الأطباء",
     "surgeryAppointments": "مواعيد العمليات",
     "crmPayments": "المدفوعات",
@@ -607,6 +609,128 @@
     "pickDateTime": "اختر التاريخ والوقت",
     "time": "الوقت",
     "done": "تم"
+  },
+  "crm": {
+    "eyebrow": "إدارة علاقات المرضى",
+    "progress": {
+      "eyebrow": "مسار العملاء المحتملين",
+      "title": "نظرة عامة على تقدم العملاء المحتملين",
+      "description": "تتبع كل عميل محتمل من أول تواصل حتى التحويل إلى مريض.",
+      "search": "البحث في العملاء المحتملين…",
+      "filter": "تصفية",
+      "filterTitle": "تصفية تقدم العملاء",
+      "filterDescription": "تضييق نتائج مسار العملاء الكامل.",
+      "allStatuses": "كل الحالات",
+      "allGenders": "كل الأجناس",
+      "lead": "العميل المحتمل",
+      "contact": "التواصل",
+      "lastUpdate": "آخر تحديث",
+      "currentProgress": "التقدم الحالي",
+      "view": "عرض تقدم العميل"
+    },
+    "filterPatientsDescription": "تصفية المعلومات الطبية والشخصية في جميع الصفحات.",
+    "placeholders": {
+      "selectField": "اختر {{field}}",
+      "leadSource": "الإدارة، وسائل التواصل…",
+      "sourceExamples": "الموقع، الإحالة، وسائل التواصل…",
+      "fieldLabel": "عنوان الحقل",
+      "commaOptions": "الخيارات مفصولة بفواصل",
+      "selectGender": "اختر الجنس",
+      "selectBloodType": "اختر فصيلة الدم",
+      "chooseForm": "اختر نموذجاً"
+    },
+    "actions": {
+      "addRecord": "إضافة سجل",
+      "editRecord": "تعديل السجل",
+      "selectPatient": "اختر المريض",
+      "searchPatients": "ابحث باسم المريض أو الرمز…",
+      "searchRecords": "البحث في السجلات…",
+      "filterLeads": "تصفية العملاء المحتملين",
+      "filterPatients": "تصفية المرضى",
+      "clear": "مسح",
+      "applyFilters": "تطبيق المرشحات",
+      "grid": "شبكة",
+      "table": "جدول",
+      "calendar": "التقويم"
+    },
+    "resources": {
+      "leads": {
+        "title": "العملاء المحتملون",
+        "description": "تتبع المرضى المحتملين من أول تواصل حتى التحويل."
+      },
+      "patients": {
+        "title": "المرضى",
+        "description": "السجلات المركزية للمرضى ومعلومات الاتصال الطبية."
+      },
+      "surgeries": {
+        "title": "العمليات الجراحية",
+        "description": "إدارة دليل العمليات والإجراءات الجراحية."
+      },
+      "surgery-appointments": {
+        "title": "مواعيد الجراحة",
+        "description": "جدولة الإجراءات مع المرضى والجراحين وغرف العمليات."
+      },
+      "payments": {
+        "title": "المدفوعات",
+        "description": "تسجيل مدفوعات المرضى للمواعيد والعمليات."
+      }
+    },
+    "values": {
+      "appointment_requested": "موعد",
+      "all": "الكل",
+      "male": "ذكر",
+      "female": "أنثى",
+      "other": "آخر",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "new": "جديد",
+      "contacted": "تم التواصل",
+      "qualified": "مؤهل",
+      "converted": "تم التحويل",
+      "lost": "مفقود",
+      "scheduled": "مجدول",
+      "confirmed": "مؤكد",
+      "in_progress": "قيد التنفيذ",
+      "completed": "مكتمل",
+      "cancelled": "ملغي",
+      "pending": "قيد الانتظار",
+      "paid": "مدفوع",
+      "refunded": "مسترد"
+    },
+    "fields": {
+      "code": "الرمز",
+      "name": "الاسم الكامل",
+      "phone": "الهاتف",
+      "source": "المصدر",
+      "age": "العمر",
+      "gender": "الجنس",
+      "address": "العنوان",
+      "email": "البريد الإلكتروني",
+      "interest": "الخدمة المطلوبة",
+      "notes": "ملاحظات",
+      "status": "الحالة",
+      "patientCode": "رمز المريض",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "dateOfBirth": "تاريخ الميلاد",
+      "bloodType": "فصيلة الدم",
+      "allergies": "الحساسية",
+      "medicalNotes": "ملاحظات طبية",
+      "description": "الوصف",
+      "durationMinutes": "المدة (دقائق)",
+      "basePrice": "السعر الأساسي",
+      "patientId": "المريض",
+      "doctorId": "الطبيب",
+      "surgeryId": "العملية",
+      "scheduledAt": "التاريخ والوقت",
+      "operatingRoom": "غرفة العمليات",
+      "preOpNotes": "ملاحظات قبل العملية",
+      "postOpNotes": "ملاحظات بعد العملية",
+      "amount": "المبلغ",
+      "paymentMethod": "طريقة الدفع",
+      "reference": "المرجع",
+      "paidAt": "تاريخ ووقت الدفع"
+    }
   },
   "healthcareAdmin": {
     "descriptions": {

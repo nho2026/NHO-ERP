@@ -129,6 +129,8 @@
     "targets": "Targets",
     "crmLeads": "Leads",
     "crmPatients": "Patients",
+    "leadProgressOverview": "Lead progress overview",
+    "crmForms": "Forms & examinations",
     "doctorAppointments": "Doctor appointments",
     "surgeryAppointments": "Surgery appointments",
     "crmPayments": "Payments",
@@ -604,6 +606,128 @@
     "pickDateTime": "Pick date and time",
     "time": "Time",
     "done": "Done"
+  },
+  "crm": {
+    "eyebrow": "Healthcare CRM",
+    "progress": {
+      "eyebrow": "CRM pipeline",
+      "title": "Lead Progress Overview",
+      "description": "Track every lead from first contact through patient conversion.",
+      "search": "Search leads…",
+      "filter": "Filter",
+      "filterTitle": "Filter lead progress",
+      "filterDescription": "Narrow the complete lead pipeline.",
+      "allStatuses": "All statuses",
+      "allGenders": "All genders",
+      "lead": "Lead",
+      "contact": "Contact",
+      "lastUpdate": "Last update",
+      "currentProgress": "Current progress",
+      "view": "View lead progress"
+    },
+    "filterPatientsDescription": "Filter medical and personal information across every page.",
+    "placeholders": {
+      "selectField": "Select {{field}}",
+      "leadSource": "Admin, socials…",
+      "sourceExamples": "Website, referral, socials…",
+      "fieldLabel": "Field label",
+      "commaOptions": "Options separated by commas",
+      "selectGender": "Select gender",
+      "selectBloodType": "Select blood type",
+      "chooseForm": "Choose a form"
+    },
+    "actions": {
+      "addRecord": "Add record",
+      "editRecord": "Edit record",
+      "selectPatient": "Select patient",
+      "searchPatients": "Search patients by name or code…",
+      "searchRecords": "Search records…",
+      "filterLeads": "Filter leads",
+      "filterPatients": "Filter patients",
+      "clear": "Clear",
+      "applyFilters": "Apply filters",
+      "grid": "Grid",
+      "table": "Table",
+      "calendar": "Calendar"
+    },
+    "resources": {
+      "leads": {
+        "title": "Leads",
+        "description": "Track prospective patients from first contact to conversion."
+      },
+      "patients": {
+        "title": "Patients",
+        "description": "Central patient records and medical contact information."
+      },
+      "surgeries": {
+        "title": "Surgeries",
+        "description": "Maintain the surgery and procedure catalog."
+      },
+      "surgery-appointments": {
+        "title": "Surgery appointments",
+        "description": "Schedule procedures with patients, surgeons, and operating rooms."
+      },
+      "payments": {
+        "title": "Payments",
+        "description": "Record patient payments for appointments and surgeries."
+      }
+    },
+    "values": {
+      "appointment_requested": "Appointment",
+      "all": "All",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "active": "Active",
+      "inactive": "Inactive",
+      "new": "New",
+      "contacted": "Contacted",
+      "qualified": "Qualified",
+      "converted": "Converted",
+      "lost": "Lost",
+      "scheduled": "Scheduled",
+      "confirmed": "Confirmed",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "pending": "Pending",
+      "paid": "Paid",
+      "refunded": "Refunded"
+    },
+    "fields": {
+      "code": "Code",
+      "name": "Full name",
+      "phone": "Phone",
+      "source": "Source",
+      "age": "Age",
+      "gender": "Gender",
+      "address": "Address",
+      "email": "Email",
+      "interest": "Interested service",
+      "notes": "Notes",
+      "status": "Status",
+      "patientCode": "Patient code",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "dateOfBirth": "Date of birth",
+      "bloodType": "Blood type",
+      "allergies": "Allergies",
+      "medicalNotes": "Medical notes",
+      "description": "Description",
+      "durationMinutes": "Duration (minutes)",
+      "basePrice": "Base price",
+      "patientId": "Patient",
+      "doctorId": "Doctor",
+      "surgeryId": "Surgery",
+      "scheduledAt": "Date and time",
+      "operatingRoom": "Operating room",
+      "preOpNotes": "Pre-operation notes",
+      "postOpNotes": "Post-operation notes",
+      "amount": "Amount",
+      "paymentMethod": "Payment method",
+      "reference": "Reference",
+      "paidAt": "Payment date and time"
+    }
   },
   "healthcareAdmin": {
     "descriptions": {

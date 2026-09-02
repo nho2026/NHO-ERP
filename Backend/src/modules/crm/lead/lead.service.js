@@ -1,0 +1,41 @@
+import {
+  pageResult,
+  paginationArgs,
+} from "../../../shared/pagination/pagination.js";
+import { leadModel } from "./lead.model.js";
+import { leadFilterSchema } from "./lead.schema.js";
+
+export const leadService = {
+  async list(query) {
+    const { page, pageSize, skip, take } = paginationArgs(query);
+    const filters = leadFilterSchema.parse(query);
+    const where = {
+      ...(filters.search && {
+        OR: ["code", "name", "phone", "source", "address"].map((field) => ({
+          [field]: { contains: filters.search },
+        })),
+      }),
+      ...(filters.source && { source: filters.source }),
+      ...(filters.gender && { gender: filters.gender }),
+      ...(filters.status && { status: filters.status }),
+      ...((filters.minAge !== undefined || filters.maxAge !== undefined) && {
+        age: {
+          ...(filters.minAge !== undefined && { gte: filters.minAge }),
+          ...(filters.maxAge !== undefined && { lte: filters.maxAge }),
+        },
+      }),
+    };
+    const [items, total] = await leadModel.findAll(skip, take, where);
+    return pageResult(items, total, page, pageSize);
+  },
+  get: (id) => leadModel.findById(id),
+  create: (data) => leadModel.create(data),
+  async update(id, data) {
+    if (data.status !== "converted") return leadModel.update(id, data);
+    const lead = await leadModel.findById(id);
+    return lead.convertedPatient
+      ? leadModel.update(id, data)
+      : leadModel.convert(lead, data);
+  },
+  remove: (id) => leadModel.remove(id),
+};
