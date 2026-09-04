@@ -11,10 +11,6 @@ const departmentInclude = {
     employee: { include: { position: true } },
     department: true,
     _count: { select: { appointments: true } },
-  },
-  appointmentInclude = {
-    doctor: { include: { employee: true } },
-    department: true,
   };
 export const healthcareModel = {
   listDepartments: () =>
@@ -50,55 +46,6 @@ export const healthcareModel = {
   updateStaff: (id, data) =>
     prisma.healthStaff.update({ where: { id }, data, include: staffInclude }),
   removeStaff: (id) => prisma.healthStaff.delete({ where: { id } }),
-  listAppointments: (q) =>
-    prisma.appointment.findMany({
-      where: {
-        ...(q.status && { status: String(q.status) }),
-        ...(q.departmentId && { departmentId: String(q.departmentId) }),
-        ...(q.doctorId && { doctorId: String(q.doctorId) }),
-      },
-      include: appointmentInclude,
-      orderBy: { scheduledAt: "desc" },
-      take: 1000,
-    }),
-  getAppointment: (id) =>
-    prisma.appointment.findUniqueOrThrow({ where: { id } }),
-  createAppointment: (data, publicBooking = false) =>
-    prisma.appointment.create({
-      data,
-      ...(publicBooking
-        ? {
-            select: {
-              id: true,
-              scheduledAt: true,
-              status: true,
-              createdAt: true,
-            },
-          }
-        : { include: appointmentInclude }),
-    }),
-  updateAppointment: (id, data) =>
-    prisma.appointment.update({
-      where: { id },
-      data,
-      include: appointmentInclude,
-    }),
-  removeAppointment: (id) => prisma.appointment.delete({ where: { id } }),
-  getDoctor: (id) => prisma.healthStaff.findUniqueOrThrow({ where: { id } }),
-  findPublicDoctor: (doctorId, departmentId) =>
-    prisma.healthStaff.findFirst({
-      where: {
-        id: doctorId,
-        departmentId,
-        staffType: "doctor",
-        status: "active",
-        publicBookingEnabled: true,
-      },
-    }),
-  findConflict: (doctorId, scheduledAt) =>
-    prisma.appointment.findFirst({
-      where: { doctorId, scheduledAt, status: { not: "cancelled" } },
-    }),
   publicDepartments: () =>
     prisma.department.findMany({
       where: { status: "active" },

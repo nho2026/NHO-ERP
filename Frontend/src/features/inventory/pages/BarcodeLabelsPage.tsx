@@ -1,5 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
-import { Barcode, Plus, Printer, RefreshCw, Search, Trash2 } from "lucide-react";
+import {
+  Barcode,
+  Plus,
+  Printer,
+  RefreshCw,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { inventoryApi } from "../api/inventory.api";
 import {
@@ -47,8 +54,7 @@ export default function BarcodeLabelsPage() {
     return (products.data ?? []).filter(
       (product) =>
         Boolean(product.barcode) &&
-        (!term ||
-          String(product.barcode).toLowerCase().includes(term)),
+        (!term || String(product.barcode).toLowerCase().includes(term)),
     );
   }, [products.data, search]);
   const chosen = (products.data ?? []).filter((product) =>

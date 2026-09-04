@@ -466,10 +466,10 @@ export default function EventsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Employee</TableHead>
-              <TableHead>Event</TableHead>
-              <TableHead>Device</TableHead>
-              <TableHead>Verification</TableHead>
+              <TableHead>{t("table.headers.employee")}</TableHead>
+              <TableHead>{t("table.headers.event")}</TableHead>
+              <TableHead>{t("table.headers.device")}</TableHead>
+              <TableHead>{t("table.headers.verification")}</TableHead>
               <TableHead
                 aria-sort={dateSort === "desc" ? "descending" : "ascending"}
               >

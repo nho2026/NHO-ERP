@@ -110,8 +110,8 @@ export default function EmployeePortalPage() {
                 placeholder={t("employeePortal.ideaTitle")}
                 required
               />
-            <textarea
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+              <textarea
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
                 name="description"
                 placeholder={t("employeePortal.ideaDescription")}
                 rows={5}

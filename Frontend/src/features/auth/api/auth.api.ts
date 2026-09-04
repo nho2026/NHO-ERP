@@ -46,13 +46,21 @@ export async function getCurrentUser(): Promise<LoginResponse["user"]> {
 export async function getProfile(): Promise<LoginResponse["user"]> {
   return (await apiClient.get<LoginResponse>("/auth/profile")).data.user;
 }
-export async function updateProfile(payload: { name: string; email: string; department: string | null }): Promise<LoginResponse["user"]> {
-  return (await apiClient.patch<LoginResponse>("/auth/profile", payload)).data.user;
+export async function updateProfile(payload: {
+  name: string;
+  email: string;
+  department: string | null;
+}): Promise<LoginResponse["user"]> {
+  return (await apiClient.patch<LoginResponse>("/auth/profile", payload)).data
+    .user;
 }
 export async function getProfileEvents(): Promise<AttendanceEvent[]> {
   return (await apiClient.get<AttendanceEvent[]>("/auth/profile/events")).data;
 }
-export async function changeOwnPassword(userId: string, payload: { currentPassword: string; newPassword: string }): Promise<void> {
+export async function changeOwnPassword(
+  userId: string,
+  payload: { currentPassword: string; newPassword: string },
+): Promise<void> {
   await apiClient.post(`/users/${userId}/password`, payload);
 }
 

@@ -29,7 +29,8 @@ export const patientModel = {
           },
           orderBy: { scheduledAt: "desc" },
         },
-        payments: { orderBy: { paidAt: "desc" }, take: 10 },
+        payments: { orderBy: { paidAt: "desc" } },
+        referrals: { orderBy: { referredAt: "desc" } },
       },
     });
     const appointments = await prisma.appointment.findMany({

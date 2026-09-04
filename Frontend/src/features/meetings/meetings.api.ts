@@ -6,16 +6,28 @@ export type Meeting = {
   roomCode: string;
   status: string;
   createdAt: string;
+  endedAt?: string | null;
   department: { id: string; name: string };
   creator: { id: string; name: string };
-  participants?: { id: string }[];
+  participants?: {
+    id?: string;
+    userId?: string;
+    joinedAt?: string;
+    leftAt?: string | null;
+  }[];
 };
 export type MeetingDepartment = { id: string; name: string; code: string };
 
 export const meetingsApi = {
   list: () => apiClient.get<Meeting[]>("/meetings").then((r) => r.data),
+  history: () =>
+    apiClient.get<Meeting[]>("/meetings/history").then((r) => r.data),
   departments: () =>
-    apiClient.get<MeetingDepartment[]>("/meetings/departments").then((r) => r.data),
+    apiClient
+      .get<MeetingDepartment[]>("/meetings/departments")
+      .then((r) => r.data),
   create: (title: string, departmentId: string) =>
-    apiClient.post<Meeting>("/meetings", { title, departmentId }).then((r) => r.data),
+    apiClient
+      .post<Meeting>("/meetings", { title, departmentId })
+      .then((r) => r.data),
 };

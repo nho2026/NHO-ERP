@@ -448,15 +448,19 @@ export default function BillingPage({ resource }: { resource: Resource }) {
         <section className="print-document hidden bg-white px-[9mm] py-[7mm] text-[11px] text-slate-900 print:absolute print:inset-0 print:block print:w-full [&_td]:border [&_td]:border-slate-300 [&_td]:p-[7px] [&_td]:text-start [&_th]:border [&_th]:border-slate-300 [&_th]:bg-sky-50 [&_th]:p-[7px] [&_th]:text-start [&_th]:font-bold [&_table]:w-full [&_table]:border-collapse">
           <header className="mb-5 flex items-start justify-between border-b-2 border-[#07599a] pb-3.5">
             <div className="space-y-2">
-                <img
-                  className="h-[46px] w-[105px] rounded-[9px] border border-slate-200 bg-white px-2 py-1 object-contain object-center shadow-[0_4px_12px_rgba(15,23,42,0.14)]"
-                  src={logo}
-                  alt="NHO"
-                />
-              <p className="font-semibold uppercase tracking-wider text-slate-500">{t("billing.invoice")}</p>
+              <img
+                className="h-[46px] w-[105px] rounded-[9px] border border-slate-200 bg-white px-2 py-1 object-contain object-center shadow-[0_4px_12px_rgba(15,23,42,0.14)]"
+                src={logo}
+                alt="NHO"
+              />
+              <p className="font-semibold uppercase tracking-wider text-slate-500">
+                {t("billing.invoice")}
+              </p>
             </div>
             <div className="text-end">
-              <strong className="text-xl font-extrabold text-[#07599a]">{printInvoice.invoiceNumber}</strong>
+              <strong className="text-xl font-extrabold text-[#07599a]">
+                {printInvoice.invoiceNumber}
+              </strong>
               <p>
                 {t("billing.issueDate")}:{" "}
                 {new Intl.DateTimeFormat().format(
@@ -475,7 +479,9 @@ export default function BillingPage({ resource }: { resource: Resource }) {
           </header>
           <div className="my-[18px] leading-relaxed">
             <strong>{t("billing.billTo")}</strong>
-            <h2 className="my-1 text-[15px] font-bold">{printInvoice.customer.name}</h2>
+            <h2 className="my-1 text-[15px] font-bold">
+              {printInvoice.customer.name}
+            </h2>
             <p>{printInvoice.customer.address}</p>
             <p>
               {printInvoice.customer.phone} {printInvoice.customer.email}
@@ -548,7 +554,9 @@ export default function BillingPage({ resource }: { resource: Resource }) {
               <p>{printInvoice.notes}</p>
             </div>
           )}
-          <footer className="mt-[35px] text-center text-slate-500">{t("billing.thankYou")}</footer>
+          <footer className="mt-[35px] text-center text-slate-500">
+            {t("billing.thankYou")}
+          </footer>
         </section>
       )}
     </div>

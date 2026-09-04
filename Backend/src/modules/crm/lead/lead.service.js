@@ -29,13 +29,25 @@ export const leadService = {
     return pageResult(items, total, page, pageSize);
   },
   get: (id) => leadModel.findById(id),
-  create: (data) => leadModel.create(data),
+  create: (data) =>
+    leadModel.create({
+      ...data,
+      code: data.code || `L${Date.now().toString().slice(-10)}`,
+    }),
   async update(id, data) {
-    if (data.status !== "converted") return leadModel.update(id, data);
+    if (!["converted", "direct_surgery_converted"].includes(data.status))
+      return leadModel.update(id, data);
     const lead = await leadModel.findById(id);
     return lead.convertedPatient
       ? leadModel.update(id, data)
       : leadModel.convert(lead, data);
   },
   remove: (id) => leadModel.remove(id),
+  addAttachments: (id, attachments) =>
+    leadModel.addAttachments(id, attachments),
+  removeAttachment: async (id) => {
+    const attachment = await leadModel.findAttachment(id);
+    await leadModel.removeAttachment(id);
+    return attachment;
+  },
 };

@@ -26,31 +26,10 @@ export const healthcareController = {
     await service.removeStaff(req.params.id);
     res.status(204).end();
   }),
-  appointments: run(async (req, res) =>
-    res.json(await service.listAppointments(req.query)),
-  ),
-  createAppointment: run(async (req, res) =>
-    res.status(201).json(await service.createAppointment(req.validatedBody)),
-  ),
-  updateAppointment: run(async (req, res) =>
-    res.json(await service.updateAppointment(req.params.id, req.validatedBody)),
-  ),
-  removeAppointment: run(async (req, res) => {
-    await service.removeAppointment(req.params.id);
-    res.status(204).end();
-  }),
   publicDepartments: run(async (_q, res) =>
     res.json(await service.publicDepartments()),
   ),
   publicDoctors: run(async (req, res) =>
     res.json(await service.publicDoctors(req.query.departmentId)),
-  ),
-  book: run(async (req, res) =>
-    res
-      .status(201)
-      .json({
-        message: "Appointment request received.",
-        appointment: await service.book(req.validatedBody),
-      }),
   ),
 };

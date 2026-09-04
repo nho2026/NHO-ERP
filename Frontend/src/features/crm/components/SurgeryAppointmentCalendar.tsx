@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   addMonths,
   eachDayOfInterval,
@@ -63,6 +64,7 @@ export function SurgeryAppointmentCalendar({
   onCreate: (day: Date) => void;
   onEdit: (appointment: CrmRecord) => void;
 }) {
+  const { t } = useTranslation();
   const [month, setMonth] = useState(startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = useState(new Date());
   const days = eachDayOfInterval({
@@ -90,7 +92,9 @@ export function SurgeryAppointmentCalendar({
               <Scissors />
             </span>
             <div>
-              <p className="text-xs text-cyan-200">Operating schedule</p>
+              <p className="text-xs text-cyan-200">
+                {t("pageText.operatingSchedule")}
+              </p>
               <h2 className="text-xl font-bold">
                 {format(month, "MMMM yyyy")}
               </h2>

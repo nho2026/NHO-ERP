@@ -7,16 +7,41 @@ import {
   LogOut,
   Search,
   TimerOff,
-  UserRound,
   UsersRound,
+  LayoutGrid,
+  List,
+  BriefcaseBusiness,
+  ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { hrApi, type HrRecord } from "../api/hr.api";
+import { attendancePermissionsApi, hrApi, type HrRecord } from "../api/hr.api";
 import { attendanceApi } from "@/features/attendance/api/attendance.api";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
+import { Button } from "@/shared/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import { MonthPicker } from "@/shared/components/ui/month-picker";
+import { FormDatePicker } from "@/shared/components/ui/form-date-picker";
+import { Label } from "@/shared/components/ui/label";
+import { Textarea } from "@/shared/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
+import { toast } from "sonner";
+import { hasPermission, storedUser } from "@/features/auth/access";
 import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
@@ -45,9 +70,13 @@ export default function HrAttendancePage() {
   const { t, i18n } = useTranslation();
   const tx = (key: string, fallback: string) =>
     t(`hrMonthly.${key}`, { defaultValue: fallback });
+  const canManage = hasPermission(storedUser(), "employees.manage");
   const [month, setMonth] = useState(monthValue());
   const [search, setSearch] = useState("");
+  const [directoryView, setDirectoryView] = useState<"grid" | "table">("grid");
   const [selected, setSelected] = useState<HrRecord>();
+  const [permissionOpen, setPermissionOpen] = useState(false);
+  const [permissionType, setPermissionType] = useState("full_day");
   const employees = useApiResource(
     useCallback(() => hrApi.employees.list(), []),
   );
@@ -55,6 +84,16 @@ export default function HrAttendancePage() {
   const events = useApiResource(
     useCallback(
       () => attendanceApi.events({ from: `${month}-01`, to: `${month}-31` }),
+      [month],
+    ),
+  );
+  const permissions = useApiResource(
+    useCallback(
+      () =>
+        attendancePermissionsApi.list({
+          from: `${month}-01`,
+          to: `${month}-31`,
+        }),
       [month],
     ),
   );
@@ -89,7 +128,7 @@ export default function HrAttendancePage() {
     0,
   );
   const selectedLost = selectedRecords.reduce(
-    (total, record) => total + lostMinutes(record),
+    (total, record) => total + lostMinutes(record, permissions.data ?? []),
     0,
   );
   const linkedEmployees = new Set(
@@ -98,10 +137,36 @@ export default function HrAttendancePage() {
     ),
   );
   const totalLost = monthRecords.reduce(
-    (total, record) => total + lostMinutes(record),
+    (total, record) => total + lostMinutes(record, permissions.data ?? []),
     0,
   );
   const isLoading = employees.isLoading || people.isLoading || events.isLoading;
+  const grantPermission = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selected) return;
+    const form = new FormData(event.currentTarget);
+    try {
+      await attendancePermissionsApi.create({
+        employeeId: selected.id,
+        permissionType,
+        fromDate: String(form.get("fromDate")),
+        toDate: String(form.get("toDate")),
+        permittedMinutes:
+          permissionType === "hours"
+            ? Number(form.get("hours") ?? 0) * 60
+            : null,
+        reason: String(form.get("reason") ?? "") || null,
+        status: "approved",
+      });
+      setPermissionOpen(false);
+      await permissions.refresh();
+      toast.success(tx("permissionGranted", "Attendance permission granted."));
+    } catch {
+      toast.error(
+        tx("permissionError", "Unable to grant attendance permission."),
+      );
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -192,14 +257,34 @@ export default function HrAttendancePage() {
             )}
           </p>
         </div>
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute inset-s-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="h-11 bg-card ps-9 shadow-xs"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={tx("searchEmployee", "Search employee or code…")}
-          />
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute inset-s-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="h-11 bg-card ps-9 shadow-xs"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={tx("searchEmployee", "Search employee or code…")}
+            />
+          </div>
+          <div className="flex rounded-xl border bg-card p-1 shadow-xs">
+            <Button
+              size="sm"
+              variant={directoryView === "grid" ? "default" : "ghost"}
+              onClick={() => setDirectoryView("grid")}
+            >
+              <LayoutGrid />
+              {tx("gridView", "Grid")}
+            </Button>
+            <Button
+              size="sm"
+              variant={directoryView === "table" ? "default" : "ghost"}
+              onClick={() => setDirectoryView("table")}
+            >
+              <List />
+              {tx("tableView", "Table")}
+            </Button>
+          </div>
         </div>
       </div>
       {(employees.error || people.error || events.error) && (
@@ -207,62 +292,143 @@ export default function HrAttendancePage() {
           {employees.error || people.error || events.error}
         </p>
       )}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {isLoading &&
-          Array.from({ length: 6 }, (_, index) => (
-            <Skeleton key={index} className="h-32 rounded-2xl" />
-          ))}
-        {visible.map((employee) => {
-          const records = recordsFor(employee.id);
-          const lost = records.reduce((sum, row) => sum + lostMinutes(row), 0);
-          return (
-            <button
-              key={employee.id}
-              onClick={() => setSelected(employee)}
-              className="group text-start"
-            >
-              <Card className="h-full overflow-hidden transition duration-200 group-hover:-translate-y-1 group-hover:border-primary/40 group-hover:shadow-lg">
-                <div className="h-1 bg-linear-to-r from-primary via-primary/60 to-transparent" />
-                <CardContent className="flex items-center gap-4 p-5">
-                  <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-4 ring-primary/5">
-                    <UserRound className="size-6" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">
-                      {employeeLabel(employee)}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {employee.user
-                        ? `@${String((employee.user as HrRecord).username)}`
-                        : tx("noSystemUser", "No system user")}{" "}
-                      ·{" "}
-                      {people.data?.filter(
-                        (person) => person.employeeId === employee.id,
-                      ).length ?? 0}{" "}
-                      {tx("deviceUsers", "device users")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {String(employee.employeeCode)} ·{" "}
+      {directoryView === "grid" ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {isLoading &&
+            Array.from({ length: 6 }, (_, index) => (
+              <Skeleton key={index} className="h-28 rounded-2xl" />
+            ))}
+          {visible.map((employee) => {
+            const records = recordsFor(employee.id);
+            const lost = records.reduce(
+              (sum, row) => sum + lostMinutes(row, permissions.data ?? []),
+              0,
+            );
+            return (
+              <button
+                key={employee.id}
+                onClick={() => setSelected(employee)}
+                className="group text-start"
+              >
+                <Card className="relative h-full overflow-hidden border-0 bg-card shadow-sm ring-1 ring-border/70 transition duration-200 before:absolute before:inset-y-0 before:start-0 before:w-1 before:bg-linear-to-b before:from-primary before:to-cyan-400 group-hover:-translate-y-0.5 group-hover:ring-primary/35 group-hover:shadow-md">
+                  <CardContent className="flex min-h-28 items-center gap-3 p-4 ps-5">
+                    <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-linear-to-br from-primary/15 to-cyan-500/10 text-sm font-bold text-primary ring-1 ring-primary/15">
+                      {String(employee.firstName ?? "E").charAt(0)}
+                      {String(employee.lastName ?? "").charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate font-bold">
+                          {employeeLabel(employee)}
+                        </p>
+                        <span
+                          className={`size-2 shrink-0 rounded-full ${linkedEmployees.has(employee.id) ? "bg-emerald-500" : "bg-slate-300"}`}
+                          title={
+                            linkedEmployees.has(employee.id)
+                              ? tx("linked", "Linked")
+                              : tx("notLinked", "Not linked")
+                          }
+                        />
+                      </div>
+                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                        {employee.user
+                          ? `@${String((employee.user as HrRecord).username)}`
+                          : tx("noSystemUser", "No system user")}
+                      </p>
+                      <p className="mt-1.5 flex items-center gap-1.5 truncate text-xs">
+                        <BriefcaseBusiness className="size-3.5 shrink-0 text-primary" />
+                        {String(
+                          (employee.position as HrRecord | null)?.name ??
+                            tx("noPosition", "No position"),
+                        )}
+                      </p>
+                      <p className="mt-1 text-[10px] font-medium text-muted-foreground">
+                        {String(employee.employeeCode)} ·{" "}
+                        {people.data?.filter(
+                          (person) => person.employeeId === employee.id,
+                        ).length ?? 0}{" "}
+                        {tx("deviceUsers", "device users")}
+                      </p>
+                    </div>
+                    <div className="shrink-0 border-s ps-3 text-end">
+                      <p className="text-[10px] text-muted-foreground">
+                        {tx("lostTime", "Lost time")}
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-destructive">
+                        {duration(lost)}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{tx("employee", "Employee")}</TableHead>
+                <TableHead>{tx("employeeCode", "Code")}</TableHead>
+                <TableHead>{tx("position", "Position")}</TableHead>
+                <TableHead>{tx("account", "Account")}</TableHead>
+                <TableHead>{tx("deviceUsers", "Device users")}</TableHead>
+                <TableHead className="text-end">
+                  {tx("lostTime", "Lost time")}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visible.map((employee) => {
+                const lost = recordsFor(employee.id).reduce(
+                  (sum, row) => sum + lostMinutes(row, permissions.data ?? []),
+                  0,
+                );
+                return (
+                  <TableRow
+                    key={employee.id}
+                    className="cursor-pointer"
+                    onClick={() => setSelected(employee)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <span className="grid size-9 place-items-center rounded-xl bg-primary/10 font-bold text-primary">
+                          {String(employee.firstName ?? "E").charAt(0)}
+                          {String(employee.lastName ?? "").charAt(0)}
+                        </span>
+                        <span className="font-semibold">
+                          {employeeLabel(employee)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{String(employee.employeeCode)}</TableCell>
+                    <TableCell>
                       {String(
                         (employee.position as HrRecord | null)?.name ??
                           tx("noPosition", "No position"),
                       )}
-                    </p>
-                  </div>
-                  <div className="text-end">
-                    <p className="text-xs text-muted-foreground">
-                      {tx("lostTime", "Lost time")}
-                    </p>
-                    <p className="font-semibold text-destructive">
+                    </TableCell>
+                    <TableCell>
+                      {employee.user
+                        ? `@${String((employee.user as HrRecord).username)}`
+                        : tx("noSystemUser", "No system user")}
+                    </TableCell>
+                    <TableCell>
+                      {people.data?.filter(
+                        (person) => person.employeeId === employee.id,
+                      ).length ?? 0}
+                    </TableCell>
+                    <TableCell className="text-end font-bold text-destructive">
                       {duration(lost)}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </button>
-          );
-        })}
-      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
       {!isLoading && !visible.length && (
         <div className="rounded-3xl border border-dashed py-16 text-center">
           <Search className="mx-auto mb-3 size-8 text-muted-foreground" />
@@ -303,6 +469,14 @@ export default function HrAttendancePage() {
                 </span>
               </DialogTitle>
             </DialogHeader>
+            {canManage && (
+              <Button
+                className="absolute end-16 top-6"
+                onClick={() => setPermissionOpen(true)}
+              >
+                <ShieldCheck /> {tx("grantPermission", "Grant permission")}
+              </Button>
+            )}
             <div className="mt-6 grid grid-cols-3 gap-4">
               <div className="rounded-xl border bg-background/80 p-4 shadow-sm">
                 <p className="text-sm font-medium text-muted-foreground">
@@ -329,6 +503,48 @@ export default function HrAttendancePage() {
                 </p>
               </div>
             </div>
+            {selected &&
+              permissions.data?.some(
+                (permission) => permission.employeeId === selected.id,
+              ) && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {permissions.data
+                    .filter(
+                      (permission) => permission.employeeId === selected.id,
+                    )
+                    .map((permission) => (
+                      <Badge
+                        key={permission.id}
+                        variant="outline"
+                        className="gap-2 bg-background py-1.5"
+                      >
+                        <ShieldCheck className="size-3.5 text-emerald-600" />
+                        {tx(
+                          String(permission.permissionType),
+                          String(permission.permissionType).replaceAll(
+                            "_",
+                            " ",
+                          ),
+                        )}
+                        : {String(permission.fromDate).slice(0, 10)} —{" "}
+                        {String(permission.toDate).slice(0, 10)}
+                        {canManage && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await attendancePermissionsApi.remove(
+                                permission.id,
+                              );
+                              await permissions.refresh();
+                            }}
+                          >
+                            <Trash2 className="size-3.5 text-destructive" />
+                          </button>
+                        )}
+                      </Badge>
+                    ))}
+                </div>
+              )}
           </div>
           <div className="content-scrollbar overflow-y-auto p-5 sm:p-6">
             <div className="mb-2 grid grid-cols-7 gap-2 text-center text-sm font-bold uppercase tracking-wide text-muted-foreground">
@@ -349,7 +565,14 @@ export default function HrAttendancePage() {
                 const row = recordsFor(selected?.id ?? "").find(
                   (x) => String(x.attendanceDate).slice(0, 10) === dateKey,
                 );
-                const lost = row ? lostMinutes(row) : 0;
+                const dayPermissions = (permissions.data ?? []).filter(
+                  (permission) =>
+                    permission.employeeId === selected?.id &&
+                    permission.status === "approved" &&
+                    String(permission.fromDate).slice(0, 10) <= dateKey &&
+                    String(permission.toDate).slice(0, 10) >= dateKey,
+                );
+                const lost = row ? lostMinutes(row, permissions.data ?? []) : 0;
                 return (
                   <div
                     key={dateKey}
@@ -403,8 +626,17 @@ export default function HrAttendancePage() {
                       </div>
                     ) : (
                       <div className="grid h-12 place-items-center">
-                        <span className="rounded-full bg-background/70 px-2.5 py-1 text-xs text-muted-foreground">
-                          {tx("noRecord", "No record")}
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs ${dayPermissions.length ? "bg-emerald-100 font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-background/70 text-muted-foreground"}`}
+                        >
+                          {dayPermissions.length
+                            ? tx(
+                                String(dayPermissions[0].permissionType),
+                                String(
+                                  dayPermissions[0].permissionType,
+                                ).replaceAll("_", " "),
+                              )
+                            : tx("noRecord", "No record")}
                         </span>
                       </div>
                     )}
@@ -413,6 +645,62 @@ export default function HrAttendancePage() {
               })}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={permissionOpen} onOpenChange={setPermissionOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {tx("grantPermission", "Grant attendance permission")}
+            </DialogTitle>
+          </DialogHeader>
+          <form className="grid gap-4" onSubmit={grantPermission}>
+            <Label className="grid gap-2">
+              {tx("permissionType", "Permission type")}
+              <Select value={permissionType} onValueChange={setPermissionType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full_day">
+                    {tx("full_day", "Full day")}
+                  </SelectItem>
+                  <SelectItem value="hours">{tx("hours", "Hours")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </Label>
+            <div className="grid grid-cols-2 gap-3">
+              <Label className="grid gap-2">
+                {tx("fromDate", "From date")}
+                <FormDatePicker name="fromDate" required />
+              </Label>
+              <Label className="grid gap-2">
+                {tx("toDate", "To date")}
+                <FormDatePicker name="toDate" required />
+              </Label>
+            </div>
+            {permissionType === "hours" && (
+              <Label className="grid gap-2">
+                {tx("permittedHours", "Permitted hours per day")}
+                <Input
+                  name="hours"
+                  type="number"
+                  min="0.25"
+                  max="24"
+                  step="0.25"
+                  required
+                />
+              </Label>
+            )}
+            <Label className="grid gap-2">
+              {tx("reason", "Reason")}
+              <Textarea name="reason" />
+            </Label>
+            <Button type="submit">
+              <ShieldCheck />
+              {tx("savePermission", "Save permission")}
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   LayoutGrid,
@@ -10,11 +10,24 @@ import {
   Phone,
   Search,
   Trash2,
+  Download,
+  FileSpreadsheet,
+  FileUp,
+  Eye,
+  Mars,
+  Venus,
+  VenusAndMars,
+  CalendarPlus,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { crmApi, type CrmRecord, type CrmResource } from "../api/crm.api";
+import {
+  crmApi,
+  leadAttachmentApi,
+  type CrmRecord,
+  type CrmResource,
+} from "../api/crm.api";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { storedUser, hasPermission } from "@/features/auth/access";
 import { Button } from "@/shared/components/ui/button";
@@ -26,6 +39,7 @@ import { SurgeryAppointmentCalendar } from "../components/SurgeryAppointmentCale
 import { SearchableSelect } from "@/shared/components/ui/searchable-select";
 import { DeleteConfirmationDialog } from "@/shared/components/ui/confirmation-dialog";
 import { FormDatePicker } from "@/shared/components/ui/form-date-picker";
+import nhoLogo from "@/assets/icons/nho-logo-rounded.png";
 import {
   Select,
   SelectContent,
@@ -100,6 +114,18 @@ const emptyPatientFilters: PatientFilters = {
   hasDiabetes: "",
   hasHypertension: "",
 };
+type ReferralFilters = {
+  referralType: string;
+  status: string;
+  from: string;
+  to: string;
+};
+const emptyReferralFilters: ReferralFilters = {
+  referralType: "",
+  status: "",
+  from: "",
+  to: "",
+};
 function PatientFilterSelect({
   label,
   value,
@@ -143,26 +169,107 @@ const configs: Record<
     title: "Leads",
     description: "Track prospective patients from first contact to conversion.",
     fields: [
-      { name: "code", label: "Lead code", required: true },
       { name: "name", label: "Full name", required: true },
       { name: "phone", label: "Phone", required: true },
-      { name: "source", label: "Lead source", required: true },
+      { name: "secondaryPhone", label: "Secondary phone" },
       { name: "age", label: "Age", type: "number" },
+      { name: "dateOfBirth", label: "Date of birth", type: "date" },
       {
         name: "gender",
         label: "Gender",
         type: "select",
         options: ["male", "female", "other"],
       },
-      { name: "address", label: "Address" },
+      {
+        name: "maritalStatus",
+        label: "Marital status",
+        type: "select",
+        options: ["single", "married", "divorced", "widowed"],
+      },
+      { name: "preferredLanguage", label: "Preferred language" },
+      { name: "country", label: "Country" },
+      { name: "city", label: "City" },
+      { name: "address", label: "Location" },
       { name: "email", label: "Email" },
-      { name: "interest", label: "Interested service" },
-      { name: "notes", label: "Notes", type: "textarea" },
+      { name: "interest", label: "Occupation" },
+      {
+        name: "leadSourceChannel",
+        label: "Lead source channel",
+        type: "select",
+        options: ["digital", "traditional"],
+      },
+      {
+        name: "source",
+        label: "Lead source",
+        type: "select",
+        options: [
+          "whatsapp_message",
+          "facebook",
+          "tiktok",
+          "tv",
+          "youtube",
+          "instagram",
+          "doctor_referral",
+          "patient_referral",
+          "people_referral",
+        ],
+        required: true,
+      },
+      {
+        name: "contactMethod",
+        label: "First contact method",
+        type: "select",
+        options: ["phone", "whatsapp", "social_media", "walk_in", "email"],
+      },
+      {
+        name: "patientType",
+        label: "Patient type",
+        type: "select",
+        options: ["medical", "non_cardiac", "surgical"],
+      },
+      {
+        name: "referralPersona",
+        label: "Referral persona",
+        type: "select",
+        options: ["doctor", "our_patient", "people"],
+      },
+      { name: "referralName", label: "Referral name" },
+      { name: "referralPhone", label: "Referral phone" },
+      { name: "referralAddress", label: "Referral address" },
+      { name: "referralNote", label: "Referral note", type: "textarea" },
+      { name: "competitorsNote", label: "Competitors note", type: "textarea" },
+      { name: "notes", label: "Additional note", type: "textarea" },
+      {
+        name: "satisfactionScore",
+        label: "Satisfaction score",
+        type: "number",
+      },
+      {
+        name: "knowledgeRating",
+        label: "Knowledge rating (1-5)",
+        type: "number",
+      },
+      { name: "budgetRange", label: "Budget range" },
+      {
+        name: "decisionInfluencers",
+        label: "Decision influencers",
+        type: "textarea",
+      },
+      { name: "painPoints", label: "Pain points", type: "textarea" },
       {
         name: "status",
         label: "Status",
         type: "select",
-        options: ["new", "contacted", "qualified", "converted", "lost"],
+        options: [
+          "new",
+          "contacted",
+          "qualified",
+          "appointment_requested",
+          "surgery_appointment",
+          "converted",
+          "direct_surgery_converted",
+          "lost",
+        ],
         required: true,
       },
     ],
@@ -170,10 +277,11 @@ const configs: Record<
       "code",
       "name",
       "phone",
-      "source",
+      "address",
+      "interest",
       "age",
       "gender",
-      "address",
+      "notes",
       "status",
     ],
   },
@@ -211,6 +319,63 @@ const configs: Record<
       },
     ],
     columns: ["patientCode", "name", "phone", "bloodType", "status"],
+  },
+  referrals: {
+    title: "Referrals",
+    description: "Track who referred each patient to the organization.",
+    fields: [
+      { name: "patientId", label: "Patient", type: "patient", required: true },
+      { name: "referrerName", label: "Referrer name", required: true },
+      { name: "referrerPhone", label: "Referrer phone" },
+      { name: "referrerProfession", label: "Profession" },
+      { name: "referrerAddress", label: "Address" },
+      {
+        name: "direction",
+        label: "Type",
+        type: "select",
+        options: ["inbound", "outbound"],
+        required: true,
+      },
+      {
+        name: "referralPersona",
+        label: "Referral persona",
+        type: "select",
+        options: ["doctor", "our_patient", "people"],
+      },
+      { name: "referringPatientName", label: "Referring patient" },
+      {
+        name: "referralType",
+        label: "Referral type",
+        type: "select",
+        options: ["patient", "doctor", "employee", "organization", "other"],
+        required: true,
+      },
+      {
+        name: "referredAt",
+        label: "Referral date",
+        type: "date",
+        required: true,
+      },
+      { name: "notes", label: "Notes", type: "textarea" },
+      {
+        name: "status",
+        label: "Status",
+        type: "select",
+        options: ["active", "completed", "cancelled"],
+        required: true,
+      },
+    ],
+    columns: [
+      "referrerName",
+      "referrerPhone",
+      "direction",
+      "referralPersona",
+      "broughtPatients",
+      "refereeName",
+      "leadCode",
+      "status",
+      "createdAt",
+    ],
   },
   surgeries: {
     title: "Surgeries",
@@ -318,14 +483,23 @@ const configs: Record<
     columns: ["patient", "amount", "paymentMethod", "paidAt", "status"],
   },
 };
-const labelOf = (x: CrmRecord, type?: Field["type"]): string =>
-  type === "doctor"
-    ? `${(x.employee as CrmRecord)?.firstName ?? ""} ${(x.employee as CrmRecord)?.lastName ?? ""}`
-    : type === "surgeryAppointment"
-      ? `${labelOf(x.patient as CrmRecord)} — ${String((x.surgery as CrmRecord)?.name ?? "")}`
-      : String(
-          x.name ?? `${x.firstName ?? ""} ${x.lastName ?? ""}`.trim() ?? x.code,
-        );
+const labelOf = (
+  x: CrmRecord | null | undefined,
+  type?: Field["type"],
+): string => {
+  if (!x) return "—";
+  if (type === "doctor")
+    return (
+      `${(x.employee as CrmRecord)?.firstName ?? ""} ${(x.employee as CrmRecord)?.lastName ?? ""}`.trim() ||
+      "—"
+    );
+  if (type === "surgeryAppointment")
+    return `${labelOf(x.patient as CrmRecord)} — ${String((x.surgery as CrmRecord)?.name ?? "")}`;
+  return String(
+    x.name ??
+      (`${x.firstName ?? ""} ${x.lastName ?? ""}`.trim() || x.code || "—"),
+  );
+};
 const statusStyles: Record<string, string> = {
   new: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300",
   contacted:
@@ -334,6 +508,10 @@ const statusStyles: Record<string, string> = {
     "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-300",
   converted:
     "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+  direct_surgery_converted:
+    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+  surgery_appointment:
+    "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/60 dark:text-orange-300",
   active:
     "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
   paid: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
@@ -372,6 +550,7 @@ const patientAge = (dateOfBirth: unknown) => {
   return String(age);
 };
 export default function CrmPage({ resource }: { resource: CrmResource }) {
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   const config = configs[resource],
     user = storedUser(),
@@ -384,12 +563,36 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
     useState<PatientFilters>(emptyPatientFilters);
   const [draftPatientFilters, setDraftPatientFilters] =
     useState<PatientFilters>(emptyPatientFilters);
+  const [referralFilters, setReferralFilters] =
+    useState<ReferralFilters>(emptyReferralFilters);
+  const [draftReferralFilters, setDraftReferralFilters] =
+    useState<ReferralFilters>(emptyReferralFilters);
   const [filterOpen, setFilterOpen] = useState(false);
   const [patientView, setPatientView] = useState<"grid" | "table">("grid");
   const [surgeryView, setSurgeryView] = useState<"calendar" | "table">(
     "calendar",
   );
   const [surgeryDraftAt, setSurgeryDraftAt] = useState("");
+  const [leadChannel, setLeadChannel] = useState("");
+  const [leadFiles, setLeadFiles] = useState<File[]>([]);
+  const addLeadFiles = (incoming: File[]) => {
+    const valid = incoming.filter((file) => file.size <= 10 * 1024 * 1024);
+    if (valid.length !== incoming.length)
+      toast.error(t("crm.errors.attachmentSize"));
+    setLeadFiles((current) => {
+      const combined = [...current, ...valid].filter(
+        (file, index, files) =>
+          files.findIndex(
+            (candidate) =>
+              candidate.name === file.name &&
+              candidate.size === file.size &&
+              candidate.lastModified === file.lastModified,
+          ) === index,
+      );
+      if (combined.length > 10) toast.error(t("crm.errors.attachmentLimit"));
+      return combined.slice(0, 10);
+    });
+  };
   const data = useApiResource(
     useCallback(
       () =>
@@ -404,15 +607,31 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
               ? Object.fromEntries(
                   Object.entries(patientFilters).filter(([, value]) => value),
                 )
-              : {},
+              : resource === "referrals"
+                ? Object.fromEntries(
+                    Object.entries(referralFilters).filter(
+                      ([, value]) => value,
+                    ),
+                  )
+                : {},
         ),
-      [resource, page, leadFilters, patientFilters],
+      [resource, page, leadFilters, patientFilters, referralFilters],
     ),
   );
   const lookups = useApiResource(useCallback(() => crmApi.lookups(), []));
   const [open, setOpen] = useState(false),
     [editingRecord, setEditingRecord] = useState<CrmRecord | null>(null),
+    [selectedReferral, setSelectedReferral] = useState<CrmRecord | null>(null),
     [search, setSearch] = useState("");
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    const record = data.data?.items.find((item) => item.id === editId);
+    if (resource === "leads" && record) {
+      setEditingRecord(record);
+      setLeadChannel(String(record.leadSourceChannel ?? ""));
+      setOpen(true);
+    }
+  }, [data.data?.items, resource, searchParams]);
   const rows = useMemo(
     () =>
       (data.data?.items ?? []).filter((x) =>
@@ -440,20 +659,29 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       if (field.type === "number" && raw) payload[field.name] = Number(raw);
     }
     try {
-      if (editingRecord) {
-        await crmApi[resource].update(editingRecord.id, payload);
-      } else {
-        await crmApi[resource].create(payload);
-      }
+      const saved = editingRecord
+        ? await crmApi[resource].update(editingRecord.id, payload)
+        : await crmApi[resource].create(payload);
+      if (resource === "leads" && leadFiles.length)
+        await leadAttachmentApi.upload(saved.id, leadFiles);
       setOpen(false);
       setEditingRecord(null);
+      setLeadFiles([]);
       await Promise.all([data.refresh(), lookups.refresh()]);
       toast.success(
         editingRecord ? "Record updated successfully." : "Saved successfully.",
       );
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Unable to save record.",
+        resource === "leads"
+          ? t("crm.errors.leadSave")
+          : resource === "referrals"
+            ? editingRecord
+              ? t("crm.errors.referralUpdate")
+              : t("crm.errors.referralCreate")
+            : error instanceof Error
+              ? error.message
+              : "Unable to save record.",
       );
     }
   };
@@ -470,6 +698,28 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       ? t(`crm.values.${value}`, { defaultValue: display })
       : display;
   };
+  const leadAppointmentUrl = (lead: CrmRecord) => {
+    const query = new URLSearchParams({
+      patientName: String(lead.name ?? ""),
+      patientPhone: String(lead.phone ?? ""),
+      patientEmail: String(lead.email ?? ""),
+      reason: String(lead.interest ?? ""),
+    });
+    return `/crm/appointments?${query.toString()}`;
+  };
+  const genderIcon = (value: unknown) => {
+    const gender = String(value ?? "other").toLowerCase();
+    const Icon =
+      gender === "male" ? Mars : gender === "female" ? Venus : VenusAndMars;
+    return (
+      <span className="inline-flex items-center gap-1.5 capitalize">
+        <Icon
+          className={`size-4 ${gender === "male" ? "text-blue-600" : gender === "female" ? "text-pink-600" : "text-violet-600"}`}
+        />
+        {gender}
+      </span>
+    );
+  };
   const updateLeadStatus = async (row: CrmRecord, status: string) => {
     try {
       await crmApi.leads.update(row.id, { status });
@@ -480,9 +730,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
           : "Lead status updated.",
       );
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Unable to update lead.",
-      );
+      toast.error(t("crm.errors.leadUpdate"));
     }
   };
   const activeFilterCount = Object.values(leadFilters).filter(Boolean).length;
@@ -492,7 +740,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       draftFilters.maxAge &&
       Number(draftFilters.minAge) > Number(draftFilters.maxAge)
     ) {
-      toast.error("Minimum age cannot be greater than maximum age.");
+      toast.error(t("crm.errors.ageRange"));
       return;
     }
     setPage(1);
@@ -517,6 +765,206 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
     setDraftPatientFilters(emptyPatientFilters);
     setPatientFilters(emptyPatientFilters);
     setFilterOpen(false);
+  };
+  const activeReferralFilterCount =
+    Object.values(referralFilters).filter(Boolean).length;
+  const applyReferralFilters = () => {
+    if (
+      draftReferralFilters.from &&
+      draftReferralFilters.to &&
+      draftReferralFilters.from > draftReferralFilters.to
+    ) {
+      toast.error(t("crm.errors.referralDateRange"));
+      return;
+    }
+    setPage(1);
+    setReferralFilters(draftReferralFilters);
+    setFilterOpen(false);
+  };
+  const clearReferralFilters = () => {
+    setPage(1);
+    setDraftReferralFilters(emptyReferralFilters);
+    setReferralFilters(emptyReferralFilters);
+    setFilterOpen(false);
+  };
+  const referralReportRows = async () =>
+    (
+      await crmApi.referrals.list(
+        1,
+        100,
+        Object.fromEntries(
+          Object.entries(referralFilters).filter(([, value]) => value),
+        ),
+      )
+    ).items;
+  const escapeReportValue = (value: unknown) =>
+    String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  const referralReportTable = (items: CrmRecord[]) =>
+    items
+      .map((item) => {
+        const patient = item.patient as CrmRecord;
+        return `<tr><td>${escapeReportValue(labelOf(patient))}</td><td>${escapeReportValue(item.referrerName)}</td><td>${escapeReportValue(item.referrerPhone)}</td><td>${escapeReportValue(item.referralType)}</td><td>${escapeReportValue(new Date(String(item.referredAt)).toLocaleDateString())}</td><td>${escapeReportValue(item.status)}</td></tr>`;
+      })
+      .join("");
+  const exportReferralsExcel = async () => {
+    const items = await referralReportRows();
+    const workbook = `<html><head><meta charset="UTF-8"></head><body><table><thead><tr><th>Patient</th><th>Referrer</th><th>Phone</th><th>Type</th><th>Date</th><th>Status</th></tr></thead><tbody>${referralReportTable(items)}</tbody></table></body></html>`;
+    const url = URL.createObjectURL(
+      new Blob([workbook], { type: "application/vnd.ms-excel" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `referrals-${new Date().toISOString().slice(0, 10)}.xls`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  const collectionReportRows = async (kind: "leads" | "patients") => {
+    const sourceFilters = kind === "leads" ? leadFilters : patientFilters;
+    const filters = Object.fromEntries(
+      Object.entries(sourceFilters).filter(([, value]) => value),
+    );
+    return (await crmApi[kind].list(1, 100, filters)).items;
+  };
+  const collectionColumns = (kind: "leads" | "patients") =>
+    kind === "leads"
+      ? ["code", "name", "phone", "source", "age", "gender", "status"]
+      : [
+          "patientCode",
+          "name",
+          "phone",
+          "gender",
+          "bloodType",
+          "address",
+          "status",
+        ];
+  const collectionCell = (item: CrmRecord, key: string) =>
+    key === "name" && item.firstName
+      ? `${item.firstName} ${item.lastName}`
+      : item[key];
+  const exportCollectionExcel = async (kind: "leads" | "patients") => {
+    const items = await collectionReportRows(kind);
+    const columns = collectionColumns(kind);
+    const table = `<table><thead><tr>${columns.map((key) => `<th>${escapeReportValue(key)}</th>`).join("")}</tr></thead><tbody>${items.map((item) => `<tr>${columns.map((key) => `<td>${escapeReportValue(collectionCell(item, key))}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    const url = URL.createObjectURL(
+      new Blob(
+        [
+          `<html><head><meta charset="UTF-8"></head><body>${table}</body></html>`,
+        ],
+        {
+          type: "application/vnd.ms-excel",
+        },
+      ),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${kind}-${new Date().toISOString().slice(0, 10)}.xls`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  const exportCollectionPdf = async (kind: "leads" | "patients") => {
+    const reportWindow = window.open("", "_blank");
+    if (!reportWindow) {
+      toast.error(t("crm.errors.popupBlocked"));
+      return;
+    }
+    const items = await collectionReportRows(kind);
+    const columns = collectionColumns(kind);
+    const groupField = kind === "leads" ? "source" : "gender";
+    const groups = items.reduce<Record<string, number>>((result, item) => {
+      const key = String(item[groupField] ?? "Unknown");
+      result[key] = (result[key] ?? 0) + 1;
+      return result;
+    }, {});
+    const statuses = items.reduce<Record<string, number>>((result, item) => {
+      const key = String(item.status ?? "Unknown");
+      result[key] = (result[key] ?? 0) + 1;
+      return result;
+    }, {});
+    const colors = ["#2563eb", "#14b8a6", "#8b5cf6", "#f59e0b", "#ef4444"];
+    const bars = (values: Record<string, number>) => {
+      const max = Math.max(1, ...Object.values(values));
+      return Object.entries(values)
+        .map(
+          ([label, count], index) =>
+            `<div class="bar-row"><div><span>${escapeReportValue(label)}</span><strong>${count}</strong></div><i><b style="width:${(count / max) * 100}%;background:${colors[index % colors.length]}"></b></i></div>`,
+        )
+        .join("");
+    };
+    const table = `<table><thead><tr>${columns.map((key) => `<th>${escapeReportValue(key)}</th>`).join("")}</tr></thead><tbody>${items.map((item) => `<tr>${columns.map((key) => `<td>${escapeReportValue(collectionCell(item, key))}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    const title =
+      kind === "leads" ? "Lead Performance Report" : "Patient Registry Report";
+    const logoUrl = new URL(nhoLogo, window.location.href).href;
+    reportWindow.document.write(
+      `<!doctype html><html><head><title>${title}</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;font:12px Arial;color:#172033;-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover{height:267mm;display:flex;flex-direction:column;justify-content:center;padding:58px;background:linear-gradient(145deg,#f8fbff,#e2edff);page-break-after:always;position:relative;overflow:hidden}.cover:after{content:"";position:absolute;width:360px;height:360px;border-radius:50%;background:#2563eb;right:-170px;top:-130px}.logo{width:110px;margin-bottom:40px}.eyebrow{color:#2563eb;font-weight:bold;letter-spacing:3px}.cover h1{font-size:42px;color:#102a56;margin:15px 0}.meta{font-size:16px;color:#60728a}.report-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #2563eb;padding-bottom:12px}.brand{display:flex;align-items:center;gap:10px}.brand img{width:42px}.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}.kpi,.chart{border:1px solid #dce5f0;border-radius:12px;padding:16px}.kpi strong{display:block;font-size:26px;color:#163b70;margin-top:4px}.charts{display:grid;grid-template-columns:1fr 1fr;gap:15px;break-inside:avoid}.chart h2{font-size:15px}.bar-row{margin:12px 0}.bar-row div{display:flex;justify-content:space-between;text-transform:capitalize}.bar-row i{display:block;height:10px;background:#edf1f7;border-radius:10px;margin-top:5px;overflow:hidden}.bar-row b{display:block;height:100%;border-radius:10px}table{width:100%;border-collapse:collapse;margin-top:22px;font-size:9px}thead{display:table-header-group}th{background:#163b70;color:white;text-align:left;padding:8px;text-transform:capitalize}td{padding:7px;border-bottom:1px solid #dde5ef}tr{break-inside:avoid}tbody tr:nth-child(even){background:#f7f9fc}</style></head><body><section class="cover"><img class="logo" src="${logoUrl}"><div class="eyebrow">NHO WORKSPACE · CRM ANALYTICS</div><h1>${title}</h1><p class="meta">Comprehensive overview and detailed records</p><p class="meta">Generated ${escapeReportValue(new Date().toLocaleString())} · ${items.length} records</p></section><main><header class="report-header"><div class="brand"><img src="${logoUrl}"><h1>${title}</h1></div><span>${items.length} records</span></header><section class="kpis"><div class="kpi">Total records<strong>${items.length}</strong></div><div class="kpi">Active / new<strong>${(statuses.active ?? 0) + (statuses.new ?? 0)}</strong></div><div class="kpi">Categories<strong>${Object.keys(groups).length}</strong></div></section><section class="charts"><div class="chart"><h2>By ${groupField}</h2>${bars(groups)}</div><div class="chart"><h2>By status</h2>${bars(statuses)}</div></section>${table}</main><script>window.onload=()=>setTimeout(()=>window.print(),250)</script></body></html>`,
+    );
+    reportWindow.document.close();
+  };
+  const exportReferralsPdf = async () => {
+    const reportWindow = window.open("", "_blank");
+    if (!reportWindow) {
+      toast.error(t("crm.errors.popupBlocked"));
+      return;
+    }
+    const items = await referralReportRows();
+    const countsFor = (field: "referralType" | "status") =>
+      items.reduce<Record<string, number>>((result, item) => {
+        const key = String(item[field] ?? "Unknown");
+        result[key] = (result[key] ?? 0) + 1;
+        return result;
+      }, {});
+    const typeCounts = countsFor("referralType");
+    const statusCounts = countsFor("status");
+    const colors = ["#2563eb", "#14b8a6", "#8b5cf6", "#f59e0b", "#ef4444"];
+    const barChart = () => {
+      const maximum = Math.max(1, ...Object.values(typeCounts));
+      return Object.entries(typeCounts)
+        .map(
+          ([label, count], index) =>
+            `<div class="bar-row"><div class="bar-label"><span>${escapeReportValue(label)}</span><strong>${count}</strong></div><div class="track"><div class="bar" style="width:${(count / maximum) * 100}%;background:${colors[index % colors.length]}"></div></div></div>`,
+        )
+        .join("");
+    };
+    const statusEntries = Object.entries(statusCounts);
+    let angle = 0;
+    const donutStops = statusEntries.map(([, count], index) => {
+      const start = angle;
+      angle += items.length ? (count / items.length) * 360 : 0;
+      return `${colors[index % colors.length]} ${start}deg ${angle}deg`;
+    });
+    const reportingPeriod =
+      referralFilters.from || referralFilters.to
+        ? `${referralFilters.from || "Beginning"} — ${referralFilters.to || "Present"}`
+        : "All dates";
+    const logoUrl = new URL(nhoLogo, window.location.href).href;
+    const completed = statusCounts.completed ?? 0;
+    const active = statusCounts.active ?? 0;
+    const completionRate = items.length
+      ? Math.round((completed / items.length) * 100)
+      : 0;
+    const statusLegend = statusEntries
+      .map(
+        ([label, count], index) =>
+          `<div class="legend-row"><i style="background:${colors[index % colors.length]}"></i><span>${escapeReportValue(label)}</span><strong>${count}</strong></div>`,
+      )
+      .join("");
+    reportWindow.document.write(
+      `<!doctype html><html><head><title>NHO Referral Report</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;font:12px Arial,sans-serif;color:#172033;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover{height:267mm;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:58px;background:linear-gradient(145deg,#f8fbff 0%,#eef6ff 58%,#e2edff 100%);page-break-after:always}.cover:before{content:"";position:absolute;width:360px;height:360px;border-radius:50%;background:#2563eb;right:-170px;top:-130px}.cover:after{content:"";position:absolute;width:220px;height:220px;border:42px solid #14b8a6;border-radius:50%;left:-130px;bottom:-100px}.logo{width:112px;height:112px;object-fit:contain;margin-bottom:44px;filter:drop-shadow(0 12px 20px #1e3a5f33)}.eyebrow{color:#2563eb;font-weight:700;letter-spacing:3px;text-transform:uppercase}.cover h1{font-size:42px;line-height:1.05;margin:14px 0;color:#102a56}.cover .subtitle{font-size:18px;color:#526783;margin-bottom:54px}.cover-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:520px}.cover-meta{padding:16px 0;border-top:1px solid #bdcee4}.cover-meta span{display:block;color:#70829a;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px}.cover-meta strong{font-size:14px}.report{padding:4px}.report-header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #2563eb;padding-bottom:12px}.report-brand{display:flex;align-items:center;gap:10px}.report-brand img{width:42px;height:42px}.report-header h1{font-size:22px;margin:0}.muted{color:#667085}.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}.kpi{border:1px solid #dce5f0;border-radius:12px;padding:15px;background:linear-gradient(145deg,#fff,#f7faff)}.kpi span{color:#667085}.kpi strong{display:block;font-size:25px;margin-top:5px;color:#163b70}.charts{display:grid;grid-template-columns:1.15fr .85fr;gap:15px;margin:16px 0 24px;break-inside:avoid}.chart{border:1px solid #dce5f0;border-radius:12px;padding:16px}.chart h2{font-size:15px;margin:0 0 15px}.bar-row{margin:12px 0}.bar-label{display:flex;justify-content:space-between;text-transform:capitalize}.track{height:10px;background:#edf1f7;border-radius:10px;margin-top:6px;overflow:hidden}.bar{height:100%;border-radius:10px}.donut-wrap{display:flex;align-items:center;justify-content:center;gap:20px}.donut{width:120px;height:120px;border-radius:50%;background:conic-gradient(${donutStops.join(",") || "#e5e7eb 0deg 360deg"});position:relative}.donut:after{content:"${items.length}";position:absolute;inset:25px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:24px;font-weight:700;color:#163b70}.legend{min-width:110px}.legend-row{display:grid;grid-template-columns:10px 1fr auto;gap:7px;align-items:center;margin:9px 0;text-transform:capitalize}.legend-row i{width:8px;height:8px;border-radius:50%}table{width:100%;border-collapse:collapse;margin-top:10px;font-size:10px}thead{display:table-header-group}th{background:#163b70;color:#fff;text-align:left;padding:9px 7px}td{border-bottom:1px solid #dde5ef;padding:8px 7px}tbody tr:nth-child(even){background:#f7f9fc}tr{break-inside:avoid}.section-title{font-size:17px;margin:22px 0 8px}@media print{.cover{height:267mm}.report{padding:0}}</style></head><body><section class="cover"><img class="logo" src="${logoUrl}" alt="NHO"><div class="eyebrow">NHO Workspace · CRM Analytics</div><h1>Referral<br>Performance Report</h1><p class="subtitle">Patient acquisition sources, referral outcomes, and detailed activity.</p><div class="cover-grid"><div class="cover-meta"><span>Reporting period</span><strong>${escapeReportValue(reportingPeriod)}</strong></div><div class="cover-meta"><span>Total referrals</span><strong>${items.length}</strong></div><div class="cover-meta"><span>Prepared on</span><strong>${escapeReportValue(new Date().toLocaleDateString())}</strong></div><div class="cover-meta"><span>Report status</span><strong>Confidential</strong></div></div></section><main class="report"><header class="report-header"><div class="report-brand"><img src="${logoUrl}" alt="NHO"><div><h1>Referral Overview</h1><div class="muted">${escapeReportValue(reportingPeriod)}</div></div></div><div class="muted">Generated ${escapeReportValue(new Date().toLocaleString())}</div></header><section class="kpis"><div class="kpi"><span>Total referrals</span><strong>${items.length}</strong></div><div class="kpi"><span>Active referrals</span><strong>${active}</strong></div><div class="kpi"><span>Completion rate</span><strong>${completionRate}%</strong></div></section><section class="charts"><div class="chart"><h2>Referrals by source type</h2>${barChart()}</div><div class="chart"><h2>Referral status</h2><div class="donut-wrap"><div class="donut"></div><div class="legend">${statusLegend}</div></div></div></section><h2 class="section-title">Referral Details</h2><table><thead><tr><th>Patient</th><th>Referrer</th><th>Phone</th><th>Type</th><th>Date</th><th>Status</th></tr></thead><tbody>${referralReportTable(items)}</tbody></table></main><script>window.onload=()=>setTimeout(()=>window.print(),250)</script></body></html>`,
+    );
+    reportWindow.document.close();
+  };
+  const runReportExport = async (
+    exporter: () => Promise<void>,
+    errorKey = "crm.errors.reportExport",
+  ) => {
+    try {
+      await exporter();
+    } catch {
+      toast.error(t(errorKey));
+    }
   };
   return (
     <div className="mx-auto max-w-[1500px] space-y-5">
@@ -549,14 +997,17 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                 onClick={() => {
                   setEditingRecord(null);
                   setSurgeryDraftAt("");
+                  setLeadChannel("");
                 }}
               >
                 <Plus />
                 {t("crm.actions.addRecord")}
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-              <DialogHeader>
+            <DialogContent
+              className={`max-h-[90vh] overflow-hidden p-0 ${resource === "leads" ? "flex h-[88vh] flex-col sm:max-w-5xl" : "sm:max-w-2xl"}`}
+            >
+              <DialogHeader className="shrink-0 border-b px-6 py-4">
                 <DialogTitle>
                   {editingRecord
                     ? t("crm.actions.editRecord")
@@ -565,114 +1016,248 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
               </DialogHeader>
               <form
                 key={editingRecord?.id ?? surgeryDraftAt ?? "create"}
-                className="grid gap-4 sm:grid-cols-2"
+                className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6 pt-4 [scrollbar-gutter:stable] grid gap-4 ${resource === "leads" ? "md:grid-cols-3" : "sm:grid-cols-2"}`}
                 onSubmit={submit}
               >
-                {config.fields.map((field) => (
-                  <label
-                    key={field.name}
-                    className={`grid gap-1.5 text-sm font-medium ${field.type === "textarea" ? "sm:col-span-2" : ""}`}
-                  >
-                    {t(`crm.fields.${field.name}`, {
-                      defaultValue: field.label,
-                    })}
-                    {field.type === "select" ? (
-                      <Select
-                        name={field.name}
-                        required={field.required}
-                        defaultValue={String(editingRecord?.[field.name] ?? "")}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={t("crm.placeholders.selectField", {
-                              field: t(`crm.fields.${field.name}`, {
-                                defaultValue: field.label,
-                              }),
-                            })}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {field.options?.map((x) => (
-                            <SelectItem key={x} value={x}>
-                              {t(`crm.values.${x}`, {
-                                defaultValue: x.replaceAll("_", " "),
-                              })}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : field.type === "date" || field.type === "datetime" ? (
-                      <FormDatePicker
-                        name={field.name}
-                        initialValue={String(
-                          editingRecord?.[field.name] ??
-                            (field.name === "scheduledAt"
-                              ? surgeryDraftAt
-                              : ""),
+                {config.fields
+                  .filter(
+                    (field) =>
+                      resource !== "leads" ||
+                      !field.name.startsWith("referral") ||
+                      leadChannel === "traditional",
+                  )
+                  .map((field) => (
+                    <Fragment key={field.name}>
+                      {resource === "leads" && field.name === "name" && (
+                        <div className="border-s-2 border-emerald-500 ps-3 font-bold text-emerald-800 md:col-span-3 dark:text-emerald-300">
+                          {t("crm.leadForm.requiredFields")}
+                        </div>
+                      )}
+                      {resource === "leads" && field.name === "age" && (
+                        <div className="mt-2 border-s-2 border-emerald-500 ps-3 font-bold text-emerald-800 md:col-span-3 dark:text-emerald-300">
+                          {t("crm.leadForm.personalInformation")}
+                        </div>
+                      )}
+                      {resource === "leads" &&
+                        field.name === "competitorsNote" && (
+                          <div className="mt-2 border-s-2 border-emerald-500 ps-3 font-bold text-emerald-800 md:col-span-3 dark:text-emerald-300">
+                            {t("crm.leadForm.notes")}
+                          </div>
                         )}
-                        includeTime={field.type === "datetime"}
-                        required={field.required}
-                      />
-                    ) : field.type === "patient" ? (
-                      <SearchableSelect
-                        name={field.name}
-                        required={field.required}
-                        defaultValue={String(editingRecord?.[field.name] ?? "")}
-                        placeholder={t("crm.actions.selectPatient")}
-                        searchPlaceholder={t("crm.actions.searchPatients")}
-                        options={choices(field).map((patient) => ({
-                          value: patient.id,
-                          label: labelOf(patient, field.type),
-                          searchText: String(patient.patientCode ?? ""),
-                        }))}
-                      />
-                    ) : field.type &&
-                      [
-                        "patient",
-                        "doctor",
-                        "surgery",
-                        "surgeryAppointment",
-                      ].includes(field.type) ? (
-                      <Select
-                        name={field.name}
-                        required={field.required}
-                        defaultValue={String(editingRecord?.[field.name] ?? "")}
+                      {resource === "leads" &&
+                        field.name === "leadSourceChannel" && (
+                          <div className="mt-2 rounded-t-xl border border-emerald-200 bg-emerald-50/70 p-4 md:col-span-3 dark:border-emerald-900 dark:bg-emerald-950/20">
+                            <p className="border-s-2 border-emerald-500 ps-3 font-bold text-emerald-800 dark:text-emerald-300">
+                              {t("crm.leadForm.acquisitionDetails")}
+                            </p>
+                            <p className="mt-1 ps-3 text-xs text-muted-foreground">
+                              {t("crm.leadForm.acquisitionHint")}
+                            </p>
+                          </div>
+                        )}
+                      <label
+                        className={`grid gap-1.5 text-sm font-medium ${field.type === "textarea" ? (resource === "leads" ? "md:col-span-3" : "sm:col-span-2") : ""} ${resource === "leads" && ["leadSourceChannel", "source", "contactMethod", "patientType", "referralPersona", "referralName", "referralPhone", "referralAddress", "referralNote"].includes(field.name) ? "rounded-lg border-emerald-100 bg-emerald-50/30 p-3 dark:border-emerald-950 dark:bg-emerald-950/10" : ""}`}
                       >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={t("crm.placeholders.selectField", {
-                              field: t(`crm.fields.${field.name}`, {
-                                defaultValue: field.label,
-                              }),
-                            })}
+                        {t(`crm.fields.${field.name}`, {
+                          defaultValue: field.label,
+                        })}
+                        {field.type === "select" ? (
+                          <Select
+                            name={field.name}
+                            required={field.required}
+                            value={
+                              field.name === "leadSourceChannel"
+                                ? leadChannel
+                                : undefined
+                            }
+                            onValueChange={
+                              field.name === "leadSourceChannel"
+                                ? setLeadChannel
+                                : undefined
+                            }
+                            defaultValue={String(
+                              editingRecord?.[field.name] ?? "",
+                            )}
+                          >
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={t("crm.placeholders.selectField", {
+                                  field: t(`crm.fields.${field.name}`, {
+                                    defaultValue: field.label,
+                                  }),
+                                })}
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.options
+                                ?.filter(
+                                  (option) =>
+                                    field.name !== "source" ||
+                                    leadChannel !== "traditional" ||
+                                    option.endsWith("_referral"),
+                                )
+                                .filter(
+                                  (option) =>
+                                    field.name !== "source" ||
+                                    leadChannel !== "digital" ||
+                                    !option.endsWith("_referral"),
+                                )
+                                .map((x) => (
+                                  <SelectItem key={x} value={x}>
+                                    {t(`crm.values.${x}`, {
+                                      defaultValue: x.replaceAll("_", " "),
+                                    })}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        ) : field.type === "date" ||
+                          field.type === "datetime" ? (
+                          <FormDatePicker
+                            name={field.name}
+                            initialValue={String(
+                              editingRecord?.[field.name] ??
+                                (field.name === "scheduledAt"
+                                  ? surgeryDraftAt
+                                  : ""),
+                            )}
+                            includeTime={field.type === "datetime"}
+                            required={field.required}
                           />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {choices(field).map((x) => (
-                            <SelectItem key={x.id} value={x.id}>
-                              {labelOf(x, field.type)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : field.type === "textarea" ? (
-                      <textarea
-                        name={field.name}
-                        defaultValue={String(editingRecord?.[field.name] ?? "")}
-                        className="min-h-24 rounded-md border bg-background p-3"
-                      />
-                    ) : (
-                      <Input
-                        name={field.name}
-                        type={field.type === "number" ? "number" : "text"}
-                        step={field.type === "number" ? "any" : undefined}
-                        defaultValue={String(editingRecord?.[field.name] ?? "")}
-                        required={field.required}
-                      />
+                        ) : field.type === "patient" ? (
+                          <SearchableSelect
+                            name={field.name}
+                            required={field.required}
+                            defaultValue={String(
+                              editingRecord?.[field.name] ?? "",
+                            )}
+                            placeholder={t("crm.actions.selectPatient")}
+                            searchPlaceholder={t("crm.actions.searchPatients")}
+                            options={choices(field).map((patient) => ({
+                              value: patient.id,
+                              label: labelOf(patient, field.type),
+                              searchText: String(patient.patientCode ?? ""),
+                            }))}
+                          />
+                        ) : field.type &&
+                          [
+                            "patient",
+                            "doctor",
+                            "surgery",
+                            "surgeryAppointment",
+                          ].includes(field.type) ? (
+                          <Select
+                            name={field.name}
+                            required={field.required}
+                            defaultValue={String(
+                              editingRecord?.[field.name] ?? "",
+                            )}
+                          >
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={t("crm.placeholders.selectField", {
+                                  field: t(`crm.fields.${field.name}`, {
+                                    defaultValue: field.label,
+                                  }),
+                                })}
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {choices(field).map((x) => (
+                                <SelectItem key={x.id} value={x.id}>
+                                  {labelOf(x, field.type)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : field.type === "textarea" ? (
+                          <textarea
+                            name={field.name}
+                            defaultValue={String(
+                              editingRecord?.[field.name] ?? "",
+                            )}
+                            className="min-h-24 rounded-md border bg-background p-3"
+                          />
+                        ) : (
+                          <Input
+                            name={field.name}
+                            type={field.type === "number" ? "number" : "text"}
+                            step={field.type === "number" ? "any" : undefined}
+                            defaultValue={String(
+                              editingRecord?.[field.name] ?? "",
+                            )}
+                            required={field.required}
+                          />
+                        )}
+                      </label>
+                    </Fragment>
+                  ))}
+                {resource === "leads" && (
+                  <div className="grid gap-3 rounded-xl border-2 border-dashed p-6 text-center transition-colors hover:border-emerald-400 hover:bg-emerald-50/40 md:col-span-3 dark:hover:bg-emerald-950/20">
+                    <FileUp className="mx-auto size-8 text-emerald-600" />
+                    <span className="font-semibold">
+                      {t("crm.leadForm.attachments")}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {t("crm.leadForm.attachmentsHint")}
+                    </span>
+                    <Input
+                      className="mx-auto max-w-md"
+                      type="file"
+                      multiple
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                      onChange={(event) => {
+                        addLeadFiles(Array.from(event.target.files ?? []));
+                        event.target.value = "";
+                      }}
+                    />
+                    {leadFiles.length > 0 && (
+                      <span className="text-xs font-medium text-emerald-700">
+                        {t("crm.leadForm.filesSelected", {
+                          count: leadFiles.length,
+                        })}
+                      </span>
                     )}
-                  </label>
-                ))}
-                <Button className="sm:col-span-2" type="submit">
+                    {leadFiles.length > 0 && (
+                      <div className="mx-auto grid w-full max-w-2xl gap-2 text-start">
+                        {leadFiles.map((file, index) => (
+                          <div
+                            key={`${file.name}-${file.size}-${file.lastModified}`}
+                            className="flex items-center gap-3 rounded-lg border bg-background px-3 py-2"
+                          >
+                            <FileUp className="size-4 shrink-0 text-emerald-600" />
+                            <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                              {file.name}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {(file.size / 1024 / 1024).toFixed(1)} MB
+                            </span>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() =>
+                                setLeadFiles((files) =>
+                                  files.filter(
+                                    (_, fileIndex) => fileIndex !== index,
+                                  ),
+                                )
+                              }
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <Button
+                  className={
+                    resource === "leads" ? "md:col-span-3" : "sm:col-span-2"
+                  }
+                  type="submit"
+                >
                   {editingRecord ? "Save changes" : "Save"}
                 </Button>
               </form>
@@ -690,6 +1275,26 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
             placeholder={t("crm.actions.searchRecords")}
           />
         </div>
+        {(resource === "leads" || resource === "patients") && (
+          <>
+            <Button
+              variant="outline"
+              onClick={() =>
+                void runReportExport(() => exportCollectionExcel(resource))
+              }
+            >
+              <FileSpreadsheet /> Excel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                void runReportExport(() => exportCollectionPdf(resource))
+              }
+            >
+              <Download /> PDF with charts
+            </Button>
+          </>
+        )}
         {resource === "leads" && (
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
             <PopoverTrigger asChild>
@@ -825,6 +1430,119 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
               </div>
             </PopoverContent>
           </Popover>
+        )}
+        {resource === "referrals" && (
+          <>
+            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="relative">
+                  <ListFilter /> {t("crm.actions.filterReferrals")}
+                  {activeReferralFilterCount > 0 && (
+                    <Badge className="ms-1 h-5 min-w-5 justify-center rounded-full px-1.5">
+                      {activeReferralFilterCount}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-96 p-4">
+                <div className="mb-4">
+                  <p className="font-semibold">
+                    {t("crm.actions.filterReferrals")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("crm.referrals.filterDescription")}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <PatientFilterSelect
+                    allLabel={t("crm.referrals.allTypes")}
+                    label={t("crm.fields.referralType")}
+                    value={draftReferralFilters.referralType}
+                    options={[
+                      ["patient", "Patient"],
+                      ["doctor", "Doctor"],
+                      ["employee", "Employee"],
+                      ["organization", "Organization"],
+                      ["other", "Other"],
+                    ]}
+                    onChange={(referralType) =>
+                      setDraftReferralFilters((current) => ({
+                        ...current,
+                        referralType,
+                      }))
+                    }
+                  />
+                  <PatientFilterSelect
+                    allLabel={t("crm.referrals.allStatuses")}
+                    label={t("crm.fields.status")}
+                    value={draftReferralFilters.status}
+                    options={[
+                      ["active", "Active"],
+                      ["completed", "Completed"],
+                      ["cancelled", "Cancelled"],
+                    ]}
+                    onChange={(status) =>
+                      setDraftReferralFilters((current) => ({
+                        ...current,
+                        status,
+                      }))
+                    }
+                  />
+                  {(["from", "to"] as const).map((field) => (
+                    <label
+                      key={field}
+                      className="grid gap-1.5 text-xs font-medium"
+                    >
+                      {t(`crm.referrals.${field}Date`)}
+                      <FormDatePicker
+                        value={draftReferralFilters[field]}
+                        onValueChange={(value) =>
+                          setDraftReferralFilters((current) => ({
+                            ...current,
+                            [field]: value,
+                          }))
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className="mt-4 flex justify-end gap-2 border-t pt-4">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={clearReferralFilters}
+                  >
+                    {t("crm.actions.clear")}
+                  </Button>
+                  <Button type="button" onClick={applyReferralFilters}>
+                    {t("crm.actions.applyFilters")}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Button
+              variant="outline"
+              onClick={() =>
+                void runReportExport(
+                  exportReferralsExcel,
+                  "crm.errors.referralExport",
+                )
+              }
+            >
+              <FileSpreadsheet /> {t("crm.actions.excel")}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                void runReportExport(
+                  exportReferralsPdf,
+                  "crm.errors.referralExport",
+                )
+              }
+            >
+              <Download /> {t("crm.actions.pdfWithCharts")}
+            </Button>
+          </>
         )}
         {resource === "patients" && (
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
@@ -1002,6 +1720,62 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
           </div>
         )}
       </div>
+      {resource === "referrals" && activeReferralFilterCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/20 px-4 py-2 text-xs">
+          <span className="font-semibold text-muted-foreground">
+            {t("crm.referrals.activeFilters")}
+          </span>
+          {referralFilters.referralType && (
+            <Badge variant="outline" className="gap-2 bg-background">
+              {t("crm.fields.referralType")}:{" "}
+              {t(`crm.values.${referralFilters.referralType}`)}{" "}
+              <button
+                type="button"
+                onClick={() =>
+                  setReferralFilters((current) => ({
+                    ...current,
+                    referralType: "",
+                  }))
+                }
+              >
+                ×
+              </button>
+            </Badge>
+          )}
+          {referralFilters.status && (
+            <Badge variant="outline" className="gap-2 bg-background">
+              {t("crm.fields.status")}:{" "}
+              {t(`crm.values.${referralFilters.status}`)}{" "}
+              <button
+                type="button"
+                onClick={() =>
+                  setReferralFilters((current) => ({ ...current, status: "" }))
+                }
+              >
+                ×
+              </button>
+            </Badge>
+          )}
+          {(referralFilters.from || referralFilters.to) && (
+            <Badge variant="outline" className="gap-2 bg-background">
+              {t("crm.referrals.dateFilter")}: {referralFilters.from || "…"} —{" "}
+              {referralFilters.to || "…"}{" "}
+              <button
+                type="button"
+                onClick={() =>
+                  setReferralFilters((current) => ({
+                    ...current,
+                    from: "",
+                    to: "",
+                  }))
+                }
+              >
+                ×
+              </button>
+            </Badge>
+          )}
+        </div>
+      )}
       {resource === "surgery-appointments" && surgeryView === "calendar" ? (
         <SurgeryAppointmentCalendar
           appointments={rows}
@@ -1151,13 +1925,23 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                 {config.columns.map((x) => (
                   <TableHead key={x}>
                     {t(`crm.fields.${x}`, {
-                      defaultValue: x
-                        .replaceAll(/([A-Z])/g, " $1")
-                        .replace(/^./, (c) => c.toUpperCase()),
+                      defaultValue:
+                        resource === "leads"
+                          ? ({
+                              address: "Location",
+                              interest: "Occupation",
+                              notes: "Additional note",
+                            }[x] ??
+                            x
+                              .replaceAll(/([A-Z])/g, " $1")
+                              .replace(/^./, (c) => c.toUpperCase()))
+                          : x
+                              .replaceAll(/([A-Z])/g, " $1")
+                              .replace(/^./, (c) => c.toUpperCase()),
                     })}
                   </TableHead>
                 ))}
-                {canManage && <TableHead />}
+                {(canManage || resource === "referrals") && <TableHead />}
               </TableRow>
             </TableHeader>
             <TableBody
@@ -1176,7 +1960,21 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                 <TableRow key={row.id}>
                   {config.columns.map((key) => (
                     <TableCell key={key}>
-                      {key === "status" && resource === "leads" && canManage ? (
+                      {key === "code" && resource === "leads" ? (
+                        <div>
+                          <p className="font-semibold">{show(row, key)}</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">
+                            Created{" "}
+                            {new Date(
+                              String(row.createdAt),
+                            ).toLocaleDateString()}
+                          </p>
+                        </div>
+                      ) : key === "gender" && resource === "leads" ? (
+                        genderIcon(row.gender)
+                      ) : key === "status" &&
+                        resource === "leads" &&
+                        canManage ? (
                         <div className="flex w-44 items-center gap-2">
                           <Select
                             value={String(row.status)}
@@ -1194,7 +1992,10 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                                 "new",
                                 "contacted",
                                 "qualified",
+                                "appointment_requested",
+                                "surgery_appointment",
                                 "converted",
+                                "direct_surgery_converted",
                                 "lost",
                               ].map((status) => (
                                 <SelectItem key={status} value={status}>
@@ -1229,44 +2030,100 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                       )}
                     </TableCell>
                   ))}
-                  {canManage && (
+                  {(canManage || resource === "referrals") && (
                     <TableCell>
                       <div className="flex justify-end gap-1">
+                        {resource === "referrals" && (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title={t("crm.actions.viewReferralDetails")}
+                              onClick={() => setSelectedReferral(row)}
+                            >
+                              <Eye className="size-4 text-sky-600" />
+                            </Button>
+                            {canManage && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                title={t("crm.actions.editReferral")}
+                                onClick={() => {
+                                  setEditingRecord(row);
+                                  setOpen(true);
+                                }}
+                              >
+                                <Pencil className="size-4 text-primary" />
+                              </Button>
+                            )}
+                          </>
+                        )}
                         {resource === "leads" && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            title="Edit lead"
-                            onClick={() => {
-                              setEditingRecord(row);
-                              setOpen(true);
+                          <>
+                            <Button
+                              asChild
+                              size="icon"
+                              variant="ghost"
+                              title={t("crm.actions.viewDetails")}
+                            >
+                              <Link to={`/crm/leads/${row.id}`}>
+                                <Eye className="size-4 text-sky-600" />
+                              </Link>
+                            </Button>
+                            <Button
+                              asChild
+                              size="icon"
+                              variant="ghost"
+                              title="Quick appointment"
+                            >
+                              <Link to={leadAppointmentUrl(row)}>
+                                <CalendarPlus className="size-4 text-primary" />
+                              </Link>
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Edit lead"
+                              onClick={() => {
+                                setEditingRecord(row);
+                                setLeadChannel(
+                                  String(row.leadSourceChannel ?? ""),
+                                );
+                                setOpen(true);
+                              }}
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
+                          </>
+                        )}
+                        {canManage && (
+                          <DeleteConfirmationDialog
+                            description="This permanently deletes this CRM record. This action cannot be undone."
+                            onConfirm={async () => {
+                              try {
+                                await crmApi[resource].remove(row.id);
+                                await Promise.all([
+                                  data.refresh(),
+                                  lookups.refresh(),
+                                ]);
+                              } catch (error) {
+                                toast.error(
+                                  resource === "leads"
+                                    ? t("crm.errors.leadDelete")
+                                    : resource === "referrals"
+                                      ? t("crm.errors.referralDelete")
+                                      : error instanceof Error
+                                        ? error.message
+                                        : "Unable to delete record.",
+                                );
+                              }
                             }}
                           >
-                            <Pencil className="size-4" />
-                          </Button>
+                            <Button size="icon" variant="ghost">
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </DeleteConfirmationDialog>
                         )}
-                        <DeleteConfirmationDialog
-                          description="This permanently deletes this CRM record. This action cannot be undone."
-                          onConfirm={async () => {
-                            try {
-                              await crmApi[resource].remove(row.id);
-                              await Promise.all([
-                                data.refresh(),
-                                lookups.refresh(),
-                              ]);
-                            } catch (error) {
-                              toast.error(
-                                error instanceof Error
-                                  ? error.message
-                                  : "Unable to delete record.",
-                              );
-                            }
-                          }}
-                        >
-                          <Button size="icon" variant="ghost">
-                            <Trash2 className="size-4 text-destructive" />
-                          </Button>
-                        </DeleteConfirmationDialog>
                       </div>
                     </TableCell>
                   )}
@@ -1276,6 +2133,70 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
           </Table>
         </div>
       )}
+      <Dialog
+        open={Boolean(selectedReferral)}
+        onOpenChange={(isOpen) => !isOpen && setSelectedReferral(null)}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("crm.referrals.detailsTitle")}</DialogTitle>
+          </DialogHeader>
+          {selectedReferral && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                ["referrerName", selectedReferral.referrerName],
+                ["referrerProfession", selectedReferral.referrerProfession],
+                ["referrerPhone", selectedReferral.referrerPhone],
+                ["referrerAddress", selectedReferral.referrerAddress],
+                ["direction", selectedReferral.direction],
+                ["referralPersona", selectedReferral.referralPersona],
+                ["referringPatientName", selectedReferral.referringPatientName],
+                ["broughtPatients", selectedReferral.broughtPatients],
+                ["refereeName", selectedReferral.refereeName],
+                ["leadCode", selectedReferral.leadCode],
+                ["referralType", selectedReferral.referralType],
+                ["status", selectedReferral.status],
+                [
+                  "referredAt",
+                  selectedReferral.referredAt
+                    ? new Date(
+                        String(selectedReferral.referredAt),
+                      ).toLocaleDateString()
+                    : null,
+                ],
+                [
+                  "createdAt",
+                  selectedReferral.createdAt
+                    ? new Date(
+                        String(selectedReferral.createdAt),
+                      ).toLocaleString()
+                    : null,
+                ],
+              ].map(([key, value]) => (
+                <div
+                  key={String(key)}
+                  className="rounded-xl border bg-muted/15 p-4"
+                >
+                  <p className="text-xs text-muted-foreground">
+                    {t(`crm.fields.${key}`)}
+                  </p>
+                  <p className="mt-1 font-semibold capitalize">
+                    {String(value ?? "—").replaceAll("_", " ")}
+                  </p>
+                </div>
+              ))}
+              <div className="rounded-xl border bg-muted/15 p-4 sm:col-span-2">
+                <p className="text-xs text-muted-foreground">
+                  {t("crm.fields.notes")}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap font-medium">
+                  {String(selectedReferral.notes ?? "—")}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

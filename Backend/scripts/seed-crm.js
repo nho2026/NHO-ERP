@@ -122,6 +122,28 @@ for (let index = 0; index < 10; index += 1) {
       status: "active",
     },
   });
+  const referral = {
+    patientId: patient.id,
+    referrerName: [
+      "Ahmed Hassan",
+      "Dr. Shirin Karim",
+      "NHO Outreach Team",
+      "Sara Mahmood",
+      "Kurdistan Health Center",
+    ][index % 5],
+    referrerPhone: `075060${String(index + 1).padStart(5, "0")}`,
+    referralType: ["patient", "doctor", "employee", "organization", "other"][
+      index % 5
+    ],
+    referredAt: new Date(Date.UTC(2026, 7 + (index % 2), 10 + index)),
+    notes: `SEED: Patient referral ${index + 1}`,
+    status: ["active", "completed", "active", "cancelled"][index % 4],
+  };
+  await prisma.patientReferral.upsert({
+    where: { id: `seed-crm-referral-${number}` },
+    update: referral,
+    create: { id: `seed-crm-referral-${number}`, ...referral },
+  });
   if (lead.status === "converted") {
     await prisma.crmLead.update({
       where: { id: lead.id },
@@ -262,6 +284,6 @@ await prisma.crmFormTemplate.upsert({
 });
 
 console.log(
-  "CRM seed complete: leads, patients, surgeries, appointments, payments, and pediatric form.",
+  "CRM seed complete: leads, patients, referrals, surgeries, appointments, payments, and pediatric form.",
 );
 await prisma.$disconnect();

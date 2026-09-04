@@ -185,6 +185,10 @@ export default function App() {
             element={secured("employees.view", <PatientProfilePage />)}
           />
           <Route
+            path="/crm/referrals"
+            element={secured("employees.view", <CrmPage resource="referrals" />)}
+          />
+          <Route
             path="/crm/forms"
             element={secured("employees.view", <CrmFormsPage />)}
           />

@@ -16,25 +16,52 @@ const people = [
   ["Rojin", "Ali"],
 ];
 const patientNames = [
-  "Baran Mohammed", "Avin Jalal", "Dilshad Rahman", "Zana Farhad",
-  "Hana Ibrahim", "Karwan Ismail", "Nawroz Kamal", "Zhino Adnan",
-  "Sirwan Latif", "Tara Yousif",
+  "Baran Mohammed",
+  "Avin Jalal",
+  "Dilshad Rahman",
+  "Zana Farhad",
+  "Hana Ibrahim",
+  "Karwan Ismail",
+  "Nawroz Kamal",
+  "Zhino Adnan",
+  "Sirwan Latif",
+  "Tara Yousif",
 ];
 const departmentNames = [
-  "Emergency Medicine", "Internal Medicine", "Pediatrics", "Radiology",
-  "General Surgery", "Dermatology", "Ophthalmology", "Orthopedics",
-  "Neurology", "Clinical Laboratory",
+  "Emergency Medicine",
+  "Internal Medicine",
+  "Pediatrics",
+  "Radiology",
+  "General Surgery",
+  "Dermatology",
+  "Ophthalmology",
+  "Orthopedics",
+  "Neurology",
+  "Clinical Laboratory",
 ];
 const positionNames = [
-  "Emergency Physician", "Registered Nurse", "Pediatric Specialist",
-  "Radiology Technician", "General Surgeon", "Clinical Pharmacist",
-  "Laboratory Technician", "Patient Coordinator", "Medical Receptionist",
+  "Emergency Physician",
+  "Registered Nurse",
+  "Pediatric Specialist",
+  "Radiology Technician",
+  "General Surgeon",
+  "Clinical Pharmacist",
+  "Laboratory Technician",
+  "Patient Coordinator",
+  "Medical Receptionist",
   "Healthcare Administrator",
 ];
 const specialties = [
-  "Emergency care", "Adult medicine", "Child health", "Diagnostic imaging",
-  "General surgery", "Clinical pharmacy", "Laboratory diagnostics",
-  "Patient services", "Medical administration", "Healthcare operations",
+  "Emergency care",
+  "Adult medicine",
+  "Child health",
+  "Diagnostic imaging",
+  "General surgery",
+  "Clinical pharmacy",
+  "Laboratory diagnostics",
+  "Patient services",
+  "Medical administration",
+  "Healthcare operations",
 ];
 
 export async function seedBusinessModules(count = 10) {
@@ -50,7 +77,8 @@ export async function seedBusinessModules(count = 10) {
   for (let index = 1; index <= count; index += 1) {
     const suffix = pad(index);
     const [firstName, lastName] = people[(index - 1) % people.length];
-    const departmentName = departmentNames[(index - 1) % departmentNames.length];
+    const departmentName =
+      departmentNames[(index - 1) % departmentNames.length];
     const positionName = positionNames[(index - 1) % positionNames.length];
     const role = await prisma.role.upsert({
       where: { name: `Seed Role ${suffix}` },
@@ -288,7 +316,12 @@ export async function seedBusinessModules(count = 10) {
       age: 20 + (index % 50),
       gender: index % 2 ? "female" : "male",
       address: ["Erbil", "Sulaymaniyah", "Duhok", "Kirkuk"][index % 4],
-      interest: ["General consultation", "Dental treatment", "Eye examination", "Surgery consultation"][index % 4],
+      interest: [
+        "General consultation",
+        "Dental treatment",
+        "Eye examination",
+        "Surgery consultation",
+      ][index % 4],
       notes: `SEED: CRM lead ${index + 1}`,
       status: ["new", "contacted", "qualified", "qualified", "lost"][index % 5],
     };
@@ -304,7 +337,8 @@ export async function seedBusinessModules(count = 10) {
 
   const crmPatients = [];
   for (let index = 0; index < count; index += 1) {
-    const [firstName, lastName] = patientNames[index % patientNames.length].split(" ");
+    const [firstName, lastName] =
+      patientNames[index % patientNames.length].split(" ");
     crmPatients.push(
       await prisma.patient.upsert({
         where: { patientCode: `PAT-${String(index + 1).padStart(4, "0")}` },
@@ -320,7 +354,9 @@ export async function seedBusinessModules(count = 10) {
           lastName,
           phone: `075050${String(index + 1).padStart(5, "0")}`,
           email: `patient${pad(index + 1)}@example.com`,
-          dateOfBirth: new Date(Date.UTC(1980 + index * 3, index % 12, 5 + index)),
+          dateOfBirth: new Date(
+            Date.UTC(1980 + index * 3, index % 12, 5 + index),
+          ),
           gender: index % 2 ? "female" : "male",
           address: ["Erbil", "Sulaymaniyah", "Duhok", "Kirkuk"][index % 4],
           bloodType: ["A+", "O+", "B+", "AB+", "A-"][index % 5],
@@ -332,17 +368,55 @@ export async function seedBusinessModules(count = 10) {
     );
   }
 
+  for (let index = 0; index < crmPatients.length; index += 1) {
+    const data = {
+      patientId: crmPatients[index].id,
+      referrerName: [
+        "Ahmed Hassan",
+        "Dr. Shirin Karim",
+        "NHO Outreach Team",
+        "Sara Mahmood",
+        "Kurdistan Health Center",
+      ][index % 5],
+      referrerPhone: `075060${String(index + 1).padStart(5, "0")}`,
+      referralType: ["patient", "doctor", "employee", "organization", "other"][
+        index % 5
+      ],
+      referredAt: new Date(Date.UTC(2026, 7 + (index % 2), 10 + index)),
+      notes: `SEED: Patient referral ${index + 1}`,
+      status: ["active", "completed", "active", "cancelled"][index % 4],
+    };
+    await prisma.patientReferral.upsert({
+      where: { id: `seed-crm-referral-${String(index + 1).padStart(3, "0")}` },
+      update: data,
+      create: {
+        id: `seed-crm-referral-${String(index + 1).padStart(3, "0")}`,
+        ...data,
+      },
+    });
+  }
+
   const surgeryNames = [
-    "Appendectomy", "Cataract surgery", "Knee arthroscopy", "Hernia repair",
-    "Tonsillectomy", "Gallbladder removal", "Cesarean section",
-    "Coronary angioplasty", "Sinus surgery", "Carpal tunnel release",
+    "Appendectomy",
+    "Cataract surgery",
+    "Knee arthroscopy",
+    "Hernia repair",
+    "Tonsillectomy",
+    "Gallbladder removal",
+    "Cesarean section",
+    "Coronary angioplasty",
+    "Sinus surgery",
+    "Carpal tunnel release",
   ];
   const crmSurgeries = [];
   for (let index = 0; index < count; index += 1)
     crmSurgeries.push(
       await prisma.surgery.upsert({
         where: { code: `SUR-${String(index + 1).padStart(3, "0")}` },
-        update: { name: surgeryNames[index % surgeryNames.length], status: "active" },
+        update: {
+          name: surgeryNames[index % surgeryNames.length],
+          status: "active",
+        },
         create: {
           code: `SUR-${String(index + 1).padStart(3, "0")}`,
           name: surgeryNames[index % surgeryNames.length],
@@ -359,25 +433,40 @@ export async function seedBusinessModules(count = 10) {
   for (let index = 0; index < count; index += 1)
     surgeryAppointments.push(
       await prisma.surgeryAppointment.upsert({
-        where: { id: `seed-crm-surgery-appointment-${String(index + 1).padStart(3, "0")}` },
+        where: {
+          id: `seed-crm-surgery-appointment-${String(index + 1).padStart(3, "0")}`,
+        },
         update: {
           patientId: crmPatients[index].id,
-          doctorId: (doctors[index % doctors.length] ?? staff[index % staff.length]).id,
+          doctorId: (
+            doctors[index % doctors.length] ?? staff[index % staff.length]
+          ).id,
           surgeryId: crmSurgeries[index].id,
-          scheduledAt: new Date(Date.UTC(2026, 8 + (index % 3), 3 + index, 7 + (index % 6))),
+          scheduledAt: new Date(
+            Date.UTC(2026, 8 + (index % 3), 3 + index, 7 + (index % 6)),
+          ),
           operatingRoom: `OR-${1 + (index % 4)}`,
-          status: ["scheduled", "confirmed", "in_progress", "completed"][index % 4],
+          status: ["scheduled", "confirmed", "in_progress", "completed"][
+            index % 4
+          ],
         },
         create: {
           id: `seed-crm-surgery-appointment-${String(index + 1).padStart(3, "0")}`,
           patientId: crmPatients[index].id,
-          doctorId: (doctors[index % doctors.length] ?? staff[index % staff.length]).id,
+          doctorId: (
+            doctors[index % doctors.length] ?? staff[index % staff.length]
+          ).id,
           surgeryId: crmSurgeries[index].id,
-          scheduledAt: new Date(Date.UTC(2026, 8 + (index % 3), 3 + index, 7 + (index % 6))),
+          scheduledAt: new Date(
+            Date.UTC(2026, 8 + (index % 3), 3 + index, 7 + (index % 6)),
+          ),
           operatingRoom: `OR-${1 + (index % 4)}`,
-          status: ["scheduled", "confirmed", "in_progress", "completed"][index % 4],
+          status: ["scheduled", "confirmed", "in_progress", "completed"][
+            index % 4
+          ],
           preOpNotes: `SEED: Pre-operation assessment ${index + 1}`,
-          postOpNotes: index % 4 === 3 ? "SEED: Procedure completed successfully" : null,
+          postOpNotes:
+            index % 4 === 3 ? "SEED: Procedure completed successfully" : null,
         },
       }),
     );
@@ -463,7 +552,10 @@ export async function seedBusinessModules(count = 10) {
     const suffix = String(index).padStart(3, "0");
     const customer = await prisma.billingCustomer.upsert({
       where: { code: `SEED-CUST-${suffix}` },
-      update: { name: patientNames[(index - 1) % patientNames.length], status: "active" },
+      update: {
+        name: patientNames[(index - 1) % patientNames.length],
+        status: "active",
+      },
       create: {
         code: `SEED-CUST-${suffix}`,
         name: patientNames[(index - 1) % patientNames.length],

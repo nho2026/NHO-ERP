@@ -357,7 +357,9 @@ export default function HealthPosPage() {
                     <small className="truncate font-medium text-primary/70">
                       {p.category?.name ?? p.sku}
                     </small>
-                    <b className="mt-1 line-clamp-2 min-h-10 leading-5">{p.name}</b>
+                    <b className="mt-1 line-clamp-2 min-h-10 leading-5">
+                      {p.name}
+                    </b>
                     <span className="mt-1.5 flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
                       <Barcode className="size-3" />
                       {p.barcode}
@@ -494,7 +496,9 @@ export default function HealthPosPage() {
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
-                  <b className="block truncate text-sm leading-5">{product.name}</b>
+                  <b className="block truncate text-sm leading-5">
+                    {product.name}
+                  </b>
                   <small className="mt-0.5 block font-semibold text-primary">
                     {(price(product) * quantity).toLocaleString()} IQD
                   </small>
@@ -505,16 +509,24 @@ export default function HealthPosPage() {
                     size="icon"
                     variant="ghost"
                     title={quantity === 1 ? t("common.delete") : undefined}
-                    onClick={() => setCart((current) => {
-                      const next = { ...current };
-                      if (quantity === 1) delete next[product.id];
-                      else next[product.id] = quantity - 1;
-                      return next;
-                    })}
+                    onClick={() =>
+                      setCart((current) => {
+                        const next = { ...current };
+                        if (quantity === 1) delete next[product.id];
+                        else next[product.id] = quantity - 1;
+                        return next;
+                      })
+                    }
                   >
-                    {quantity === 1 ? <Trash2 className="size-4" /> : <Minus className="size-4" />}
+                    {quantity === 1 ? (
+                      <Trash2 className="size-4" />
+                    ) : (
+                      <Minus className="size-4" />
+                    )}
                   </Button>
-                  <strong className="min-w-7 text-center text-sm tabular-nums">{quantity}</strong>
+                  <strong className="min-w-7 text-center text-sm tabular-nums">
+                    {quantity}
+                  </strong>
                   <Button
                     className="size-8 rounded-lg bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
                     size="icon"

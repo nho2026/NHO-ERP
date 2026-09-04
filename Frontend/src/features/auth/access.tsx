@@ -17,12 +17,13 @@ export const isCashier = (user: AuthUser | null) =>
     ),
   );
 
-export const hasPermission = (
-  user: AuthUser | null,
-  permission?: string,
-) => {
+export const hasPermission = (user: AuthUser | null, permission?: string) => {
   if (!user) return false;
-  if (!permission || user.permissions?.includes("*") || user.permissions?.includes(permission))
+  if (
+    !permission ||
+    user.permissions?.includes("*") ||
+    user.permissions?.includes(permission)
+  )
     return true;
   if (permission === "tasks.list.view" && user.employee) return true;
   if (permission.startsWith("accounting.")) {
@@ -66,6 +67,8 @@ export function RequireAccess({
   if (isCashier(user) && !allowCashier)
     return <Navigate to="/pos/checkout" replace />;
   if (!hasPermission(user, permission))
-    return <Navigate to={isCashier(user) ? "/pos/checkout" : "/profile"} replace />;
+    return (
+      <Navigate to={isCashier(user) ? "/pos/checkout" : "/profile"} replace />
+    );
   return children;
 }

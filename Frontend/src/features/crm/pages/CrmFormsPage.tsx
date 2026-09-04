@@ -214,8 +214,12 @@ export default function CrmFormsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="active">
+                      {t("crm.values.active")}
+                    </SelectItem>
+                    <SelectItem value="inactive">
+                      {t("crm.values.inactive")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </Label>
@@ -228,7 +232,7 @@ export default function CrmFormsPage() {
               </Label>
               <div className="sm:col-span-2">
                 <div className="mb-3 flex items-center justify-between">
-                  <h3 className="font-semibold">Form fields</h3>
+                  <h3 className="font-semibold">{t("pageText.formFields")}</h3>
                   <Button
                     type="button"
                     size="sm"

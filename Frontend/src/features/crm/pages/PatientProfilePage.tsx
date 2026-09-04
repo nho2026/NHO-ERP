@@ -9,11 +9,16 @@ import {
   HeartPulse,
   MapPin,
   Pencil,
-  Phone,
   Stethoscope,
   UserRound,
-  UsersRound,
   ClipboardPlus,
+  Download,
+  Activity,
+  Bell,
+  CalendarClock,
+  FlaskConical,
+  History,
+  Pill,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -46,6 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import nhoLogo from "@/assets/icons/nho-logo-rounded.png";
 
 const text = (value: unknown, fallback = "Not recorded") =>
   value == null || value === "" ? fallback : String(value);
@@ -86,6 +92,8 @@ export default function PatientProfilePage() {
   const lead = patient?.lead as CrmRecord | null | undefined;
   const appointments = (patient?.appointments ?? []) as CrmRecord[];
   const surgeries = (patient?.surgeryAppointments ?? []) as CrmRecord[];
+  const payments = (patient?.payments ?? []) as CrmRecord[];
+  const referrals = (patient?.referrals ?? []) as CrmRecord[];
   const age = useMemo(() => {
     if (patient?.dateOfBirth) {
       const birth = new Date(String(patient.dateOfBirth));
@@ -114,6 +122,16 @@ export default function PatientProfilePage() {
         .slice(0, 6),
     [appointments, surgeries],
   );
+  const upcomingAppointments = appointments.filter(
+    (appointment) =>
+      new Date(String(appointment.scheduledAt)).getTime() >= Date.now() &&
+      !["completed", "cancelled"].includes(String(appointment.status)),
+  );
+  const latestSurgery = surgeries[0];
+  const latestVisit = visits[0];
+  const medicalStatus = submissions.data?.length
+    ? "Medical assessment done"
+    : "Assessment pending";
 
   if (profile.isLoading || !patient)
     return (
@@ -181,6 +199,56 @@ export default function PatientProfilePage() {
     }
   };
 
+  const exportPatientReport = () => {
+    const reportWindow = window.open("", "_blank");
+    if (!reportWindow)
+      return toast.error("Allow pop-ups to export the PDF report.");
+    const escape = (value: unknown) =>
+      text(value, "—")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    const row = (label: string, value: unknown) =>
+      `<div class="detail"><span>${label}</span><strong>${escape(value)}</strong></div>`;
+    const table = (headers: string[], body: string) =>
+      `<table><thead><tr>${headers.map((header) => `<th>${header}</th>`).join("")}</tr></thead><tbody>${body || `<tr><td colspan="${headers.length}">No records</td></tr>`}</tbody></table>`;
+    const allVisits = [...appointments, ...surgeries];
+    const statusCounts = allVisits.reduce<Record<string, number>>(
+      (result, item) => {
+        const key = String(item.status ?? "Unknown");
+        result[key] = (result[key] ?? 0) + 1;
+        return result;
+      },
+      {},
+    );
+    const colors = ["#2563eb", "#14b8a6", "#8b5cf6", "#f59e0b", "#ef4444"];
+    const maxStatus = Math.max(1, ...Object.values(statusCounts));
+    const statusChart = Object.entries(statusCounts)
+      .map(
+        ([label, count], index) =>
+          `<div class="bar-row"><div><span>${escape(label)}</span><strong>${count}</strong></div><i><b style="width:${(count / maxStatus) * 100}%;background:${colors[index % colors.length]}"></b></i></div>`,
+      )
+      .join("");
+    const totalPaid = payments.reduce(
+      (sum, payment) => sum + Number(payment.amount ?? 0),
+      0,
+    );
+    const logoUrl = new URL(nhoLogo, window.location.href).href;
+    const clinicalForms = (submissions.data ?? []) as CrmRecord[];
+    reportWindow.document.write(
+      `<!doctype html><html><head><title>${escape(fullName(patient))} — Patient Report</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;font:11px Arial;color:#172033;-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover{height:267mm;display:flex;flex-direction:column;justify-content:center;padding:58px;background:linear-gradient(145deg,#f8fbff,#e2edff);page-break-after:always;position:relative;overflow:hidden}.cover:after{content:"";position:absolute;width:360px;height:360px;border-radius:50%;background:#2563eb;right:-170px;top:-130px}.logo{width:110px;margin-bottom:38px}.eyebrow{color:#2563eb;font-weight:bold;letter-spacing:3px}.cover h1{font-size:40px;color:#102a56;margin:14px 0}.cover h2{font-size:22px;color:#526783}.cover-meta{margin-top:40px;border-top:1px solid #bdcee4;padding-top:18px;font-size:15px}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #2563eb;padding-bottom:12px}.brand{display:flex;align-items:center;gap:10px}.brand img{width:42px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.kpi,.panel{border:1px solid #dce5f0;border-radius:12px;padding:14px}.kpi span{color:#667085}.kpi strong{display:block;font-size:22px;color:#163b70;margin-top:5px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.details{display:grid;grid-template-columns:1fr 1fr;gap:10px}.detail{border-bottom:1px solid #edf1f7;padding:7px 0}.detail span{display:block;color:#667085;font-size:9px;text-transform:uppercase}.detail strong{display:block;margin-top:3px}.panel h2,.section h2{font-size:15px;margin:0 0 12px}.bar-row{margin:10px 0}.bar-row div{display:flex;justify-content:space-between;text-transform:capitalize}.bar-row i{display:block;height:9px;background:#edf1f7;border-radius:10px;margin-top:5px;overflow:hidden}.bar-row b{display:block;height:100%;border-radius:10px}.section{margin-top:18px;break-inside:avoid}table{width:100%;border-collapse:collapse;font-size:9px}thead{display:table-header-group}th{background:#163b70;color:#fff;padding:7px;text-align:left}td{padding:7px;border-bottom:1px solid #dde5ef;vertical-align:top}tr{break-inside:avoid}tbody tr:nth-child(even){background:#f7f9fc}.page-break{page-break-before:always}</style></head><body><section class="cover"><img class="logo" src="${logoUrl}"><div class="eyebrow">NHO WORKSPACE · PATIENT CARE</div><h1>Complete Patient Report</h1><h2>${escape(fullName(patient))}</h2><div class="cover-meta">Patient code: <strong>${escape(patient.patientCode)}</strong><br>Generated: ${escape(new Date().toLocaleString())}<br>Confidential medical record</div></section><main><header class="header"><div class="brand"><img src="${logoUrl}"><div><h1>${escape(fullName(patient))}</h1><span>${escape(patient.patientCode)}</span></div></div><strong>Complete Patient Profile</strong></header><section class="kpis"><div class="kpi"><span>Total visits</span><strong>${allVisits.length}</strong></div><div class="kpi"><span>Surgeries</span><strong>${surgeries.length}</strong></div><div class="kpi"><span>Clinical forms</span><strong>${clinicalForms.length}</strong></div><div class="kpi"><span>Total payments</span><strong>${totalPaid.toLocaleString()}</strong></div></section><section class="grid"><div class="panel"><h2>Personal information</h2><div class="details">${row("Full name", fullName(patient))}${row("Date of birth", patient.dateOfBirth ? new Date(String(patient.dateOfBirth)).toLocaleDateString() : null)}${row("Age", age)}${row("Gender", patient.gender)}${row("Phone", patient.phone)}${row("Email", patient.email)}${row("Address", patient.address)}${row("Status", patient.status)}${row("Marital status", patient.isMarried ? "Married" : "Not married")}${row("Children", patient.childrenCount)}</div></div><div class="panel"><h2>Medical information</h2><div class="details">${row("Blood type", patient.bloodType)}${row("Weight", patient.weightKg ? `${patient.weightKg} kg` : null)}${row("Height", patient.heightCm ? `${patient.heightCm} cm` : null)}${row("Diabetes", patient.hasDiabetes ? "Yes" : "No")}${row("Hypertension", patient.hasHypertension ? "Yes" : "No")}${row("Allergies", patient.allergies)}${row("Medical notes", patient.medicalNotes)}</div></div></section><section class="grid" style="margin-top:12px"><div class="panel"><h2>Visit status chart</h2>${statusChart || "No visit data"}</div><div class="panel"><h2>Care activity</h2><div class="bar-row"><div><span>Consultations</span><strong>${appointments.length}</strong></div><i><b style="width:${allVisits.length ? (appointments.length / allVisits.length) * 100 : 0}%;background:#2563eb"></b></i></div><div class="bar-row"><div><span>Surgeries</span><strong>${surgeries.length}</strong></div><i><b style="width:${allVisits.length ? (surgeries.length / allVisits.length) * 100 : 0}%;background:#14b8a6"></b></i></div><div class="details">${row("Lead source", lead?.source)}${row("Lead code", lead?.code)}${row("Interest", lead?.interest)}${row("Referrals", referrals.length)}</div></div></section><section class="section"><h2>Doctor appointments</h2>${table(["Date", "Doctor", "Department", "Reason", "Status"], appointments.map((item) => `<tr><td>${escape(new Date(String(item.scheduledAt)).toLocaleString())}</td><td>${escape(doctorName(item))}</td><td>${escape((item.department as CrmRecord)?.name)}</td><td>${escape(item.reason)}</td><td>${escape(item.status)}</td></tr>`).join(""))}</section><section class="section"><h2>Surgery history</h2>${table(["Date", "Procedure", "Doctor", "Room", "Status"], surgeries.map((item) => `<tr><td>${escape(new Date(String(item.scheduledAt)).toLocaleString())}</td><td>${escape((item.surgery as CrmRecord)?.name)}</td><td>${escape(doctorName(item))}</td><td>${escape(item.operatingRoom)}</td><td>${escape(item.status)}</td></tr>`).join(""))}</section><section class="section"><h2>Referral history</h2>${table(["Date", "Referrer", "Phone", "Type", "Status", "Notes"], referrals.map((item) => `<tr><td>${escape(new Date(String(item.referredAt)).toLocaleDateString())}</td><td>${escape(item.referrerName)}</td><td>${escape(item.referrerPhone)}</td><td>${escape(item.referralType)}</td><td>${escape(item.status)}</td><td>${escape(item.notes)}</td></tr>`).join(""))}</section><section class="section"><h2>Payment history</h2>${table(["Date", "Amount", "Method", "Reference", "Status"], payments.map((item) => `<tr><td>${escape(new Date(String(item.paidAt)).toLocaleString())}</td><td>${escape(Number(item.amount ?? 0).toLocaleString())}</td><td>${escape(item.paymentMethod)}</td><td>${escape(item.reference)}</td><td>${escape(item.status)}</td></tr>`).join(""))}</section><section class="section page-break"><h2>Clinical forms and examinations</h2>${
+        clinicalForms
+          .map((submission) => {
+            const template = submission.formTemplate as FormTemplate;
+            const values = submission.data as Record<string, unknown>;
+            return `<div class="panel" style="margin-bottom:12px"><h2>${escape(template.name)} · ${escape(new Date(String(submission.createdAt)).toLocaleString())}</h2><div class="details">${template.fields.map((field) => row(field.label, field.type === "checkbox" ? (values[field.id] ? "Yes" : "No") : values[field.id])).join("")}</div></div>`;
+          })
+          .join("") || "No clinical forms recorded."
+      }</section></main><script>window.onload=()=>setTimeout(()=>window.print(),250)</script></body></html>`,
+    );
+    reportWindow.document.close();
+  };
+
   return (
     <div className="mx-auto max-w-[1400px] space-y-5">
       <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-blue-950 to-cyan-800 text-white shadow-xl">
@@ -221,47 +289,83 @@ export default function PatientProfilePage() {
               </div>
             </div>
           </div>
-          {canManage && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setFormOpen(true)}>
+              <ClipboardPlus /> Forms
+            </Button>
             <Button
               variant="secondary"
-              onClick={() => {
-                setIsMarried(Boolean(patient.isMarried));
-                setHasDiabetes(Boolean(patient.hasDiabetes));
-                setHasHypertension(Boolean(patient.hasHypertension));
-                setEditing(true);
-              }}
+              onClick={() => navigate("/crm/surgery-appointments")}
             >
-              <Pencil /> Edit profile
+              <Stethoscope /> Surgical examination
             </Button>
-          )}
+            <Button variant="secondary" onClick={exportPatientReport}>
+              <Download /> PDF report with charts
+            </Button>
+            {canManage && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setIsMarried(Boolean(patient.isMarried));
+                  setHasDiabetes(Boolean(patient.hasDiabetes));
+                  setHasHypertension(Boolean(patient.hasHypertension));
+                  setEditing(true);
+                }}
+              >
+                <Pencil /> Edit profile
+              </Button>
+            )}
+          </div>
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {[
           {
-            label: "Total visits",
-            value: text(patient.visitCount, "0"),
-            icon: CalendarDays,
-            color: "text-violet-600 bg-violet-100 dark:bg-violet-950",
-          },
-          {
-            label: "Lead source",
-            value: text(lead?.source),
-            icon: UsersRound,
-            color: "text-blue-600 bg-blue-100 dark:bg-blue-950",
-          },
-          {
-            label: "Phone",
-            value: text(patient.phone),
-            icon: Phone,
-            color: "text-emerald-600 bg-emerald-100 dark:bg-emerald-950",
+            label: "Comorbidities",
+            value:
+              [
+                patient.hasDiabetes && "Diabetes",
+                patient.hasHypertension && "Hypertension",
+              ]
+                .filter(Boolean)
+                .join(", ") || "None recorded",
+            icon: HeartPulse,
+            color: "text-rose-600 bg-rose-100 dark:bg-rose-950",
           },
           {
             label: "Location",
             value: text(patient.address),
             icon: MapPin,
-            color: "text-amber-600 bg-amber-100 dark:bg-amber-950",
+            color: "text-blue-600 bg-blue-100 dark:bg-blue-950",
+          },
+          {
+            label: "Surgery type",
+            value: text(
+              (latestSurgery?.surgery as CrmRecord | undefined)?.name,
+            ),
+            icon: HeartPulse,
+            color: "text-violet-600 bg-violet-100 dark:bg-violet-950",
+          },
+          {
+            label: "Admission",
+            value: latestSurgery
+              ? new Date(String(latestSurgery.scheduledAt)).toLocaleDateString()
+              : "Not recorded",
+            icon: CalendarDays,
+            color: "text-orange-600 bg-orange-100 dark:bg-orange-950",
+          },
+          {
+            label: "Status",
+            value: medicalStatus,
+            icon: Activity,
+            color: "text-emerald-600 bg-emerald-100 dark:bg-emerald-950",
+          },
+          {
+            label: "Consultant",
+            value: latestVisit ? doctorName(latestVisit) : "Not assigned",
+            icon: Stethoscope,
+            color: "text-sky-600 bg-sky-100 dark:bg-sky-950",
           },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label}>
@@ -278,6 +382,146 @@ export default function PatientProfilePage() {
             </CardContent>
           </Card>
         ))}
+      </section>
+
+      <Card>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div className="flex items-center gap-3">
+            <Pill className="size-5 text-emerald-600" />
+            <div>
+              <h2 className="font-bold">Discharge / follow-up medications</h2>
+              <p className="text-xs text-muted-foreground">
+                No discharge or follow-up medications recorded yet.
+              </p>
+            </div>
+          </div>
+          <Button size="sm" disabled>
+            Add medication
+          </Button>
+        </CardContent>
+      </Card>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        {[
+          [Activity, "Current vital signs", "No vital signs recorded."],
+          [
+            Bell,
+            "Alerts",
+            patient.allergies
+              ? `Allergies: ${patient.allergies}`
+              : "No active alerts.",
+          ],
+          [
+            History,
+            "Updates",
+            latestVisit
+              ? `Latest visit: ${new Date(String(latestVisit.scheduledAt)).toLocaleDateString()}`
+              : "No updates recorded.",
+          ],
+          [FlaskConical, "Latest results", "No laboratory results recorded."],
+          [
+            FileText,
+            "Recent documents",
+            submissions.data?.length
+              ? `${submissions.data.length} clinical form(s) submitted.`
+              : "No recent documents.",
+          ],
+        ].map(([Icon, title, description]) => (
+          <Card key={String(title)} className="min-h-40">
+            <CardContent className="p-0">
+              <div className="flex items-center gap-2 border-b p-4">
+                <Icon className="size-4 text-primary" />
+                <h2 className="text-sm font-bold">{String(title)}</h2>
+              </div>
+              <p className="p-4 text-xs leading-5 text-muted-foreground">
+                {String(description)}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Card className="min-h-52">
+          <CardContent className="p-0">
+            <div className="flex items-center gap-2 border-b p-4">
+              <History className="size-4 text-primary" />
+              <h2 className="text-sm font-bold">Patient timeline</h2>
+            </div>
+            <div className="grid gap-2 p-4">
+              {visits.slice(0, 3).map((visit) => (
+                <div
+                  key={String(visit.id)}
+                  className="rounded-lg border p-2 text-xs"
+                >
+                  <strong>
+                    {text(
+                      (visit.surgery as CrmRecord | undefined)?.name ??
+                        visit.reason,
+                      visit.kind,
+                    )}
+                  </strong>
+                  <p className="mt-1 text-muted-foreground">
+                    {new Date(String(visit.scheduledAt)).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+              {!visits.length && (
+                <p className="text-xs text-muted-foreground">
+                  No timeline records yet.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="min-h-52">
+          <CardContent className="p-0">
+            <div className="flex items-center gap-2 border-b p-4">
+              <CalendarClock className="size-4 text-primary" />
+              <h2 className="text-sm font-bold">Upcoming / pending</h2>
+            </div>
+            <div className="grid gap-2 p-4">
+              {upcomingAppointments.slice(0, 3).map((appointment) => (
+                <div
+                  key={String(appointment.id)}
+                  className="rounded-lg border bg-orange-50 p-2 text-xs dark:bg-orange-950/20"
+                >
+                  <strong>{text(appointment.reason, "Appointment")}</strong>
+                  <p className="mt-1 text-muted-foreground">
+                    {new Date(String(appointment.scheduledAt)).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+              {!upcomingAppointments.length && (
+                <p className="text-xs text-muted-foreground">
+                  No upcoming appointments.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="min-h-52">
+          <CardContent className="p-0">
+            <div className="flex items-center gap-2 border-b p-4">
+              <Pill className="size-4 text-emerald-600" />
+              <h2 className="text-sm font-bold">Medications (active)</h2>
+            </div>
+            <p className="p-4 text-xs text-muted-foreground">
+              No active medications recorded.
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="min-h-52">
+          <CardContent className="p-0">
+            <div className="flex items-center gap-2 border-b p-4">
+              <Activity className="size-4 text-sky-600" />
+              <h2 className="text-sm font-bold">Outputs</h2>
+            </div>
+            <p className="p-4 text-xs text-muted-foreground">
+              No output records for this patient.
+            </p>
+          </CardContent>
+        </Card>
       </section>
 
       <Card>

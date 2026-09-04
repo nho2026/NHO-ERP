@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { useTranslation } from "react-i18next";
 import {
-  Plus,
-  Search,
-  Trash2,
-  Eye,
-} from "lucide-react";
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
+import { useTranslation } from "react-i18next";
+import { Plus, Search, Trash2, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { hasPermission, storedUser } from "@/features/auth/access";
@@ -14,9 +15,22 @@ import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { FormDatePicker } from "@/shared/components/ui/form-date-picker";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { Badge } from "@/shared/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -50,11 +64,11 @@ export default function TasksPage() {
   const currentUser = storedUser();
   const isHr =
     hasPermission(currentUser, "employees.manage") ||
-    Boolean(currentUser?.permissions?.some((key) => key.startsWith("hr.employees.")));
+    Boolean(
+      currentUser?.permissions?.some((key) => key.startsWith("hr.employees.")),
+    );
   const canAssign = isHr || Boolean(currentUser?.employee?.isTeamLeader);
-  const availableStatuses = isHr
-    ? statuses
-    : ["todo", "in_progress", "review"];
+  const availableStatuses = isHr ? statuses : ["todo", "in_progress", "review"];
   const [items, setItems] = useState<TaskItem[]>([]),
     [employees, setEmployees] = useState<TaskEmployee[]>([]),
     [loading, setLoading] = useState(true),
@@ -128,101 +142,112 @@ export default function TasksPage() {
           <h1 className="text-2xl font-bold">{t("tasks.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("tasks.subtitle")}</p>
         </div>
-        {canAssign && <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus /> {t("tasks.add")}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>{t("tasks.add")}</DialogTitle>
-            </DialogHeader>
-            <form className="grid gap-4" onSubmit={submit}>
-              <label className="grid gap-1 text-sm">
-                {t("tasks.fields.title")}
-                <Input name="title" required />
-              </label>
-              <label className="grid gap-1 text-sm">
-                {t("tasks.fields.description")}
-                <textarea
-                  name="description"
-                  required
-                  className="min-h-28 rounded-md border bg-background p-3"
-                />
-              </label>
-              <div className="grid gap-3 sm:grid-cols-2">
+        {canAssign && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus /> {t("tasks.add")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>{t("tasks.add")}</DialogTitle>
+              </DialogHeader>
+              <form className="grid gap-4" onSubmit={submit}>
                 <label className="grid gap-1 text-sm">
-                  {t("tasks.fields.team")}
-                  <Select name="team" defaultValue="marketing">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                    {teams.map((x) => (
-                      <SelectItem key={x} value={x}>
-                        {t(`tasks.teams.${x}`)}
-                      </SelectItem>
-                    ))}
-                    </SelectContent>
-                  </Select>
+                  {t("tasks.fields.title")}
+                  <Input name="title" required />
                 </label>
                 <label className="grid gap-1 text-sm">
-                  {t("tasks.fields.priority")}
-                  <Select name="priority" defaultValue="medium">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                    {priorities.map((x) => (
-                      <SelectItem key={x} value={x}>
-                        {t(`tasks.priorities.${x}`)}
-                      </SelectItem>
-                    ))}
-                    </SelectContent>
-                  </Select>
+                  {t("tasks.fields.description")}
+                  <textarea
+                    name="description"
+                    required
+                    className="min-h-28 rounded-md border bg-background p-3"
+                  />
                 </label>
-                <label className="grid gap-1 text-sm">
-                  {t("tasks.fields.startDate")}
-                  <FormDatePicker name="startDate" />
-                </label>
-                <label className="grid gap-1 text-sm">
-                  {t("tasks.fields.dueDate")}
-                  <FormDatePicker name="dueDate" />
-                </label>
-                <label className="grid gap-1 text-sm">
-                  {t("tasks.fields.estimatedHours")}
-                  <Input name="estimatedHours" type="number" min="0" step="0.25" />
-                </label>
-              </div>
-              <fieldset className="grid gap-2">
-                <legend className="text-sm font-medium">
-                  {t("tasks.fields.assignees")}
-                </legend>
-                <div className="grid max-h-40 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-2">
-                  {employees.map((x) => (
-                    <label
-                      key={x.id}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <Checkbox name="assigneeIds" value={x.id} />
-                      <span>
-                        {x.firstName} {x.lastName} ·{" "}
-                        {x.position?.name ?? x.employeeCode}
-                      </span>
-                    </label>
-                  ))}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-1 text-sm">
+                    {t("tasks.fields.team")}
+                    <Select name="team" defaultValue="marketing">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teams.map((x) => (
+                          <SelectItem key={x} value={x}>
+                            {t(`tasks.teams.${x}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                  <label className="grid gap-1 text-sm">
+                    {t("tasks.fields.priority")}
+                    <Select name="priority" defaultValue="medium">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {priorities.map((x) => (
+                          <SelectItem key={x} value={x}>
+                            {t(`tasks.priorities.${x}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                  <label className="grid gap-1 text-sm">
+                    {t("tasks.fields.startDate")}
+                    <FormDatePicker name="startDate" />
+                  </label>
+                  <label className="grid gap-1 text-sm">
+                    {t("tasks.fields.dueDate")}
+                    <FormDatePicker name="dueDate" />
+                  </label>
+                  <label className="grid gap-1 text-sm">
+                    {t("tasks.fields.estimatedHours")}
+                    <Input
+                      name="estimatedHours"
+                      type="number"
+                      min="0"
+                      step="0.25"
+                    />
+                  </label>
                 </div>
-              </fieldset>
-              <label className="grid gap-1 text-sm">
-                {t("tasks.fields.attachments")}
-                <Input
-                  name="files"
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                />
-              </label>
-              <Button type="submit">{t("common.save")}</Button>
-            </form>
-          </DialogContent>
-        </Dialog>}
+                <fieldset className="grid gap-2">
+                  <legend className="text-sm font-medium">
+                    {t("tasks.fields.assignees")}
+                  </legend>
+                  <div className="grid max-h-40 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-2">
+                    {employees.map((x) => (
+                      <label
+                        key={x.id}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <Checkbox name="assigneeIds" value={x.id} />
+                        <span>
+                          {x.firstName} {x.lastName} ·{" "}
+                          {x.position?.name ?? x.employeeCode}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <label className="grid gap-1 text-sm">
+                  {t("tasks.fields.attachments")}
+                  <Input
+                    name="files"
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                  />
+                </label>
+                <Button type="submit">{t("common.save")}</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </header>
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {counts.map(([x, n]) => (
@@ -244,24 +269,38 @@ export default function TasksPage() {
             placeholder={t("tasks.search")}
           />
         </div>
-        <Select value={team || "all"} onValueChange={(value) => setTeam(value === "all" ? "" : value)}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger><SelectContent>
-          <SelectItem value="all">{t("tasks.allTeams")}</SelectItem>
-          {teams.map((x) => (
-            <SelectItem key={x} value={x}>
-              {t(`tasks.teams.${x}`)}
-            </SelectItem>
-          ))}
-          </SelectContent></Select>
-        <Select value={status || "all"} onValueChange={(value) => setStatus(value === "all" ? "" : value)}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger><SelectContent>
-          <SelectItem value="all">{t("tasks.allStatuses")}</SelectItem>
-          {statuses.map((x) => (
-            <SelectItem key={x} value={x}>
-              {t(`tasks.statuses.${x}`)}
-            </SelectItem>
-          ))}
-          </SelectContent></Select>
+        <Select
+          value={team || "all"}
+          onValueChange={(value) => setTeam(value === "all" ? "" : value)}
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("tasks.allTeams")}</SelectItem>
+            {teams.map((x) => (
+              <SelectItem key={x} value={x}>
+                {t(`tasks.teams.${x}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={status || "all"}
+          onValueChange={(value) => setStatus(value === "all" ? "" : value)}
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("tasks.allStatuses")}</SelectItem>
+            {statuses.map((x) => (
+              <SelectItem key={x} value={x}>
+                {t(`tasks.statuses.${x}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       {loading ? (
         <div className="py-20 text-center text-muted-foreground">
@@ -274,71 +313,134 @@ export default function TasksPage() {
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <Table>
-            <TableHeader><TableRow>
-              <TableHead>{t("tasks.fields.title")}</TableHead>
-              <TableHead>{t("tasks.fields.assignees")}</TableHead>
-              <TableHead>{t("tasks.fields.team")}</TableHead>
-              <TableHead>{t("tasks.fields.priority")}</TableHead>
-              <TableHead>{t("tasks.fields.status")}</TableHead>
-              <TableHead>{t("tasks.fields.startDate")}</TableHead>
-              <TableHead>{t("tasks.fields.dueDate")}</TableHead>
-              <TableHead>{t("tasks.actions")}</TableHead>
-            </TableRow></TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("tasks.fields.title")}</TableHead>
+                <TableHead>{t("tasks.fields.assignees")}</TableHead>
+                <TableHead>{t("tasks.fields.team")}</TableHead>
+                <TableHead>{t("tasks.fields.priority")}</TableHead>
+                <TableHead>{t("tasks.fields.status")}</TableHead>
+                <TableHead>{t("tasks.fields.startDate")}</TableHead>
+                <TableHead>{t("tasks.fields.dueDate")}</TableHead>
+                <TableHead>{t("tasks.actions")}</TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody pageSize={15}>
-          {items.map((task) => (
-            <TableRow key={task.id}>
-              <TableCell className="min-w-52">
-                <Link to={`/tasks/${task.id}`} className="font-semibold hover:text-primary hover:underline">{task.title}</Link>
-                <p className="mt-1 max-w-sm truncate text-xs text-muted-foreground">{task.description}</p>
-              </TableCell>
-              <TableCell className="min-w-48">{task.assignees.length ? task.assignees.map(({employee}) => `${employee.firstName} ${employee.lastName}`).join(", ") : "—"}</TableCell>
-              <TableCell><Badge variant="secondary">{t(`tasks.teams.${task.team ?? "other"}`)}</Badge></TableCell>
-              <TableCell><Badge>{t(`tasks.priorities.${task.priority}`)}</Badge></TableCell>
-              <TableCell className="min-w-44">
-                <Select value={task.status} onValueChange={async (value) => { try { await tasksApi.update(task.id, { status: value }); await load(); } catch (error) { toast.error(error instanceof Error ? error.message : t("tasks.saveFailed")); } }}>
-                  <SelectTrigger aria-label={t("tasks.fields.status")}><SelectValue /></SelectTrigger>
-                  <SelectContent>{availableStatuses.map((value) => <SelectItem key={value} value={value}>{t(`tasks.statuses.${value}`)}</SelectItem>)}</SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell className="whitespace-nowrap">{task.startDate ? new Date(task.startDate).toLocaleDateString() : "—"}</TableCell>
-              <TableCell className="whitespace-nowrap">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</TableCell>
-              <TableCell>
-                <div className="flex justify-end gap-1">
-                  <Button size="icon" variant="ghost" asChild><Link to={`/tasks/${task.id}`} aria-label={t("tasks.viewDetails")}><Eye /></Link></Button>
-                  {isHr && <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="icon" variant="ghost">
-                      <Trash2 className="text-destructive" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        {t("tasks.deleteTitle")}
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {t("tasks.deleteDescription")}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>
-                        {t("common.cancel")}
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={async () => {
-                          await tasksApi.remove(task.id);
+              {items.map((task) => (
+                <TableRow key={task.id}>
+                  <TableCell className="min-w-52">
+                    <Link
+                      to={`/tasks/${task.id}`}
+                      className="font-semibold hover:text-primary hover:underline"
+                    >
+                      {task.title}
+                    </Link>
+                    <p className="mt-1 max-w-sm truncate text-xs text-muted-foreground">
+                      {task.description}
+                    </p>
+                  </TableCell>
+                  <TableCell className="min-w-48">
+                    {task.assignees.length
+                      ? task.assignees
+                          .map(
+                            ({ employee }) =>
+                              `${employee.firstName} ${employee.lastName}`,
+                          )
+                          .join(", ")
+                      : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {t(`tasks.teams.${task.team ?? "other"}`)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge>{t(`tasks.priorities.${task.priority}`)}</Badge>
+                  </TableCell>
+                  <TableCell className="min-w-44">
+                    <Select
+                      value={task.status}
+                      onValueChange={async (value) => {
+                        try {
+                          await tasksApi.update(task.id, { status: value });
                           await load();
-                        }}
-                      >
-                        {t("common.delete")}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                  </AlertDialog>}
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                        } catch (error) {
+                          toast.error(
+                            error instanceof Error
+                              ? error.message
+                              : t("tasks.saveFailed"),
+                          );
+                        }
+                      }}
+                    >
+                      <SelectTrigger aria-label={t("tasks.fields.status")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableStatuses.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {t(`tasks.statuses.${value}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {task.startDate
+                      ? new Date(task.startDate).toLocaleDateString()
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {task.dueDate
+                      ? new Date(task.dueDate).toLocaleDateString()
+                      : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-1">
+                      <Button size="icon" variant="ghost" asChild>
+                        <Link
+                          to={`/tasks/${task.id}`}
+                          aria-label={t("tasks.viewDetails")}
+                        >
+                          <Eye />
+                        </Link>
+                      </Button>
+                      {isHr && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="icon" variant="ghost">
+                              <Trash2 className="text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {t("tasks.deleteTitle")}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {t("tasks.deleteDescription")}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>
+                                {t("common.cancel")}
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={async () => {
+                                  await tasksApi.remove(task.id);
+                                  await load();
+                                }}
+                              >
+                                {t("common.delete")}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>

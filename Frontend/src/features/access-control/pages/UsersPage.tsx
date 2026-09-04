@@ -53,9 +53,7 @@ export default function UsersPage() {
     departments = useApiResource(
       useCallback(
         () =>
-          canEditUsers
-            ? healthcareApi.departments.list()
-            : Promise.resolve([]),
+          canEditUsers ? healthcareApi.departments.list() : Promise.resolve([]),
         [canEditUsers],
       ),
     );
@@ -117,10 +115,12 @@ export default function UsersPage() {
             {t("usersAdmin.description")}
           </p>
         </div>
-        {canCreate && <Button onClick={() => openEditor(null)}>
-          <Plus />
-          {t("usersAdmin.add")}
-        </Button>}
+        {canCreate && (
+          <Button onClick={() => openEditor(null)}>
+            <Plus />
+            {t("usersAdmin.add")}
+          </Button>
+        )}
       </div>
       <Card>
         <CardContent className="p-0">
@@ -175,34 +175,38 @@ export default function UsersPage() {
                       <Badge>{u.status}</Badge>
                     </TableCell>
                     <TableCell className="text-end">
-                      {canUpdate && <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditor(u)}
-                      >
-                        <Pencil />
-                      </Button>}
-                      {canDelete && <DeleteConfirmationDialog
-                        description={t("usersAdmin.deleteConfirm", {
-                          name: u.name,
-                        })}
-                        onConfirm={async () => {
-                          try {
-                            await usersApi.remove(u.id);
-                            await users.refresh();
-                          } catch (c) {
-                            setError(apiErrorMessage(c));
-                          }
-                        }}
-                      >
+                      {canUpdate && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive"
+                          onClick={() => openEditor(u)}
                         >
-                          <Trash2 />
+                          <Pencil />
                         </Button>
-                      </DeleteConfirmationDialog>}
+                      )}
+                      {canDelete && (
+                        <DeleteConfirmationDialog
+                          description={t("usersAdmin.deleteConfirm", {
+                            name: u.name,
+                          })}
+                          onConfirm={async () => {
+                            try {
+                              await usersApi.remove(u.id);
+                              await users.refresh();
+                            } catch (c) {
+                              setError(apiErrorMessage(c));
+                            }
+                          }}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                          >
+                            <Trash2 />
+                          </Button>
+                        </DeleteConfirmationDialog>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -242,8 +246,15 @@ export default function UsersPage() {
               placeholder={t("usersAdmin.email")}
               required
             />
-            <Select value={department || "none"} onValueChange={(value) => setDepartment(value === "none" ? "" : value)}>
-              <SelectTrigger><SelectValue placeholder={t("usersAdmin.department")} /></SelectTrigger>
+            <Select
+              value={department || "none"}
+              onValueChange={(value) =>
+                setDepartment(value === "none" ? "" : value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t("usersAdmin.department")} />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">—</SelectItem>
                 {departments.data?.map((item) => (

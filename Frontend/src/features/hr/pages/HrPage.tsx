@@ -383,7 +383,9 @@ export default function HrPage({ resource }: { resource?: Resource }) {
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [adjustmentEmployee, setAdjustmentEmployee] = useState<HrRecord | null>(null);
+  const [adjustmentEmployee, setAdjustmentEmployee] = useState<HrRecord | null>(
+    null,
+  );
   const positions = useApiResource(
     useCallback(() => hrApi.positions.list(), []),
   );
@@ -576,8 +578,13 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  title={t("hr.rewardPunishment", { defaultValue: "Reward or punishment" })}
-                                  onClick={() => { setError(""); setAdjustmentEmployee(row); }}
+                                  title={t("hr.rewardPunishment", {
+                                    defaultValue: "Reward or punishment",
+                                  })}
+                                  onClick={() => {
+                                    setError("");
+                                    setAdjustmentEmployee(row);
+                                  }}
                                 >
                                   <Gift className="size-4 text-amber-600" />
                                 </Button>
@@ -720,28 +727,84 @@ export default function HrPage({ resource }: { resource?: Resource }) {
           </form>
         </DialogContent>
       </Dialog>
-      <Dialog open={Boolean(adjustmentEmployee)} onOpenChange={(open) => { if (!open && !busy) setAdjustmentEmployee(null); }}>
+      <Dialog
+        open={Boolean(adjustmentEmployee)}
+        onOpenChange={(open) => {
+          if (!open && !busy) setAdjustmentEmployee(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("hr.rewardPunishment", { defaultValue: "Reward or punishment" })} · {adjustmentEmployee ? employeeName(adjustmentEmployee) : ""}</DialogTitle>
+            <DialogTitle>
+              {t("hr.rewardPunishment", {
+                defaultValue: "Reward or punishment",
+              })}{" "}
+              · {adjustmentEmployee ? employeeName(adjustmentEmployee) : ""}
+            </DialogTitle>
           </DialogHeader>
-          <form className="grid gap-4" onSubmit={async (event) => {
-            event.preventDefault();
-            if (!adjustmentEmployee) return;
-            const form = new FormData(event.currentTarget);
-            setBusy(true); setError("");
-            try {
-              await hrApi.adjustments.create({ employeeId: adjustmentEmployee.id, type: form.get("type"), amount: Number(form.get("amount")), reason: form.get("reason") });
-              setAdjustmentEmployee(null);
-              await resources.adjustments.refresh();
-            } catch (cause) { setError(apiErrorMessage(cause)); }
-            finally { setBusy(false); }
-          }}>
-            <label className="grid gap-1 text-sm font-medium">{t("hr.type", { defaultValue: "Type" })}<Select name="type" defaultValue="reward" required><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="reward">{t("hr.reward", { defaultValue: "Reward" })}</SelectItem><SelectItem value="punishment">{t("hr.punishment", { defaultValue: "Punishment" })}</SelectItem></SelectContent></Select></label>
-            <label className="grid gap-1 text-sm font-medium">{t("hr.amount", { defaultValue: "Amount" })}<Input name="amount" type="number" min="0.01" step="0.01" required /></label>
-            <label className="grid gap-1 text-sm font-medium">{t("hr.reason", { defaultValue: "Reason" })}<textarea name="reason" required rows={4} className="w-full resize-y rounded-md border bg-background px-3 py-2 text-sm" /></label>
+          <form
+            className="grid gap-4"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              if (!adjustmentEmployee) return;
+              const form = new FormData(event.currentTarget);
+              setBusy(true);
+              setError("");
+              try {
+                await hrApi.adjustments.create({
+                  employeeId: adjustmentEmployee.id,
+                  type: form.get("type"),
+                  amount: Number(form.get("amount")),
+                  reason: form.get("reason"),
+                });
+                setAdjustmentEmployee(null);
+                await resources.adjustments.refresh();
+              } catch (cause) {
+                setError(apiErrorMessage(cause));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <label className="grid gap-1 text-sm font-medium">
+              {t("hr.type", { defaultValue: "Type" })}
+              <Select name="type" defaultValue="reward" required>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="reward">
+                    {t("hr.reward", { defaultValue: "Reward" })}
+                  </SelectItem>
+                  <SelectItem value="punishment">
+                    {t("hr.punishment", { defaultValue: "Punishment" })}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="grid gap-1 text-sm font-medium">
+              {t("hr.amount", { defaultValue: "Amount" })}
+              <Input
+                name="amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
+              />
+            </label>
+            <label className="grid gap-1 text-sm font-medium">
+              {t("hr.reason", { defaultValue: "Reason" })}
+              <textarea
+                name="reason"
+                required
+                rows={4}
+                className="w-full resize-y rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </label>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button disabled={busy}>{busy ? t("hr.saving") : t("hr.save")}</Button>
+            <Button disabled={busy}>
+              {busy ? t("hr.saving") : t("hr.save")}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>

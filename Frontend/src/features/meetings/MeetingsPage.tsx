@@ -3,8 +3,12 @@ import { io, type Socket } from "socket.io-client";
 import {
   Camera,
   CameraOff,
+  CalendarDays,
+  Clock3,
   Copy,
   FileUp,
+  History,
+  KeyRound,
   LogOut,
   Maximize2,
   MessageSquare,
@@ -13,7 +17,9 @@ import {
   Minimize2,
   MonitorUp,
   Plus,
+  Radio,
   Send,
+  ShieldCheck,
   SwitchCamera,
   Users,
   Video,
@@ -155,8 +161,16 @@ function VideoTile({
         type="button"
         onClick={() => void toggleFullscreen()}
         className="absolute end-3 top-3 grid size-10 place-items-center rounded-xl border border-white/20 bg-black/60 text-white shadow-lg backdrop-blur-sm transition hover:scale-105 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        title={t(fullscreen ? "liveMeetings.exitFullscreen" : "liveMeetings.showFullscreen")}
-        aria-label={t(fullscreen ? "liveMeetings.exitFullscreen" : "liveMeetings.showFullscreen")}
+        title={t(
+          fullscreen
+            ? "liveMeetings.exitFullscreen"
+            : "liveMeetings.showFullscreen",
+        )}
+        aria-label={t(
+          fullscreen
+            ? "liveMeetings.exitFullscreen"
+            : "liveMeetings.showFullscreen",
+        )}
       >
         {fullscreen ? (
           <Minimize2 className="size-5" />
@@ -189,6 +203,7 @@ export default function MeetingsPage() {
   const localStreamsRef = useRef<MediaStream[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [meetingHistory, setMeetingHistory] = useState<Meeting[]>([]);
   const [title, setTitle] = useState("");
   const [departments, setDepartments] = useState<MeetingDepartment[]>([]);
   const [departmentId, setDepartmentId] = useState("");
@@ -213,14 +228,18 @@ export default function MeetingsPage() {
   const [localSpeaking, setLocalSpeaking] = useState(false);
   const [dataPeers, setDataPeers] = useState(0);
   const [chatConnected, setChatConnected] = useState(false);
-  const load = useCallback(
-    () =>
-      meetingsApi
-        .list()
-        .then(setMeetings)
-        .catch((e) => toast.error(apiErrorMessage(e))),
-    [],
-  );
+  const load = useCallback(async () => {
+    try {
+      const [liveItems, historyItems] = await Promise.all([
+        meetingsApi.list(),
+        meetingsApi.history(),
+      ]);
+      setMeetings(liveItems);
+      setMeetingHistory(historyItems);
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    }
+  }, []);
   useEffect(() => {
     void load();
   }, [load]);
@@ -460,7 +479,9 @@ export default function MeetingsPage() {
       );
     });
     socket.on("connect_error", (error) =>
-      toast.error(t("liveMeetings.errors.connection", { message: error.message })),
+      toast.error(
+        t("liveMeetings.errors.connection", { message: error.message }),
+      ),
     );
     socket.on("disconnect", () => setChatConnected(false));
     socket.on("meeting:chat", (item: ChatItem) =>
@@ -505,10 +526,7 @@ export default function MeetingsPage() {
 
   const startCamera = async (facing: "user" | "environment" = cameraFacing) => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error(
-        t("liveMeetings.errors.cameraSecure"),
-        { duration: 10_000 },
-      );
+      toast.error(t("liveMeetings.errors.cameraSecure"), { duration: 10_000 });
       return;
     }
     try {
@@ -529,7 +547,11 @@ export default function MeetingsPage() {
           {
             duration: 10_000,
             action: {
-              label: t(window.electronWindow ? "liveMeetings.openSettings" : "liveMeetings.retry"),
+              label: t(
+                window.electronWindow
+                  ? "liveMeetings.openSettings"
+                  : "liveMeetings.retry",
+              ),
               onClick: () =>
                 window.electronWindow
                   ? void window.electronWindow.openMediaSettings("camera")
@@ -541,24 +563,20 @@ export default function MeetingsPage() {
         error instanceof DOMException &&
         error.name === "NotFoundError"
       ) {
-        toast.error(
-          t("liveMeetings.errors.cameraMissing"),
-          { duration: 10_000 },
-        );
+        toast.error(t("liveMeetings.errors.cameraMissing"), {
+          duration: 10_000,
+        });
       } else if (
         error instanceof DOMException &&
         ["NotReadableError", "AbortError"].includes(error.name)
       ) {
-        toast.error(
-          t("liveMeetings.errors.cameraBusy"),
-          {
-            duration: 10_000,
-            action: {
-              label: t("liveMeetings.retry"),
-              onClick: () => void startCamera(),
-            },
+        toast.error(t("liveMeetings.errors.cameraBusy"), {
+          duration: 10_000,
+          action: {
+            label: t("liveMeetings.retry"),
+            onClick: () => void startCamera(),
           },
-        );
+        });
       } else {
         const detail = error instanceof Error ? ` ${error.message}` : "";
         toast.error(t("liveMeetings.errors.cameraOpen", { detail }), {
@@ -583,10 +601,9 @@ export default function MeetingsPage() {
   };
   const startMicrophone = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error(
-        t("liveMeetings.errors.microphoneSecure"),
-        { duration: 10_000 },
-      );
+      toast.error(t("liveMeetings.errors.microphoneSecure"), {
+        duration: 10_000,
+      });
       return;
     }
     try {
@@ -610,7 +627,11 @@ export default function MeetingsPage() {
           {
             duration: 10_000,
             action: {
-              label: t(window.electronWindow ? "liveMeetings.openSettings" : "liveMeetings.retry"),
+              label: t(
+                window.electronWindow
+                  ? "liveMeetings.openSettings"
+                  : "liveMeetings.retry",
+              ),
               onClick: () =>
                 window.electronWindow
                   ? void window.electronWindow.openMediaSettings("microphone")
@@ -622,24 +643,20 @@ export default function MeetingsPage() {
         error instanceof DOMException &&
         error.name === "NotFoundError"
       ) {
-        toast.error(
-          t("liveMeetings.errors.microphoneMissing"),
-          { duration: 10_000 },
-        );
+        toast.error(t("liveMeetings.errors.microphoneMissing"), {
+          duration: 10_000,
+        });
       } else if (
         error instanceof DOMException &&
         ["NotReadableError", "AbortError"].includes(error.name)
       ) {
-        toast.error(
-          t("liveMeetings.errors.microphoneBusy"),
-          {
-            duration: 10_000,
-            action: {
-              label: t("liveMeetings.retry"),
-              onClick: () => void startMicrophone(),
-            },
+        toast.error(t("liveMeetings.errors.microphoneBusy"), {
+          duration: 10_000,
+          action: {
+            label: t("liveMeetings.retry"),
+            onClick: () => void startMicrophone(),
           },
-        );
+        });
       } else {
         const detail = error instanceof Error ? ` ${error.message}` : "";
         toast.error(t("liveMeetings.errors.microphoneOpen", { detail }), {
@@ -654,9 +671,7 @@ export default function MeetingsPage() {
   };
   const startScreen = async () => {
     if (!navigator.mediaDevices?.getDisplayMedia) {
-      toast.error(
-        t("liveMeetings.errors.screenSecure"),
-      );
+      toast.error(t("liveMeetings.errors.screenSecure"));
       return;
     }
     try {
@@ -753,7 +768,8 @@ export default function MeetingsPage() {
       "meeting:end",
       { roomCode: active.roomCode },
       (reply: { ok: boolean; message?: string }) => {
-        if (!reply.ok) toast.error(reply.message || t("liveMeetings.errors.endMeeting"));
+        if (!reply.ok)
+          toast.error(reply.message || t("liveMeetings.errors.endMeeting"));
       },
     );
   };
@@ -771,7 +787,11 @@ export default function MeetingsPage() {
     broadcast({ type: "file:start", id, name: file.name, mime: file.type });
     for (let i = 0; i < base64.length; i += 12000)
       broadcast({ type: "file:chunk", id, chunk: base64.slice(i, i + 12000) });
-    broadcast({ type: "file:end", id, sender: user?.name || t("liveMeetings.user") });
+    broadcast({
+      type: "file:end",
+      id,
+      sender: user?.name || t("liveMeetings.user"),
+    });
     setMessages((items) => [
       ...items,
       {
@@ -787,96 +807,234 @@ export default function MeetingsPage() {
 
   if (!active)
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="flex items-center gap-3 text-2xl font-bold">
-            <Video className="text-primary" /> {t("liveMeetings.title")}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t("liveMeetings.subtitle")}
-          </p>
+      <div className="space-y-8 pb-8">
+        <div className="relative overflow-hidden rounded-3xl border border-primary/15 bg-gradient-to-br from-primary/10 via-card to-card p-6 shadow-sm md:p-8">
+          <div className="pointer-events-none absolute -end-16 -top-20 size-64 rounded-full bg-primary/10 blur-3xl" />
+          <div className="relative flex items-center gap-4">
+            <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+              <Video className="size-7" />
+            </span>
+            <div>
+              <h1 className="text-2xl font-bold md:text-3xl">
+                {t("liveMeetings.title")}
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                {t("liveMeetings.subtitle")}
+              </p>
+            </div>
+          </div>
         </div>
-        {canCreate && (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("liveMeetings.createDepartmentMeeting")}</CardTitle>
+
+        <div
+          className={`grid gap-5 ${canCreate ? "lg:grid-cols-[1.35fr_0.65fr]" : ""}`}
+        >
+          {canCreate && (
+            <Card className="overflow-hidden border-primary/20">
+              <CardHeader className="border-b bg-primary/[0.04]">
+                <CardTitle className="flex items-center gap-2">
+                  <Radio className="size-5 text-primary" />
+                  {t("liveMeetings.createDepartmentMeeting")}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {t("liveMeetings.createHint")}
+                </p>
+              </CardHeader>
+              <CardContent className="grid gap-3 p-6 md:grid-cols-[1fr_220px_auto]">
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t("liveMeetings.meetingTitle")}
+                />
+                <Select value={departmentId} onValueChange={setDepartmentId}>
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={t("liveMeetings.selectDepartment")}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((department) => (
+                      <SelectItem key={department.id} value={department.id}>
+                        {department.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={async () => {
+                    try {
+                      const meeting = await meetingsApi.create(
+                        title,
+                        departmentId,
+                      );
+                      setTitle("");
+                      await load();
+                      await join(meeting.roomCode);
+                    } catch (e) {
+                      toast.error(apiErrorMessage(e));
+                    }
+                  }}
+                  disabled={title.trim().length < 2 || !departmentId}
+                >
+                  <Plus /> {t("liveMeetings.create")}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-muted/30">
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="size-5 text-primary" />
+                {t("liveMeetings.joinWithCode")}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {t("liveMeetings.joinHint")}
+              </p>
             </CardHeader>
-            <CardContent className="grid gap-2 md:grid-cols-[1fr_260px_auto]">
+            <CardContent className="flex gap-2 p-6">
               <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t("liveMeetings.meetingTitle")}
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                placeholder={t("liveMeetings.roomCode")}
               />
-              <Select value={departmentId} onValueChange={setDepartmentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("liveMeetings.selectDepartment")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((department) => (
-                    <SelectItem key={department.id} value={department.id}>
-                      {department.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={async () => {
-                  try {
-                    const meeting = await meetingsApi.create(
-                      title,
-                      departmentId,
-                    );
-                    setTitle("");
-                    await load();
-                    await join(meeting.roomCode);
-                  } catch (e) {
-                    toast.error(apiErrorMessage(e));
-                  }
-                }}
-                disabled={title.trim().length < 2 || !departmentId}
-              >
-                <Plus /> {t("liveMeetings.create")}
+              <Button onClick={() => void join(roomCode)}>
+                {t("liveMeetings.joinRoom")}
               </Button>
             </CardContent>
           </Card>
-        )}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("liveMeetings.joinWithCode")}</CardTitle>
+        </div>
+
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <Radio className="size-5 text-emerald-500" />
+                {t("liveMeetings.activeMeetings")}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {t("liveMeetings.activeMeetingsHint")}
+              </p>
+            </div>
+            <span className="rounded-full border bg-card px-3 py-1 text-sm font-medium">
+              {meetings.length}
+            </span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {meetings.map((meeting) => (
+              <button
+                key={meeting.id}
+                onClick={() => void join(meeting.roomCode)}
+                className="group rounded-2xl border bg-card p-5 text-start shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <b>{meeting.title}</b>
+                  <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-600">
+                    {t("liveMeetings.live")}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {meeting.department.name} · {meeting.creator.name}
+                </p>
+                <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Users className="size-4" />
+                  {t("liveMeetings.connectedCount", {
+                    count: meeting.participants?.length || 0,
+                  })}{" "}
+                  · {meeting.roomCode}
+                </p>
+              </button>
+            ))}
+            {!meetings.length && (
+              <div className="col-span-full rounded-2xl border border-dashed bg-muted/20 p-10 text-center">
+                <Video className="mx-auto mb-3 size-9 text-muted-foreground/60" />
+                <p className="font-medium">
+                  {t("liveMeetings.noActiveMeetings")}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("liveMeetings.noActiveMeetingsHint")}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <Card className="overflow-hidden">
+          <CardHeader className="flex-row items-center justify-between space-y-0 border-b bg-muted/20">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <History className="size-5 text-primary" />
+                {t("liveMeetings.history")}
+              </CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("liveMeetings.historyHint")}
+              </p>
+            </div>
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
+              {meetingHistory.length}
+            </span>
           </CardHeader>
-          <CardContent className="flex gap-2">
-            <Input
-              value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-              placeholder={t("liveMeetings.roomCode")}
-            />
-            <Button onClick={() => void join(roomCode)}>{t("liveMeetings.joinRoom")}</Button>
+          <CardContent className="p-0">
+            {meetingHistory.length ? (
+              <div className="divide-y">
+                {meetingHistory.map((meeting) => {
+                  const attendees = new Set(
+                    meeting.participants
+                      ?.map((item) => item.userId)
+                      .filter(Boolean),
+                  ).size;
+                  const end = meeting.endedAt
+                    ? new Date(meeting.endedAt)
+                    : null;
+                  const minutes = end
+                    ? Math.max(
+                        1,
+                        Math.round(
+                          (end.getTime() -
+                            new Date(meeting.createdAt).getTime()) /
+                            60000,
+                        ),
+                      )
+                    : 0;
+                  return (
+                    <div
+                      key={meeting.id}
+                      className="grid gap-4 p-5 transition-colors hover:bg-muted/25 md:grid-cols-[minmax(220px,1fr)_repeat(3,auto)] md:items-center md:px-6"
+                    >
+                      <div>
+                        <p className="font-semibold">{meeting.title}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {meeting.department.name} · {meeting.creator.name}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <CalendarDays className="size-4" />
+                        {new Intl.DateTimeFormat(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }).format(new Date(meeting.createdAt))}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Users className="size-4" />
+                        {t("liveMeetings.attendeeCount", { count: attendees })}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock3 className="size-4" />
+                        {t("liveMeetings.durationMinutes", { count: minutes })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-10 text-center">
+                <ShieldCheck className="mx-auto mb-3 size-9 text-muted-foreground/60" />
+                <p className="font-medium">{t("liveMeetings.noHistory")}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("liveMeetings.noHistoryHint")}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {meetings.map((meeting) => (
-            <button
-              key={meeting.id}
-              onClick={() => void join(meeting.roomCode)}
-              className="rounded-2xl border bg-card p-5 text-start shadow-sm transition hover:border-primary/40 hover:shadow-md"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <b>{meeting.title}</b>
-                <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-600">
-                  {t("liveMeetings.live")}
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {meeting.department.name} · {meeting.creator.name}
-              </p>
-              <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                <Users className="size-4" />
-                {t("liveMeetings.connectedCount", { count: meeting.participants?.length || 0 })} ·{" "}
-                {meeting.roomCode}
-              </p>
-            </button>
-          ))}
-        </div>
       </div>
     );
 
@@ -887,7 +1045,8 @@ export default function MeetingsPage() {
           <div className="me-auto">
             <b>{active.title}</b>
             <p className="text-xs text-muted-foreground">
-              {active.department.name} · {t("liveMeetings.room", { code: active.roomCode })}
+              {active.department.name} ·{" "}
+              {t("liveMeetings.room", { code: active.roomCode })}
             </p>
           </div>
           <Button
@@ -944,17 +1103,25 @@ export default function MeetingsPage() {
             }
           >
             {microphoneStream ? <MicOff /> : <Mic />}
-            {t(microphoneStream ? "liveMeetings.mute" : "liveMeetings.microphone")}
+            {t(
+              microphoneStream
+                ? "liveMeetings.mute"
+                : "liveMeetings.microphone",
+            )}
           </Button>
           {(user?.permissions?.includes("*") ||
             active.creator.id === user?.id) && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">{t("liveMeetings.endMeeting")}</Button>
+                <Button variant="destructive">
+                  {t("liveMeetings.endMeeting")}
+                </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>{t("liveMeetings.closeMeetingTitle")}</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    {t("liveMeetings.closeMeetingTitle")}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
                     {t("liveMeetings.closeMeetingDescription")}
                   </AlertDialogDescription>
@@ -1017,7 +1184,8 @@ export default function MeetingsPage() {
       <aside className="flex min-h-130 flex-col overflow-hidden rounded-3xl border bg-card shadow-lg xl:max-h-[calc(100svh-9rem)]">
         <div className="border-b p-4">
           <div className="mb-3 flex items-center gap-2 font-semibold">
-            <Users className="size-4 text-primary" /> {t("liveMeetings.participants", { count: participants.length })}
+            <Users className="size-4 text-primary" />{" "}
+            {t("liveMeetings.participants", { count: participants.length })}
           </div>
           <div className="flex flex-wrap gap-1.5">
             {participants.map((participant) => (
@@ -1026,8 +1194,9 @@ export default function MeetingsPage() {
                 className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition ${speakingPeers.has(participant.id) || (participant.id === selfPeerId && localSpeaking) ? "bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-400" : "bg-primary/8 text-primary"}`}
               >
                 {(speakingPeers.has(participant.id) ||
-                  (participant.id === selfPeerId &&
-                    localSpeaking)) && <Mic className="size-3 animate-pulse" />}
+                  (participant.id === selfPeerId && localSpeaking)) && (
+                  <Mic className="size-3 animate-pulse" />
+                )}
                 {participant.name}
               </span>
             ))}
@@ -1035,12 +1204,17 @@ export default function MeetingsPage() {
         </div>
         <div className="flex items-center justify-between gap-2 border-b p-4">
           <span className="flex items-center gap-2 font-semibold">
-            <MessageSquare className="size-4 text-primary" /> {t("liveMeetings.meetingChat")}
+            <MessageSquare className="size-4 text-primary" />{" "}
+            {t("liveMeetings.meetingChat")}
           </span>
           <span
             className={`text-[10px] font-medium ${chatConnected ? "text-emerald-600" : "text-amber-600"}`}
           >
-            {t(chatConnected ? "liveMeetings.connected" : "liveMeetings.connecting")}
+            {t(
+              chatConnected
+                ? "liveMeetings.connected"
+                : "liveMeetings.connecting",
+            )}
           </span>
         </div>
         <div className="content-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto bg-muted/15 p-4">
@@ -1048,8 +1222,12 @@ export default function MeetingsPage() {
             <div className="grid h-full min-h-48 place-items-center text-center text-muted-foreground">
               <div>
                 <MessageSquare className="mx-auto mb-2 size-8 opacity-50" />
-                <p className="text-sm font-medium">{t("liveMeetings.noMessages")}</p>
-                <p className="mt-1 text-xs">{t("liveMeetings.startConversation")}</p>
+                <p className="text-sm font-medium">
+                  {t("liveMeetings.noMessages")}
+                </p>
+                <p className="mt-1 text-xs">
+                  {t("liveMeetings.startConversation")}
+                </p>
               </div>
             </div>
           )}
@@ -1109,7 +1287,9 @@ export default function MeetingsPage() {
                     </a>
                   )
                 ) : (
-                  <p className="text-sm">{t("liveMeetings.sentFile", { fileName: item.fileName })}</p>
+                  <p className="text-sm">
+                    {t("liveMeetings.sentFile", { fileName: item.fileName })}
+                  </p>
                 ))}
             </div>
           ))}

@@ -122,82 +122,84 @@ export default function FeedbackPage() {
               isEmpty={!items.length}
               colSpan={6}
             />
-            {!loading && !error && items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>
-                  <strong>{item.customerName}</strong>
-                  <small className="block text-muted-foreground">
-                    {item.customerEmail}
-                  </small>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">
-                    {t(`feedback.${item.targetType}s`)}
-                  </Badge>
-                  <span className="ms-2">
-                    {item.product?.name ?? item.service?.name}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <Stars value={item.rating} />
-                </TableCell>
-                <TableCell className="max-w-80 whitespace-normal">
-                  {item.comment}
-                </TableCell>
-                <TableCell>
-                  <Select
-                    value={item.status}
-                    onValueChange={async (value) => {
-                      await feedbackApi.status(item.id, value);
-                      await load();
-                    }}
-                  >
-                    <SelectTrigger className="w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["pending", "approved", "rejected"].map((x) => (
-                        <SelectItem key={x} value={x}>
-                          {t(`feedback.statuses.${x}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell className="text-end">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="icon" variant="ghost">
-                        <Trash2 className="text-destructive" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          {t("feedback.deleteTitle")}
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t("feedback.deleteDescription")}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>
-                          {t("common.cancel")}
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={async () => {
-                            await feedbackApi.remove(item.id);
-                            await load();
-                          }}
-                        >
-                          {t("common.delete")}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
-              </TableRow>
-            ))}
+            {!loading &&
+              !error &&
+              items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <strong>{item.customerName}</strong>
+                    <small className="block text-muted-foreground">
+                      {item.customerEmail}
+                    </small>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {t(`feedback.${item.targetType}s`)}
+                    </Badge>
+                    <span className="ms-2">
+                      {item.product?.name ?? item.service?.name}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Stars value={item.rating} />
+                  </TableCell>
+                  <TableCell className="max-w-80 whitespace-normal">
+                    {item.comment}
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={item.status}
+                      onValueChange={async (value) => {
+                        await feedbackApi.status(item.id, value);
+                        await load();
+                      }}
+                    >
+                      <SelectTrigger className="w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["pending", "approved", "rejected"].map((x) => (
+                          <SelectItem key={x} value={x}>
+                            {t(`feedback.statuses.${x}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className="text-end">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="ghost">
+                          <Trash2 className="text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            {t("feedback.deleteTitle")}
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {t("feedback.deleteDescription")}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>
+                            {t("common.cancel")}
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={async () => {
+                              await feedbackApi.remove(item.id);
+                              await load();
+                            }}
+                          >
+                            {t("common.delete")}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>

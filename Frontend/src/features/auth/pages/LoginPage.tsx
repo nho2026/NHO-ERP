@@ -65,20 +65,10 @@ function LoginPage() {
         password: String(form.get("password") ?? ""),
         remember,
       });
-      if (user)
-        navigate(
-          isCashier(user)
-            ? "/pos/checkout"
-            : "/dashboard",
-        );
+      if (user) navigate(isCashier(user) ? "/pos/checkout" : "/dashboard");
     } else {
       const user = await login({ method, pin });
-      if (user)
-        navigate(
-          isCashier(user)
-            ? "/pos/checkout"
-            : "/dashboard",
-        );
+      if (user) navigate(isCashier(user) ? "/pos/checkout" : "/dashboard");
     }
   };
 
@@ -101,13 +91,22 @@ function LoginPage() {
               className="z-10000 border-slate-200 bg-white text-slate-900 shadow-xl dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
               position="popper"
             >
-              <SelectItem className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800" value="en">
+              <SelectItem
+                className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800"
+                value="en"
+              >
                 {t("language.english")}
               </SelectItem>
-              <SelectItem className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800" value="ar">
+              <SelectItem
+                className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800"
+                value="ar"
+              >
                 {t("language.arabic")}
               </SelectItem>
-              <SelectItem className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800" value="ku">
+              <SelectItem
+                className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800"
+                value="ku"
+              >
                 {t("language.kurdish")}
               </SelectItem>
             </SelectContent>

@@ -6,11 +6,7 @@ import {
 } from "../../shared/middleware/permission.middleware.js";
 import { validate } from "../../shared/middleware/validation.middleware.js";
 import { healthcareController as c } from "./healthcare.controller.js";
-import {
-  departmentSchema,
-  staffSchema,
-  appointmentSchema,
-} from "./healthcare.schema.js";
+import { departmentSchema, staffSchema } from "./healthcare.schema.js";
 const router = Router();
 router.use(requireAuth);
 const view = requirePermission("employees.view"),
@@ -42,18 +38,4 @@ router.patch(
   c.updateStaff,
 );
 router.delete("/staff/:id", manage, c.removeStaff);
-router.get("/appointments", view, c.appointments);
-router.post(
-  "/appointments",
-  manage,
-  validate(appointmentSchema),
-  c.createAppointment,
-);
-router.patch(
-  "/appointments/:id",
-  manage,
-  validate(appointmentSchema.partial()),
-  c.updateAppointment,
-);
-router.delete("/appointments/:id", manage, c.removeAppointment);
 export default router;

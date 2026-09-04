@@ -146,37 +146,38 @@ model Position {
 }
 
 model Employee {
-  id                 String               @id @default(cuid())
-  employeeCode       String               @unique
-  userId             String?              @unique
-  firstName          String
-  lastName           String
-  departmentId       String?
-  positionId         String?
-  hireDate           DateTime
-  checkInTime        String               @default("09:00")
-  checkOutTime       String               @default("17:00")
-  status             String               @default("active")
-  position           Position?            @relation(fields: [positionId], references: [id], onDelete: SetNull)
-  department         Department?          @relation("DepartmentEmployees", fields: [departmentId], references: [id], onDelete: SetNull)
-  managedDepartments Department[]         @relation("DepartmentManager")
-  isTeamLeader       Boolean              @default(false)
-  teamLeaderId       String?
-  teamLeader         Employee?            @relation("TeamLeaderMembers", fields: [teamLeaderId], references: [id], onDelete: SetNull)
-  teamMembers        Employee[]           @relation("TeamLeaderMembers")
-  healthStaff        HealthStaff?
-  user               User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
-  devicePeople       AttendancePerson[]
-  salaries           EmployeeSalary[]
-  attendance         EmployeeAttendance[]
-  payrolls           Payroll[]
-  payrollAdjustments PayrollAdjustment[]
-  salaryAdvances     SalaryAdvance[]
-  taskAssignments    TaskAssignee[]
-  taskTimeEntries    TaskTimeEntry[]
-  targets            EmployeeTarget[]
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  id                    String                 @id @default(cuid())
+  employeeCode          String                 @unique
+  userId                String?                @unique
+  firstName             String
+  lastName              String
+  departmentId          String?
+  positionId            String?
+  hireDate              DateTime
+  checkInTime           String                 @default("09:00")
+  checkOutTime          String                 @default("17:00")
+  status                String                 @default("active")
+  position              Position?              @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  department            Department?            @relation("DepartmentEmployees", fields: [departmentId], references: [id], onDelete: SetNull)
+  managedDepartments    Department[]           @relation("DepartmentManager")
+  isTeamLeader          Boolean                @default(false)
+  teamLeaderId          String?
+  teamLeader            Employee?              @relation("TeamLeaderMembers", fields: [teamLeaderId], references: [id], onDelete: SetNull)
+  teamMembers           Employee[]             @relation("TeamLeaderMembers")
+  healthStaff           HealthStaff?
+  user                  User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  devicePeople          AttendancePerson[]
+  salaries              EmployeeSalary[]
+  attendance            EmployeeAttendance[]
+  attendancePermissions AttendancePermission[]
+  payrolls              Payroll[]
+  payrollAdjustments    PayrollAdjustment[]
+  salaryAdvances        SalaryAdvance[]
+  taskAssignments       TaskAssignee[]
+  taskTimeEntries       TaskTimeEntry[]
+  targets               EmployeeTarget[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 
   @@index([departmentId])
   @@index([positionId])
@@ -422,27 +423,61 @@ model HealthStaff {
 }
 
 model CrmLead {
-  id                 String                 @id @default(cuid())
-  code               String?                @unique
-  name               String
-  phone              String
-  age                Int?
-  gender             String?
-  address            String?
-  email              String?
-  source             String?
-  interest           String?
-  notes              String?                @db.Text
-  status             String                 @default("new")
-  convertedPatientId String?
-  convertedPatient   Patient?               @relation(fields: [convertedPatientId], references: [id], onDelete: SetNull)
-  notifications      Notification[]
-  statusHistory      CrmLeadStatusHistory[]
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
+  id                  String                 @id @default(cuid())
+  code                String?                @unique
+  name                String
+  phone               String
+  secondaryPhone      String?
+  age                 Int?
+  dateOfBirth         DateTime?
+  gender              String?
+  maritalStatus       String?
+  preferredLanguage   String?
+  address             String?
+  country             String?
+  city                String?
+  email               String?
+  source              String?
+  leadSourceChannel   String?
+  contactMethod       String?
+  patientType         String?
+  referralPersona     String?
+  referralName        String?
+  referralPhone       String?
+  referralAddress     String?
+  referralNote        String?                @db.Text
+  interest            String?
+  competitorsNote     String?                @db.Text
+  notes               String?                @db.Text
+  satisfactionScore   Int?                   @default(0)
+  knowledgeRating     Int?
+  budgetRange         String?
+  decisionInfluencers String?                @db.Text
+  painPoints          String?                @db.Text
+  status              String                 @default("new")
+  convertedPatientId  String?
+  convertedPatient    Patient?               @relation(fields: [convertedPatientId], references: [id], onDelete: SetNull)
+  notifications       Notification[]
+  statusHistory       CrmLeadStatusHistory[]
+  attachments         CrmLeadAttachment[]
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
 
   @@index([status, createdAt])
   @@index([phone])
+}
+
+model CrmLeadAttachment {
+  id        String   @id @default(cuid())
+  leadId    String
+  fileName  String
+  fileUrl   String
+  mimeType  String?
+  fileSize  Int?
+  createdAt DateTime @default(now())
+  lead      CrmLead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
 }
 
 model CrmLeadStatusHistory {
@@ -480,10 +515,33 @@ model Patient {
   payments            PatientPayment[]
   sourceLeads         CrmLead[]
   formSubmissions     PatientFormSubmission[]
+  referrals           PatientReferral[]
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
 
   @@index([phone])
+  @@index([status])
+}
+
+model PatientReferral {
+  id                   String   @id @default(cuid())
+  patientId            String
+  referrerName         String
+  referrerPhone        String?
+  referrerProfession   String?
+  referrerAddress      String?
+  direction            String   @default("inbound")
+  referralPersona      String?
+  referringPatientName String?
+  referralType         String   @default("patient")
+  referredAt           DateTime @default(now())
+  notes                String?  @db.Text
+  status               String   @default("active")
+  patient              Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([patientId, referredAt])
   @@index([status])
 }
 
@@ -628,6 +686,23 @@ model EmployeeAttendance {
 
   @@unique([employeeId, attendanceDate])
   @@index([attendanceDate])
+}
+
+model AttendancePermission {
+  id               String   @id @default(cuid())
+  employeeId       String
+  permissionType   String
+  fromDate         DateTime
+  toDate           DateTime
+  permittedMinutes Int?
+  reason           String?  @db.Text
+  status           String   @default("approved")
+  employee         Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([employeeId, fromDate, toDate])
+  @@index([status])
 }
 
 model Payroll {

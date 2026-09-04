@@ -160,6 +160,7 @@ const crmNavigation = [
     icon: ChartLine,
   },
   { to: "/crm/patients", label: "navigation.crmPatients", icon: UsersRound },
+  { to: "/crm/referrals", label: "navigation.crmReferrals", icon: ArrowRightLeft },
   { to: "/crm/forms", label: "navigation.crmForms", icon: FileText },
   {
     to: "/crm/appointments",
@@ -489,6 +490,7 @@ export default function DashboardLayout() {
       "/crm/leads": "employees.view",
       "/crm/leads/progress": "employees.view",
       "/crm/patients": "employees.view",
+      "/crm/referrals": "employees.view",
       "/crm/forms": "employees.view",
       "/crm/appointments": "healthcare.appointments.view",
       "/crm/surgery-appointments": "employees.view",

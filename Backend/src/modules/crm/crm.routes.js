@@ -6,6 +6,8 @@ import { crmSchemas, isCrmResource } from "./crm.schema.js";
 import leadRoutes from "./lead/lead.routes.js";
 import patientRoutes from "./patient/patient.routes.js";
 import formsRoutes from "./forms/forms.routes.js";
+import referralRoutes from "./referral/referral.routes.js";
+import appointmentsRoutes from "./appointments/appointments.routes.js";
 
 const router = Router();
 
@@ -33,6 +35,8 @@ const validateResource =
 router.use(requireAuth);
 router.use("/leads", leadRoutes);
 router.use("/patients", patientRoutes);
+router.use("/referrals", referralRoutes);
+router.use("/appointments", appointmentsRoutes);
 router.use("/forms", formsRoutes);
 router.param("resource", (req, res, next, resource) =>
   isCrmResource(resource)

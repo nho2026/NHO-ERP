@@ -16,8 +16,7 @@ export const rolesApi = {
     name: string;
     description?: string;
     permissionIds: string[];
-  }) =>
-    (await apiClient.post<Role>("/roles", payload)).data,
+  }) => (await apiClient.post<Role>("/roles", payload)).data,
   update: async (id: string, payload: Partial<Role>) =>
     (await apiClient.patch<Role>(`/roles/${id}`, payload)).data,
   remove: async (id: string) => apiClient.delete(`/roles/${id}`),
@@ -30,6 +29,5 @@ export const rolesApi = {
 };
 
 export const permissionsApi = {
-  list: async () =>
-    (await apiClient.get<Permission[]>("/permissions")).data,
+  list: async () => (await apiClient.get<Permission[]>("/permissions")).data,
 };

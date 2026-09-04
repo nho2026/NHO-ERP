@@ -1,5 +1,8 @@
 import { useCallback, useState } from "react";
 import {
+  CircleX,
+  Clock3,
+  ExternalLink,
   Eye,
   LayoutGrid,
   List,
@@ -8,10 +11,13 @@ import {
   Phone,
   Search,
   UserRound,
+  MoreHorizontal,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { crmApi } from "../api/crm.api";
+import { hasPermission, storedUser } from "@/features/auth/access";
+import { toast } from "sonner";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -37,20 +43,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 
 const stages = [
   "new",
   "contacted",
   "qualified",
   "appointment_requested",
+  "surgery_appointment",
   "converted",
+  "direct_surgery_converted",
 ];
 const fallbackLabels: Record<string, string> = {
-  new: "New",
-  contacted: "Contacted",
-  qualified: "Qualified",
-  appointment_requested: "Appointment",
-  converted: "Converted",
+  new: "Consulted",
+  contacted: "Follow-up",
+  qualified: "Ready",
+  appointment_requested: "OPD Appointment",
+  surgery_appointment: "Surgery Appointment",
+  converted: "OPD Converted",
+  direct_surgery_converted: "Direct Surgery Converted",
   lost: "Lost",
 };
 const statusStyles: Record<string, string> = {
@@ -63,6 +79,10 @@ const statusStyles: Record<string, string> = {
     "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300",
   converted:
     "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300",
+  direct_surgery_converted:
+    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300",
+  surgery_appointment:
+    "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-300",
   lost: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300",
 };
 const progressColors: Record<string, string> = {
@@ -71,6 +91,8 @@ const progressColors: Record<string, string> = {
   qualified: "#7c3aed",
   appointment_requested: "#d97706",
   converted: "#059669",
+  direct_surgery_converted: "#047857",
+  surgery_appointment: "#ea580c",
   lost: "#dc2626",
 };
 const StatusBadge = ({ status, label }: { status: string; label: string }) => (
@@ -92,12 +114,12 @@ function Progress({
   translate: (status: string) => string;
 }) {
   const current = stages.indexOf(status);
-  const progressColor = progressColors[status] ?? progressColors.new;
+  const progressColor = status === "lost" ? progressColors.lost : "#10b981";
   if (status === "lost")
     return <StatusBadge status="lost" label={translate("lost")} />;
   return (
     <div
-      className={`relative grid grid-cols-5 px-1 pb-1 pt-0.5 ${compact ? "min-w-[300px]" : "min-w-[460px]"}`}
+      className={`relative grid grid-cols-7 px-1 pb-1 pt-0.5 ${compact ? "min-w-[520px]" : "min-w-[650px]"}`}
     >
       <span className="absolute inset-x-[10%] top-[7px] h-0.5 bg-blue-100 dark:bg-blue-950" />
       {current > 0 && (
@@ -124,7 +146,7 @@ function Progress({
             }
           />
           <span
-            className={`mt-1.5 whitespace-nowrap leading-none ${compact ? "text-[7px]" : "text-[9px]"} ${index <= current ? "font-semibold" : "font-medium text-slate-400"}`}
+            className={`mt-1.5 max-w-20 text-center leading-[.9] ${compact ? "text-[7px]" : "text-[9px]"} ${index <= current ? "font-semibold" : "font-medium text-slate-400"}`}
             style={index <= current ? { color: progressColor } : undefined}
           >
             {translate(stage)}
@@ -136,10 +158,10 @@ function Progress({
 }
 export default function LeadProgressPage() {
   const { t } = useTranslation();
+  const canManage = hasPermission(storedUser(), "employees.manage");
   const statusLabel = (status: string) =>
-    t(`crm.values.${status}`, {
-      defaultValue: fallbackLabels[status] ?? status.replaceAll("_", " "),
-    });
+    fallbackLabels[status] ??
+    t(`crm.values.${status}`, { defaultValue: status.replaceAll("_", " ") });
   const [view, setView] = useState<"table" | "grid">("table");
   const [search, setSearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -176,6 +198,15 @@ export default function LeadProgressPage() {
         .length,
     ]),
   );
+  const markAsLost = async (id: string) => {
+    try {
+      await crmApi.leads.update(id, { status: "lost" });
+      await Promise.all([leads.refresh(), overview.refresh()]);
+      toast.success("Lead marked as lost.");
+    } catch (error) {
+      toast.error(t("crm.errors.markLost"));
+    }
+  };
   return (
     <div className="mx-auto max-w-[1500px] space-y-5">
       <header>
@@ -392,11 +423,37 @@ export default function LeadProgressPage() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Button asChild size="icon" variant="ghost">
-                      <Link to={`/crm/leads/${lead.id}`}>
-                        <Eye />
-                      </Link>
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          aria-label="Lead actions"
+                        >
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        {canManage && lead.status !== "lost" && (
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={() => void markAsLost(lead.id)}
+                          >
+                            <CircleX /> Mark as Lost
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem asChild>
+                          <Link to={`/crm/leads/${lead.id}#timeline`}>
+                            <Clock3 /> Timeline
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/crm/leads/${lead.id}`}>
+                            <ExternalLink /> Lead Details
+                          </Link>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
@@ -441,6 +498,7 @@ export default function LeadProgressPage() {
                 </div>
                 <Button asChild className="mt-5 w-full" variant="outline">
                   <Link to={`/crm/leads/${lead.id}`}>
+                    <Eye />
                     {t("crm.progress.view")}
                   </Link>
                 </Button>

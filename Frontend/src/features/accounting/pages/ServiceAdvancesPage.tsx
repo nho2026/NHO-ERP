@@ -159,8 +159,8 @@ export default function ServiceAdvancesPage() {
                       <DeleteConfirmationDialog
                         description={t("serviceAdvance.deleteConfirm")}
                         onConfirm={async () => {
-                            await billingApi.serviceAdvances.remove(row.id);
-                            await advances.refresh();
+                          await billingApi.serviceAdvances.remove(row.id);
+                          await advances.refresh();
                         }}
                       >
                         <Button

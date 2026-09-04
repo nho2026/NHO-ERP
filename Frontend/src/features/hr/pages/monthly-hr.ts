@@ -15,15 +15,40 @@ export const monthValue = (date = new Date()) =>
 export const inMonth = (value: unknown, month: string) =>
   typeof value === "string" && value.slice(0, 7) === month;
 
-export const lostMinutes = (record: HrRecord) => {
+export const lostMinutes = (record: HrRecord, permissions: HrRecord[] = []) => {
+  const date = String(record.attendanceDate).slice(0, 10);
+  const approved = permissions.filter(
+    (permission) =>
+      permission.employeeId === record.employeeId &&
+      permission.status === "approved" &&
+      String(permission.fromDate).slice(0, 10) <= date &&
+      String(permission.toDate).slice(0, 10) >= date,
+  );
+  if (approved.some((permission) => permission.permissionType === "full_day"))
+    return 0;
   if (record.status === "leave" || record.status === "holiday") return 0;
-  if (record.status === "absent") return TARGET_MINUTES;
-  if (record.source === "device")
-    return Math.min(
-      Number(record.expectedMinutes ?? TARGET_MINUTES),
-      Number(record.lateMinutes ?? 0) + Number(record.earlyLeaveMinutes ?? 0),
+  let lost =
+    record.status === "absent"
+      ? Number(record.expectedMinutes ?? TARGET_MINUTES)
+      : record.source === "device"
+        ? Math.min(
+            Number(record.expectedMinutes ?? TARGET_MINUTES),
+            Number(record.lateMinutes ?? 0) +
+              Number(record.earlyLeaveMinutes ?? 0),
+          )
+        : Math.max(
+            0,
+            Number(record.expectedMinutes ?? TARGET_MINUTES) -
+              Number(record.workedMinutes ?? 0),
+          );
+  const permitted = approved
+    .filter((permission) => permission.permissionType === "hours")
+    .reduce(
+      (sum, permission) => sum + Number(permission.permittedMinutes ?? 0),
+      0,
     );
-  return Math.max(0, TARGET_MINUTES - Number(record.workedMinutes ?? 0));
+  lost = Math.max(0, lost - permitted);
+  return lost;
 };
 
 export const scheduledMinutes = (employee: HrRecord) => {

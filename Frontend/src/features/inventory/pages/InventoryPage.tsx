@@ -1029,25 +1029,27 @@ function ProductGrid({
                   · {t("inventory.fields.discount")}
                 </div>
               )}
-              {canManage && <div className="flex justify-end border-t pt-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  title={t("inventory.edit")}
-                  onClick={() => onEdit(row)}
-                >
-                  <Pencil />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive"
-                  title={t("inventory.delete")}
-                  onClick={() => void onDelete(row)}
-                >
-                  <Trash2 />
-                </Button>
-              </div>}
+              {canManage && (
+                <div className="flex justify-end border-t pt-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title={t("inventory.edit")}
+                    onClick={() => onEdit(row)}
+                  >
+                    <Pencil />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive"
+                    title={t("inventory.delete")}
+                    onClick={() => void onDelete(row)}
+                  >
+                    <Trash2 />
+                  </Button>
+                </div>
+              )}
             </div>
           </article>
         );

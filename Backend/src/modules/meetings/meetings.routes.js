@@ -48,6 +48,32 @@ router.get("/", async (req, res, next) => {
   }
 });
 
+router.get("/history", async (req, res, next) => {
+  try {
+    const departmentId = await meetingDepartmentIdFor(req.user);
+    const privileged = req.permissionKeys.has("*");
+    if (!departmentId && !privileged)
+      return res.status(403).json({ message: "Your account has no department." });
+
+    const meetings = await prisma.meeting.findMany({
+      where: {
+        status: { not: "active" },
+        ...(privileged || !departmentId ? {} : { departmentId }),
+      },
+      include: {
+        department: { select: { id: true, name: true } },
+        creator: { select: { id: true, name: true } },
+        participants: { select: { userId: true, joinedAt: true, leftAt: true } },
+      },
+      orderBy: { endedAt: "desc" },
+      take: 50,
+    });
+    res.json(meetings);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post("/", requirePermission("meetings.create"), async (req, res, next) => {
   try {
     const input = z.object({

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
-import { Calculator, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { hrApi } from "../api/hr.api";
+import { attendancePermissionsApi, hrApi } from "../api/hr.api";
 import { attendanceApi } from "@/features/attendance/api/attendance.api";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { Card, CardContent } from "@/shared/components/ui/card";
@@ -25,8 +25,6 @@ import {
   monthValue,
   payrollAmounts,
   scheduledMinutes,
-  PENALTY_MULTIPLIER,
-  WORK_DAYS,
 } from "./monthly-hr";
 
 export default function PayrollPage() {
@@ -46,6 +44,17 @@ export default function PayrollPage() {
         month: Number(selectedMonth),
       });
     }, [month]),
+  );
+  const permissions = useApiResource(
+    useCallback(
+      () =>
+        attendancePermissionsApi.list({
+          from: `${month}-01`,
+          to: `${month}-31`,
+          status: "approved",
+        }),
+      [month],
+    ),
   );
   const people = useApiResource(useCallback(() => attendanceApi.people(), []));
   const events = useApiResource(
@@ -72,7 +81,7 @@ export default function PayrollPage() {
           (record) => record.employeeId === employee.id,
         );
         const minutesLost = records.reduce(
-          (sum, row) => sum + lostMinutes(row),
+          (sum, row) => sum + lostMinutes(row, permissions.data ?? []),
           0,
         );
         const employeeAdjustments = (adjustments.data ?? []).filter(
@@ -98,7 +107,14 @@ export default function PayrollPage() {
           ),
         };
       }),
-    [adjustments.data, employees.data, salaries.data, deviceRecords, month],
+    [
+      adjustments.data,
+      employees.data,
+      salaries.data,
+      deviceRecords,
+      month,
+      permissions.data,
+    ],
   );
   const money = (value: number, currency?: unknown) =>
     `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${String(currency ?? "")}`.trim();
@@ -129,27 +145,6 @@ export default function PayrollPage() {
           </Button>
         </div>
       </div>
-      <Card className="border-primary/20 bg-primary/5">
-        <CardContent className="flex gap-3 p-4">
-          <Calculator className="mt-0.5 size-5 text-primary" />
-          <div>
-            <p className="font-semibold">
-              {tx("formulaTitle", "Attendance deduction formula")}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {tx(
-                "formula",
-                "Salary − ((salary ÷ (26 days × employee scheduled hours)) × lost hours × 3)",
-              )}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {WORK_DAYS} {tx("days", "days")} ·{" "}
-              {tx("employeeSchedule", "employee schedule")} · ×
-              {PENALTY_MULTIPLIER} {tx("penalty", "penalty")}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
       {(employees.error ||
         salaries.error ||
         adjustments.error ||

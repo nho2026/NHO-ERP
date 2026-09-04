@@ -5,16 +5,37 @@ const select = {
   code: true,
   name: true,
   phone: true,
+  secondaryPhone: true,
   source: true,
   age: true,
+  dateOfBirth: true,
   gender: true,
+  maritalStatus: true,
+  preferredLanguage: true,
   address: true,
+  country: true,
+  city: true,
   email: true,
+  leadSourceChannel: true,
+  contactMethod: true,
+  patientType: true,
+  referralPersona: true,
+  referralName: true,
+  referralPhone: true,
+  referralAddress: true,
+  referralNote: true,
   interest: true,
+  competitorsNote: true,
   notes: true,
+  satisfactionScore: true,
+  knowledgeRating: true,
+  budgetRange: true,
+  decisionInfluencers: true,
+  painPoints: true,
   status: true,
   convertedPatient: true,
   statusHistory: { orderBy: { createdAt: "desc" } },
+  attachments: { orderBy: { createdAt: "desc" } },
   createdAt: true,
   updatedAt: true,
 };
@@ -56,6 +77,17 @@ export const leadModel = {
       return tx.crmLead.findUniqueOrThrow({ where: { id }, select });
     }),
   remove: (id) => prisma.crmLead.delete({ where: { id } }),
+  addAttachments: (leadId, attachments) =>
+    prisma.$transaction(async (tx) => {
+      await tx.crmLead.findUniqueOrThrow({ where: { id: leadId } });
+      await tx.crmLeadAttachment.createMany({
+        data: attachments.map((attachment) => ({ leadId, ...attachment })),
+      });
+      return tx.crmLead.findUniqueOrThrow({ where: { id: leadId }, select });
+    }),
+  findAttachment: (id) =>
+    prisma.crmLeadAttachment.findUniqueOrThrow({ where: { id } }),
+  removeAttachment: (id) => prisma.crmLeadAttachment.delete({ where: { id } }),
   convert: (lead, data) =>
     prisma.$transaction(async (tx) => {
       const parts = lead.name.trim().split(/\s+/);

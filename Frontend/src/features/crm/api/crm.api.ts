@@ -2,7 +2,12 @@ import { apiClient } from "@/shared/api/client";
 import type { Page } from "@/shared/api/pagination";
 export type CrmRecord = Record<string, unknown> & { id: string };
 export type CrmResource =
-  "leads" | "patients" | "surgeries" | "surgery-appointments" | "payments";
+  | "leads"
+  | "patients"
+  | "referrals"
+  | "surgeries"
+  | "surgery-appointments"
+  | "payments";
 export type CrmListFilters = Record<string, string | number | undefined>;
 export type DynamicFormField = {
   id: string;
@@ -30,14 +35,17 @@ const resource = (name: CrmResource) => ({
   get: (id: string) =>
     apiClient.get<CrmRecord>(`/crm/${name}/${id}`).then(({ data }) => data),
   create: (payload: Record<string, unknown>) =>
-    apiClient.post(`/crm/${name}`, payload),
+    apiClient.post<CrmRecord>(`/crm/${name}`, payload).then(({ data }) => data),
   update: (id: string, payload: Record<string, unknown>) =>
-    apiClient.patch(`/crm/${name}/${id}`, payload),
+    apiClient
+      .patch<CrmRecord>(`/crm/${name}/${id}`, payload)
+      .then(({ data }) => data),
   remove: (id: string) => apiClient.delete(`/crm/${name}/${id}`),
 });
 export const crmApi = {
   leads: resource("leads"),
   patients: resource("patients"),
+  referrals: resource("referrals"),
   surgeries: resource("surgeries"),
   "surgery-appointments": resource("surgery-appointments"),
   payments: resource("payments"),
@@ -45,6 +53,20 @@ export const crmApi = {
     apiClient
       .get<Record<string, CrmRecord[]>>("/crm/lookups")
       .then(({ data }) => data),
+};
+
+export const leadAttachmentApi = {
+  upload: (leadId: string, files: File[]) => {
+    const body = new FormData();
+    files.forEach((file) => body.append("files", file));
+    return apiClient
+      .post<CrmRecord>(`/crm/leads/${leadId}/attachments`, body, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then(({ data }) => data);
+  },
+  remove: (leadId: string, attachmentId: string) =>
+    apiClient.delete(`/crm/leads/${leadId}/attachments/${attachmentId}`),
 };
 
 export const crmFormsApi = {

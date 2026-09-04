@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import {
   CalendarDays,
   CalendarCheck,
@@ -82,10 +83,25 @@ const configs: Record<
     description:
       "Manage clinical departments, managers and assigned employees.",
     fields: [
-      { name: "code", label: "Code", required: true },
-      { name: "name", label: "Department name", required: true },
-      { name: "description", label: "Description" },
-      { name: "managerId", label: "Department manager", type: "employee" },
+      {
+        name: "code",
+        label: "Code",
+        required: true,
+      },
+      {
+        name: "name",
+        label: "Department name",
+        required: true,
+      },
+      {
+        name: "description",
+        label: "Description",
+      },
+      {
+        name: "managerId",
+        label: "Department manager",
+        type: "employee",
+      },
       {
         name: "status",
         label: "Status",
@@ -112,7 +128,11 @@ const configs: Record<
         type: "employee",
         required: true,
       },
-      { name: "departmentId", label: "Department", type: "department" },
+      {
+        name: "departmentId",
+        label: "Department",
+        type: "department",
+      },
       {
         name: "staffType",
         label: "Staff type",
@@ -126,9 +146,18 @@ const configs: Record<
           "other",
         ],
       },
-      { name: "specialization", label: "Specialization" },
-      { name: "licenseNumber", label: "License number" },
-      { name: "biography", label: "Biography" },
+      {
+        name: "specialization",
+        label: "Specialization",
+      },
+      {
+        name: "licenseNumber",
+        label: "License number",
+      },
+      {
+        name: "biography",
+        label: "Biography",
+      },
       {
         name: "publicBookingEnabled",
         label: "Public booking",
@@ -155,16 +184,34 @@ const configs: Record<
     title: "Appointments",
     description: "Manage website and internally created patient appointments.",
     fields: [
-      { name: "patientName", label: "Patient name", required: true },
-      { name: "patientPhone", label: "Patient phone", required: true },
-      { name: "patientEmail", label: "Patient email", type: "email" },
+      {
+        name: "patientName",
+        label: "Patient name",
+        required: true,
+      },
+      {
+        name: "patientPhone",
+        label: "Patient phone",
+        required: true,
+      },
+      {
+        name: "patientEmail",
+        label: "Patient email",
+        type: "email",
+      },
       {
         name: "departmentId",
         label: "Department",
         type: "department",
         required: true,
       },
-      { name: "doctorId", label: "Doctor", type: "doctor", required: true },
+
+      {
+        name: "doctorId",
+        label: "Doctor",
+        type: "doctor",
+        required: true,
+      },
       {
         name: "scheduledAt",
         label: "Appointment date & time",
@@ -177,8 +224,15 @@ const configs: Record<
         type: "number",
         required: true,
       },
-      { name: "reason", label: "Reason" },
-      { name: "notes", label: "Notes" },
+
+      {
+        name: "reason",
+        label: "Reason",
+      },
+      {
+        name: "notes",
+        label: "Notes",
+      },
       {
         name: "status",
         label: "Status",
@@ -201,6 +255,7 @@ const personName = (record: HealthcareRecord | undefined | null) =>
   record ? `${record.firstName ?? ""} ${record.lastName ?? ""}`.trim() : "—";
 const nested = (record: HealthcareRecord, key: string) =>
   record[key] as HealthcareRecord | undefined | null;
+
 function display(record: HealthcareRecord, key: string): string | number {
   if (key === "manager") return personName(nested(record, "manager"));
   if (key === "employee") return personName(nested(record, "employee"));
@@ -260,6 +315,7 @@ function AppointmentCalendar({
   onEdit: (appointment: HealthcareRecord) => void;
   onCreate: (day: Date) => void;
 }) {
+  const { t } = useTranslation();
   const [month, setMonth] = useState(startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = useState(new Date());
   const [statusFilter, setStatusFilter] = useState("all");
@@ -400,7 +456,9 @@ function AppointmentCalendar({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All doctors</SelectItem>
+                  <SelectItem value="all">
+                    {t("pageText.allDoctors")}
+                  </SelectItem>
                   {doctors.map(([id, name]) => (
                     <SelectItem key={id} value={id}>
                       {name}
@@ -413,7 +471,9 @@ function AppointmentCalendar({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="all">
+                    {t("pageText.allStatuses")}
+                  </SelectItem>
                   {[
                     "pending",
                     "confirmed",
@@ -539,7 +599,9 @@ function AppointmentCalendar({
               {selectedAppointments.length} scheduled
             </Badge>
           </div>
-          <p className="mt-4 text-xs text-blue-200">Daily agenda</p>
+          <p className="mt-4 text-xs text-blue-200">
+            {t("pageText.dailyAgenda")}
+          </p>
           <h3 className="mt-0.5 text-lg font-bold">
             {format(selectedDay, "EEEE, MMMM d")}
           </h3>
@@ -604,7 +666,9 @@ function AppointmentCalendar({
             ) : (
               <div className="rounded-xl border border-dashed p-8 text-center">
                 <CalendarDays className="mx-auto size-8 text-muted-foreground/50" />
-                <p className="mt-2 text-sm font-medium">No appointments</p>
+                <p className="mt-2 text-sm font-medium">
+                  {t("pageText.noAppointments")}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   This day is available.
                 </p>
@@ -650,8 +714,23 @@ export default function HealthcarePage({
     "calendar",
   );
   const [appointmentDraftAt, setAppointmentDraftAt] = useState("");
+  const [quickAppointment, setQuickAppointment] = useState<
+    Record<string, string>
+  >({});
+  const [searchParams, setSearchParams] = useSearchParams();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (resource !== "appointments" || !searchParams.get("patientName")) return;
+    setQuickAppointment({
+      patientName: searchParams.get("patientName") ?? "",
+      patientPhone: searchParams.get("patientPhone") ?? "",
+      patientEmail: searchParams.get("patientEmail") ?? "",
+      reason: searchParams.get("reason") ?? "",
+    });
+    setEditing(null);
+    setSearchParams({}, { replace: true });
+  }, [resource, searchParams, setSearchParams]);
   const rows = useMemo(
     () =>
       (data.data ?? []).filter((row) =>
@@ -702,6 +781,7 @@ export default function HealthcarePage({
       if (editing) await healthcareApi[resource].update(editing.id, payload);
       else await healthcareApi[resource].create(payload);
       setEditing(undefined);
+      setQuickAppointment({});
       await Promise.all([
         data.refresh(),
         departments.refresh(),
@@ -861,7 +941,10 @@ export default function HealthcarePage({
       <Dialog
         open={editing !== undefined}
         onOpenChange={(open) => {
-          if (!open && !busy) setEditing(undefined);
+          if (!open && !busy) {
+            setEditing(undefined);
+            setQuickAppointment({});
+          }
         }}
       >
         <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -882,7 +965,7 @@ export default function HealthcarePage({
                   ? new Date(String(initial)).toISOString().slice(0, 16)
                   : field.name === "scheduledAt" && appointmentDraftAt
                     ? appointmentDraftAt
-                    : String(initial ?? "");
+                    : String(initial ?? quickAppointment[field.name] ?? "");
               return (
                 <label
                   key={`${editing?.id ?? appointmentDraftAt ?? "new"}-${field.name}`}

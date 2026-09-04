@@ -325,7 +325,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               {(i === 3 && employees.isLoading) ||
-                (i === 4 && salaries.isLoading) ? (
+              (i === 4 && salaries.isLoading) ? (
                 <Skeleton className="h-8 w-20" />
               ) : (
                 <strong className="text-2xl">{value}</strong>
@@ -482,14 +482,19 @@ export default function DashboardPage() {
                 </strong>
                 <span className="mb-1 flex items-center gap-1 text-xs text-amber-200">
                   <Star className="size-4 fill-current" />
-                  {t("feedback.reviewCount", { count: feedback.data?.count ?? 0 })}
+                  {t("feedback.reviewCount", {
+                    count: feedback.data?.count ?? 0,
+                  })}
                 </span>
-                <span className="hidden">
-                  ↑ 3.2% this month
-                </span>
+                <span className="hidden">↑ 3.2% this month</span>
               </div>
               <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/20">
-                <div className="h-full rounded-full bg-white" style={{ width: `${((feedback.data?.average ?? 0) / 5) * 100}%` }} />
+                <div
+                  className="h-full rounded-full bg-white"
+                  style={{
+                    width: `${((feedback.data?.average ?? 0) / 5) * 100}%`,
+                  }}
+                />
               </div>
             </div>
           </CardContent>

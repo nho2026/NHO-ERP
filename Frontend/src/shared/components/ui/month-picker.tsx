@@ -88,7 +88,9 @@ export function MonthPicker({
           >
             <ChevronLeft className="size-4 rtl:rotate-180" />
           </Button>
-          <span className="text-sm font-semibold tabular-nums">{visibleYear}</span>
+          <span className="text-sm font-semibold tabular-nums">
+            {visibleYear}
+          </span>
           <Button
             type="button"
             variant="outline"
@@ -102,7 +104,8 @@ export function MonthPicker({
         </div>
         <div className="grid grid-cols-3 gap-1" role="grid" aria-label={label}>
           {months.map((name, month) => {
-            const active = selected.year === visibleYear && selected.month === month;
+            const active =
+              selected.year === visibleYear && selected.month === month;
             return (
               <Button
                 key={month}
