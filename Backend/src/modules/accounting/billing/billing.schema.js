@@ -19,7 +19,7 @@ export const invoiceSchema = z.object({
   customerId: z.string(),
   issueDate: z.coerce.date(),
   dueDate: z.coerce.date().nullable().optional(),
-  currency: z.string().trim().length(3).default("IQD"),
+  currency: z.string().trim().length(3).optional(),
   discountAmount: z.coerce.number().min(0).default(0),
   status: z.enum(["draft", "sent", "cancelled"]).default("draft"),
   notes: z.string().trim().nullable().optional(),

@@ -1,3 +1,7 @@
+import {
+  settingsSnapshot,
+  formatSystemDate,
+} from "@/features/settings/settings";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Printer, Trash2 } from "lucide-react";
@@ -188,9 +192,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                   <TableRow key={x.id}>
                     <TableCell>{x.invoiceNumber}</TableCell>
                     <TableCell>{x.customer.name}</TableCell>
-                    <TableCell>
-                      {new Intl.DateTimeFormat().format(new Date(x.issueDate))}
-                    </TableCell>
+                    <TableCell>{formatSystemDate(x.issueDate)}</TableCell>
                     <TableCell>
                       {amount(x.totalAmount)} {x.currency}
                     </TableCell>
@@ -248,9 +250,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                     </TableCell>
                     <TableCell>{t(`billing.methods.${x.method}`)}</TableCell>
                     <TableCell>{x.reference || "—"}</TableCell>
-                    <TableCell>
-                      {new Intl.DateTimeFormat().format(new Date(x.paidAt))}
-                    </TableCell>
+                    <TableCell>{formatSystemDate(x.paidAt)}</TableCell>
                   </TableRow>
                 ))}
             </TableBody>
@@ -302,7 +302,11 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                   </Select>
                   <FormDatePicker name="issueDate" required />
                   <FormDatePicker name="dueDate" />
-                  <Input name="currency" defaultValue="IQD" required />
+                  <Input
+                    name="currency"
+                    defaultValue={settingsSnapshot()?.finance.currency ?? "IQD"}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   {items.map((item, i) => (
@@ -418,18 +422,29 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                   placeholder={t("billing.amount")}
                   required
                 />
-                <Select name="method" defaultValue="cash">
+                <Select
+                  name="method"
+                  defaultValue={
+                    settingsSnapshot()?.finance.paymentMethods[0] ?? "cash"
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {["cash", "card", "bank_transfer", "cheque", "other"].map(
-                      (x) => (
-                        <SelectItem key={x} value={x}>
-                          {t(`billing.methods.${x}`)}
-                        </SelectItem>
-                      ),
-                    )}
+                    {(
+                      settingsSnapshot()?.finance.paymentMethods ?? [
+                        "cash",
+                        "card",
+                        "bank_transfer",
+                        "cheque",
+                        "other",
+                      ]
+                    ).map((x) => (
+                      <SelectItem key={x} value={x}>
+                        {t(`billing.methods.${x}`)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Input name="reference" placeholder={t("billing.reference")} />
@@ -459,13 +474,13 @@ export default function BillingPage({ resource }: { resource: Resource }) {
             </div>
             <div className="text-end">
               <strong className="text-xl font-extrabold text-[#07599a]">
+                {settingsSnapshot()?.organization.name}
+                <br />
                 {printInvoice.invoiceNumber}
               </strong>
               <p>
                 {t("billing.issueDate")}:{" "}
-                {new Intl.DateTimeFormat().format(
-                  new Date(printInvoice.issueDate),
-                )}
+                {formatSystemDate(printInvoice.issueDate)}
               </p>
               {printInvoice.dueDate && (
                 <p>

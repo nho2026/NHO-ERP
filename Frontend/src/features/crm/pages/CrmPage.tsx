@@ -1,3 +1,4 @@
+import { useSettings } from "@/features/settings/settings";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
@@ -552,7 +553,8 @@ const patientAge = (dateOfBirth: unknown) => {
 export default function CrmPage({ resource }: { resource: CrmResource }) {
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
-  const config = configs[resource],
+  const systemSettings = useSettings();
+  const config = {...configs[resource], fields: configs[resource].fields.map(field => field.name === "operatingRoom" ? {...field,type:"select" as const,options:systemSettings?.healthcare.operatingRooms ?? []} : field)},
     user = storedUser(),
     canManage = hasPermission(user, "employees.manage");
   const [page, setPage] = useState(1);

@@ -1,3 +1,4 @@
+import SettingsPage from "@/features/settings/SettingsPage";
 import { Navigate, Route, Routes } from "react-router-dom";
 import DashboardLayout from "@/app/layouts/DashboardLayout";
 import LoginPage from "@/features/auth/pages/LoginPage";
@@ -152,6 +153,10 @@ export default function App() {
               "healthcare.departments.view",
               <HealthcarePage resource="departments" />,
             )}
+          />
+          <Route
+            path="/settings"
+            element={<SettingsPage />}
           />
           <Route
             path="/health-staff"

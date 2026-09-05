@@ -1,3 +1,4 @@
+import { getSettings } from "../settings/settings.service.js";
 import { createPinLookup, signToken } from "../../shared/security/token.js";
 import { verifySecret } from "../../shared/security/password.js";
 import { authModel } from "./auth.model.js";
@@ -26,9 +27,12 @@ export const authService = {
     if (user.status !== "active")
       throw httpError("This account is inactive.", 403);
     const remember = input.method === "credentials" && input.remember;
+    const security = await getSettings("security");
+    const maxAge = (remember ? security.rememberDays * 86400 : security.sessionHours * 3600) * 1000;
     return {
+      maxAge,
       user: presentUser(user),
-      token: signToken(user.id, remember),
+      token: signToken(user.id, remember, maxAge / 1000),
       remember,
     };
   },

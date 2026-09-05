@@ -1,3 +1,4 @@
+import { DeleteConfirmationDialog } from "@/features/attendance/components/DeleteConfirmationDialog";
 import { useCallback, useMemo, useState } from "react";
 import {
   CalendarDays,
@@ -70,9 +71,17 @@ export default function HrAttendancePage() {
   const { t, i18n } = useTranslation();
   const tx = (key: string, fallback: string) =>
     t(`hrMonthly.${key}`, { defaultValue: fallback });
+  const canDeletePermission = storedUser()?.roles?.some(
+    (role) => role.name === "Super Administrator",
+  );
+  const [deletingPermission, setDeletingPermission] = useState<HrRecord | null>(
+    null,
+  );
   const canManage = hasPermission(storedUser(), "employees.manage");
   const [month, setMonth] = useState(monthValue());
   const [search, setSearch] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [attendanceFilter, setAttendanceFilter] = useState("all");
   const [directoryView, setDirectoryView] = useState<"grid" | "table">("grid");
   const [selected, setSelected] = useState<HrRecord>();
   const [permissionOpen, setPermissionOpen] = useState(false);
@@ -107,13 +116,45 @@ export default function HrAttendancePage() {
       ),
     [events.data, people.data, employees.data, month],
   );
-  const visible = (employees.data ?? []).filter(
-    (employee) =>
-      employeeLabel(employee).toLowerCase().includes(search.toLowerCase()) ||
+  const departmentOptions = Array.from(
+    new Map(
+      (employees.data ?? []).flatMap((employee) => {
+        const department = employee.department as {
+          id: string;
+          name: string;
+        } | null;
+        return department ? [[department.id, department.name] as const] : [];
+      }),
+    ).entries(),
+  ).sort((a, b) => a[1].localeCompare(b[1], i18n.resolvedLanguage));
+  const visible = (employees.data ?? []).filter((employee) => {
+    const matchesSearch =
+      employeeLabel(employee)
+        .toLowerCase()
+        .includes(search.trim().toLowerCase()) ||
       String(employee.employeeCode)
         .toLowerCase()
-        .includes(search.toLowerCase()),
-  );
+        .includes(search.trim().toLowerCase());
+    const department = employee.department as { id: string } | null;
+    const departmentId = employee.departmentId ?? department?.id;
+    if (
+      !matchesSearch ||
+      (departmentFilter === "none"
+        ? Boolean(departmentId)
+        : departmentFilter !== "all" && departmentId !== departmentFilter)
+    )
+      return false;
+    const records = monthRecords.filter(
+      (record) => record.employeeId === employee.id,
+    );
+    if (attendanceFilter === "recorded") return records.length > 0;
+    if (attendanceFilter === "noRecords") return records.length === 0;
+    if (attendanceFilter === "late")
+      return records.some((record) => Number(record.lateMinutes ?? 0) > 0);
+    if (attendanceFilter === "missingCheckout")
+      return records.some((record) => record.checkIn && !record.checkOut);
+    return true;
+  });
   const recordsFor = (id: string) =>
     monthRecords.filter((x) => x.employeeId === id);
   const [year, monthNumber] = month.split("-").map(Number);
@@ -149,8 +190,8 @@ export default function HrAttendancePage() {
       await attendancePermissionsApi.create({
         employeeId: selected.id,
         permissionType,
-        fromDate: String(form.get("fromDate")),
-        toDate: String(form.get("toDate")),
+        fromDate: String(form.get("date")),
+        toDate: String(form.get("date")),
         permittedMinutes:
           permissionType === "hours"
             ? Number(form.get("hours") ?? 0) * 60
@@ -245,6 +286,88 @@ export default function HrAttendancePage() {
           </div>
         </div>
       </section>
+      <Card>
+        <CardContent className="flex flex-wrap items-end gap-4 p-4">
+          <div className="min-w-48 flex-1 space-y-2">
+            <Label htmlFor="attendance-department-filter">
+              {tx("filterDepartment", "Department")}
+            </Label>
+            <Select
+              value={departmentFilter}
+              onValueChange={setDepartmentFilter}
+              dir={i18n.dir()}
+            >
+              <SelectTrigger
+                id="attendance-department-filter"
+                className="w-full"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {tx("allDepartments", "All departments")}
+                </SelectItem>
+                <SelectItem value="none">
+                  {tx("noDepartment", "No department")}
+                </SelectItem>
+                {departmentOptions.map(([id, name]) => (
+                  <SelectItem key={id} value={id}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="min-w-56 flex-1 space-y-2">
+            <Label htmlFor="attendance-status-filter">
+              {tx("monthlyAttendanceFilter", "Attendance in selected month")}
+            </Label>
+            <Select
+              value={attendanceFilter}
+              onValueChange={setAttendanceFilter}
+              dir={i18n.dir()}
+            >
+              <SelectTrigger id="attendance-status-filter" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries({
+                  all: "All employees",
+                  recorded: "Has attendance records",
+                  noRecords: "No attendance records",
+                  late: "Late arrival",
+                  missingCheckout: "Missing check-out",
+                }).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {tx(`attendanceFilter_${value}`, label)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSearch("");
+              setDepartmentFilter("all");
+              setAttendanceFilter("all");
+            }}
+            disabled={
+              !search &&
+              departmentFilter === "all" &&
+              attendanceFilter === "all"
+            }
+          >
+            {tx("clearFilters", "Clear filters")}
+          </Button>
+          <p className="text-sm text-muted-foreground" role="status">
+            {t("hrMonthly.filteredEmployees", {
+              count: visible.length,
+              total: employees.data?.length ?? 0,
+            })}
+          </p>
+        </CardContent>
+      </Card>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-bold">
@@ -526,17 +649,15 @@ export default function HrAttendancePage() {
                             " ",
                           ),
                         )}
-                        : {String(permission.fromDate).slice(0, 10)} —{" "}
-                        {String(permission.toDate).slice(0, 10)}
-                        {canManage && (
+                        : {String(permission.fromDate).slice(0, 10)}
+                        {String(permission.fromDate).slice(0, 10) !==
+                          String(permission.toDate).slice(0, 10) &&
+                          ` — ${String(permission.toDate).slice(0, 10)}`}
+                        {canDeletePermission && (
                           <button
                             type="button"
-                            onClick={async () => {
-                              await attendancePermissionsApi.remove(
-                                permission.id,
-                              );
-                              await permissions.refresh();
-                            }}
+                            aria-label={t("common.delete")}
+                            onClick={() => setDeletingPermission(permission)}
                           >
                             <Trash2 className="size-3.5 text-destructive" />
                           </button>
@@ -647,6 +768,28 @@ export default function HrAttendancePage() {
           </div>
         </DialogContent>
       </Dialog>
+      <DeleteConfirmationDialog
+        alwaysRequirePassword
+        key={deletingPermission?.id ?? "no-permission"}
+        open={!!deletingPermission}
+        title={t("common.deletePermanently")}
+        description={
+          deletingPermission
+            ? `${tx(String(deletingPermission.permissionType), String(deletingPermission.permissionType))}: ${String(deletingPermission.fromDate).slice(0, 10)} — ${String(deletingPermission.toDate).slice(0, 10)}`
+            : ""
+        }
+        onOpenChange={(open) => {
+          if (!open) setDeletingPermission(null);
+        }}
+        onConfirm={async (password) => {
+          if (!deletingPermission) return;
+          await attendancePermissionsApi.remove(
+            deletingPermission.id,
+            password,
+          );
+          await permissions.refresh();
+        }}
+      />
       <Dialog open={permissionOpen} onOpenChange={setPermissionOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -669,16 +812,10 @@ export default function HrAttendancePage() {
                 </SelectContent>
               </Select>
             </Label>
-            <div className="grid grid-cols-2 gap-3">
-              <Label className="grid gap-2">
-                {tx("fromDate", "From date")}
-                <FormDatePicker name="fromDate" required />
-              </Label>
-              <Label className="grid gap-2">
-                {tx("toDate", "To date")}
-                <FormDatePicker name="toDate" required />
-              </Label>
-            </div>
+            <Label className="grid gap-2">
+              {tx("date", "Date")}
+              <FormDatePicker name="date" required />
+            </Label>
             {permissionType === "hours" && (
               <Label className="grid gap-2">
                 {tx("permittedHours", "Permitted hours per day")}

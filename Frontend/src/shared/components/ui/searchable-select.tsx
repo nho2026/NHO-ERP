@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,8 +17,8 @@ export function SearchableSelect({
   name,
   options,
   defaultValue = "",
-  placeholder = "Select an option",
-  searchPlaceholder = "Search…",
+  placeholder,
+  searchPlaceholder,
   required,
 }: {
   name: string;
@@ -27,6 +28,7 @@ export function SearchableSelect({
   searchPlaceholder?: string;
   required?: boolean;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(defaultValue);
   const [search, setSearch] = useState("");
@@ -61,7 +63,7 @@ export function SearchableSelect({
             <span
               className={cn("truncate", !selected && "text-muted-foreground")}
             >
-              {selected?.label ?? placeholder}
+              {selected?.label ?? placeholder ?? t("common.selectOption")}
             </span>
             <ChevronsUpDown className="opacity-50" />
           </Button>
@@ -76,7 +78,7 @@ export function SearchableSelect({
               autoFocus
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder={searchPlaceholder}
+              placeholder={searchPlaceholder ?? t("common.searchOptions")}
               className="border-0 ps-9 shadow-none focus-visible:ring-0"
             />
           </div>
@@ -104,7 +106,7 @@ export function SearchableSelect({
                 ))
               ) : (
                 <p className="p-6 text-center text-sm text-muted-foreground">
-                  No patients found.
+                  {t("common.noOptionsFound")}
                 </p>
               )}
             </div>

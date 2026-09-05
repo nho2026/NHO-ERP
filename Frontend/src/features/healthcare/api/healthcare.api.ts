@@ -12,6 +12,7 @@ const resource = (path: string) => ({
 });
 
 export const healthcareApi = {
+  specializations: resource("/healthcare/specializations"),
   departments: resource("/healthcare/departments"),
   staff: resource("/healthcare/staff"),
   appointments: resource("/crm/appointments"),

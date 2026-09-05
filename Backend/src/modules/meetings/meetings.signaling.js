@@ -1,12 +1,21 @@
+import { getSettings } from "../settings/settings.service.js";
 import { Server } from "socket.io";
 import { prisma } from "../../shared/database/client.js";
 import { verifyToken } from "../../shared/security/token.js";
 import { meetingDepartmentIdFor } from "./meeting-department.js";
 
 const cookieValue = (header = "", name) =>
-  header.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${name}=`))?.slice(name.length + 1);
+  header
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
 
-export function attachMeetingSignaling(httpServer, allowedOrigins, production = false) {
+export function attachMeetingSignaling(
+  httpServer,
+  allowedOrigins,
+  production = false,
+) {
   const io = new Server(httpServer, {
     cors: {
       origin(origin, callback) {
@@ -21,18 +30,28 @@ export function attachMeetingSignaling(httpServer, allowedOrigins, production = 
 
   io.use(async (socket, next) => {
     try {
-      const token = cookieValue(socket.handshake.headers.cookie, "access_token") || socket.handshake.auth?.token;
+      const token =
+        cookieValue(socket.handshake.headers.cookie, "access_token") ||
+        socket.handshake.auth?.token;
       const payload = verifyToken(token);
       const user = await prisma.user.findUnique({
         where: { id: payload.sub },
         include: {
           employee: { select: { departmentId: true } },
-          roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
+          roles: {
+            include: {
+              role: {
+                include: { permissions: { include: { permission: true } } },
+              },
+            },
+          },
         },
       });
       if (!user || user.status !== "active") throw new Error("Unauthorized");
       socket.data.user = user;
-      socket.data.isSuperAdmin = user.roles.some(({ role }) => role.name === "Super Administrator");
+      socket.data.isSuperAdmin = user.roles.some(
+        ({ role }) => role.name === "Super Administrator",
+      );
       next();
     } catch {
       next(new Error("Authentication required"));
@@ -49,21 +68,46 @@ export function attachMeetingSignaling(httpServer, allowedOrigins, production = 
             creator: { select: { id: true, name: true } },
           },
         });
-        if (!meeting || meeting.status !== "active") throw new Error("Meeting is unavailable.");
+        if (!meeting || meeting.status !== "active")
+          throw new Error("Meeting is unavailable.");
         const departmentId = await meetingDepartmentIdFor(socket.data.user);
         if (!socket.data.isSuperAdmin && meeting.departmentId !== departmentId)
           throw new Error("This meeting belongs to another department.");
+        if (socket.data.roomCode) throw new Error("Already joined a meeting.");
+        const policy = await getSettings("meetings");
         const peers = [...(io.sockets.adapter.rooms.get(roomCode) ?? [])]
           .map((id) => io.sockets.sockets.get(id))
           .filter(Boolean)
           .map((peer) => ({ id: peer.id, name: peer.data.user.name }));
+        if (peers.length >= policy.participantLimit)
+          throw new Error("This meeting has reached its participant limit.");
         socket.join(roomCode);
         socket.data.roomCode = roomCode;
-        socket.data.attendanceId = (await prisma.meetingParticipant.create({
-          data: { meetingId: meeting.id, userId: socket.data.user.id },
-        })).id;
-        socket.to(roomCode).emit("meeting:peer-joined", { id: socket.id, name: socket.data.user.name });
-        callback({ ok: true, meeting: { id: meeting.id, title: meeting.title, roomCode: meeting.roomCode, status: meeting.status, createdAt: meeting.createdAt, department: meeting.department, creator: meeting.creator }, peers, self: { id: socket.id, name: socket.data.user.name } });
+        socket.data.attendanceId = (
+          await prisma.meetingParticipant.create({
+            data: { meetingId: meeting.id, userId: socket.data.user.id },
+          })
+        ).id;
+        socket
+          .to(roomCode)
+          .emit("meeting:peer-joined", {
+            id: socket.id,
+            name: socket.data.user.name,
+          });
+        callback({
+          ok: true,
+          meeting: {
+            id: meeting.id,
+            title: meeting.title,
+            roomCode: meeting.roomCode,
+            status: meeting.status,
+            createdAt: meeting.createdAt,
+            department: meeting.department,
+            creator: meeting.creator,
+          },
+          peers,
+          self: { id: socket.id, name: socket.data.user.name },
+        });
       } catch (error) {
         callback({ ok: false, message: error.message });
       }
@@ -73,16 +117,26 @@ export function attachMeetingSignaling(httpServer, allowedOrigins, production = 
       socket.on(event, ({ target, payload }) => {
         const targetSocket = io.sockets.sockets.get(target);
         if (targetSocket && targetSocket.data.roomCode === socket.data.roomCode)
-          targetSocket.emit(event, { from: socket.id, name: socket.data.user.name, payload });
+          targetSocket.emit(event, {
+            from: socket.id,
+            name: socket.data.user.name,
+            payload,
+          });
       });
     }
 
     socket.on("meeting:chat", ({ text } = {}, callback = () => {}) => {
       const roomCode = socket.data.roomCode;
       const cleanText = typeof text === "string" ? text.trim() : "";
-      if (!roomCode) return callback({ ok: false, message: "Join a meeting before sending messages." });
-      if (!cleanText) return callback({ ok: false, message: "Message cannot be empty." });
-      if (cleanText.length > 2000) return callback({ ok: false, message: "Message is too long." });
+      if (!roomCode)
+        return callback({
+          ok: false,
+          message: "Join a meeting before sending messages.",
+        });
+      if (!cleanText)
+        return callback({ ok: false, message: "Message cannot be empty." });
+      if (cleanText.length > 2000)
+        return callback({ ok: false, message: "Message is too long." });
 
       const item = {
         id: crypto.randomUUID(),
@@ -104,11 +158,18 @@ export function attachMeetingSignaling(httpServer, allowedOrigins, production = 
 
     socket.on("meeting:end", async ({ roomCode }, callback = () => {}) => {
       try {
-        const meeting = await prisma.meeting.findUnique({ where: { roomCode } });
+        const meeting = await prisma.meeting.findUnique({
+          where: { roomCode },
+        });
         if (!meeting || meeting.status !== "active")
           throw new Error("Meeting is already closed.");
-        if (!socket.data.isSuperAdmin && meeting.creatorId !== socket.data.user.id)
-          throw new Error("Only the meeting creator or Super Administrator can close it.");
+        if (
+          !socket.data.isSuperAdmin &&
+          meeting.creatorId !== socket.data.user.id
+        )
+          throw new Error(
+            "Only the meeting creator or Super Administrator can close it.",
+          );
         const endedAt = new Date();
         await prisma.$transaction([
           prisma.meeting.update({
@@ -130,9 +191,16 @@ export function attachMeetingSignaling(httpServer, allowedOrigins, production = 
 
     socket.on("disconnect", async () => {
       if (socket.data.roomCode)
-        socket.to(socket.data.roomCode).emit("meeting:peer-left", { id: socket.id });
+        socket
+          .to(socket.data.roomCode)
+          .emit("meeting:peer-left", { id: socket.id });
       if (socket.data.attendanceId)
-        await prisma.meetingParticipant.update({ where: { id: socket.data.attendanceId }, data: { leftAt: new Date() } }).catch(() => {});
+        await prisma.meetingParticipant
+          .update({
+            where: { id: socket.data.attendanceId },
+            data: { leftAt: new Date() },
+          })
+          .catch(() => {});
     });
   });
   return io;

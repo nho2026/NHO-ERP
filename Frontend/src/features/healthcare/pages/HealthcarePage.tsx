@@ -1,6 +1,8 @@
+import { settingsSnapshot } from "@/features/settings/settings";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import {
   CalendarDays,
   CalendarCheck,
@@ -24,6 +26,7 @@ import {
   isSameDay,
   isSameMonth,
   startOfMonth,
+  startOfDay,
   startOfWeek,
   subMonths,
 } from "date-fns";
@@ -78,6 +81,12 @@ const configs: Record<
     columns: [string, string][];
   }
 > = {
+  specializations: {
+    title: "Doctor specializations",
+    description: "Manage the specializations available when editing doctors.",
+    fields: [{ name: "name", label: "Name", required: true }],
+    columns: [["name", "Name"]],
+  },
   departments: {
     title: "Departments",
     description:
@@ -149,6 +158,7 @@ const configs: Record<
       {
         name: "specialization",
         label: "Specialization",
+        type: "specialization",
       },
       {
         name: "licenseNumber",
@@ -533,7 +543,7 @@ function AppointmentCalendar({
                     onClick={() => {
                       setSelectedDay(day);
                       if (!isSameMonth(day, month)) setMonth(startOfMonth(day));
-                      onCreate(day);
+                      if (day >= startOfDay(new Date())) onCreate(day);
                     }}
                     className={`group/day relative min-h-28 border-b border-e p-2.5 text-start transition-all duration-200 hover:z-10 hover:bg-primary/[0.04] hover:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_25%,transparent)] ${!isSameMonth(day, month) ? "bg-muted/25 text-muted-foreground/35" : day.getDay() === 0 || day.getDay() === 6 ? "bg-muted/[0.12]" : "bg-card"} ${selected ? "z-10 bg-primary/[0.06] shadow-[inset_0_0_0_2px_var(--primary)]" : ""}`}
                   >
@@ -705,6 +715,9 @@ export default function HealthcarePage({
   const departments = useApiResource(
     useCallback(() => healthcareApi.departments.list(), []),
   );
+  const specializations = useApiResource(
+    useCallback(() => healthcareApi.specializations.list(), []),
+  );
   const staff = useApiResource(
     useCallback(() => healthcareApi.staff.list(), []),
   );
@@ -739,7 +752,9 @@ export default function HealthcarePage({
     [data.data, search],
   );
   const options = (field: Field) =>
-    field.type === "employee"
+    field.type === "specialization"
+      ? (specializations.data ?? []).map((item) => [String(item.name), String(item.name)])
+      : field.type === "employee"
       ? employees.data?.map((employee) => [
           employee.id,
           `${employee.employeeCode} — ${employee.firstName} ${employee.lastName}`,
@@ -786,6 +801,7 @@ export default function HealthcarePage({
         data.refresh(),
         departments.refresh(),
         staff.refresh(),
+        specializations.refresh(),
         employees.refresh(),
       ]);
     } catch (cause) {
@@ -799,7 +815,7 @@ export default function HealthcarePage({
       <div>
         <h1 className="text-2xl font-bold">{tr(config.title)}</h1>
         <p className="text-sm text-muted-foreground">
-          {t(`healthcareAdmin.descriptions.${resource}`)}
+          {t(`healthcareAdmin.descriptions.${resource}`, { defaultValue: config.description })}
         </p>
       </div>
       <Card>
@@ -917,7 +933,7 @@ export default function HealthcarePage({
                                 await healthcareApi[resource].remove(row.id);
                                 await data.refresh();
                               } catch (cause) {
-                                setError(apiErrorMessage(cause));
+                                toast.error(apiErrorMessage(cause));
                               }
                             }}
                           >
@@ -965,7 +981,7 @@ export default function HealthcarePage({
                   ? new Date(String(initial)).toISOString().slice(0, 16)
                   : field.name === "scheduledAt" && appointmentDraftAt
                     ? appointmentDraftAt
-                    : String(initial ?? quickAppointment[field.name] ?? "");
+                    : String(initial ?? quickAppointment[field.name] ?? (field.name === "durationMinutes" ? settingsSnapshot()?.healthcare.appointmentMinutes ?? 30 : ""));
               return (
                 <label
                   key={`${editing?.id ?? appointmentDraftAt ?? "new"}-${field.name}`}
@@ -1004,6 +1020,12 @@ export default function HealthcarePage({
                       name={field.name}
                       initialValue={initialValue}
                       includeTime={field.type === "datetime-local"}
+                      minDate={
+                        resource === "appointments" &&
+                        field.name === "scheduledAt"
+                          ? startOfDay(new Date())
+                          : undefined
+                      }
                       required={field.required}
                     />
                   ) : (

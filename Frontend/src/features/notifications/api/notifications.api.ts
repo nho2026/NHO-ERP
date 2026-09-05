@@ -1,8 +1,13 @@
 import { apiClient } from "@/shared/api/client";
 
 export type NotificationItem = {
+  title?: string;
+  body?: string;
+  route?: string;
   id: string;
   type:
+    | "appointment_reminder"
+    | "meeting_reminder"
     | "task_assigned"
     | "task_status_updated"
     | "task_review_requested"

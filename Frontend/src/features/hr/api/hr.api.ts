@@ -23,6 +23,10 @@ export const hrApi = {
   advances: resource("/advances/salary"),
 };
 
-export const attendancePermissionsApi = resource(
-  "/employees/records/attendance-permissions",
-);
+export const attendancePermissionsApi = {
+  ...resource("/employees/records/attendance-permissions"),
+  remove: (id: string, password: string) =>
+    apiClient.delete(`/employees/records/attendance-permissions/${id}`, {
+      data: { password },
+    }),
+};

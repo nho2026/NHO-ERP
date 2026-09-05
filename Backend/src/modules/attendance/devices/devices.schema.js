@@ -4,7 +4,7 @@ export const deviceSchema = z.object({
   ipAddress: z.string().min(3),
   port: z.coerce.number().int().min(1).max(65535).default(80),
   username: z.string().min(1),
-  password: z.string().min(1),
+  password: z.string().optional(),
   workingDaysPerMonth: z.coerce.number().int().min(1).max(31).default(22),
   checkInTime: z
     .string()
@@ -16,5 +16,5 @@ export const deviceSchema = z.object({
     .default("17:00"),
 });
 export const adminPasswordSchema = z.object({
-  password: z.string().min(1, "Super Administrator password is required."),
+  password: z.string().optional(),
 });

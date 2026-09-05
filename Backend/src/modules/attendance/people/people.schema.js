@@ -22,4 +22,4 @@ export const credentialSchema = z.object({
     .regex(/^\d{4,8}$/)
     .optional(),
 });
-export const deletePersonSchema = z.object({ password: z.string().min(1) });
+export const deletePersonSchema = z.object({ password: z.string().optional() });

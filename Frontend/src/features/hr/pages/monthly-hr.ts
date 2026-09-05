@@ -1,3 +1,4 @@
+import { settingsSnapshot } from "@/features/settings/settings";
 import type { HrRecord } from "../api/hr.api";
 import type {
   AttendanceEvent,
@@ -17,6 +18,8 @@ export const inMonth = (value: unknown, month: string) =>
 
 export const lostMinutes = (record: HrRecord, permissions: HrRecord[] = []) => {
   const date = String(record.attendanceDate).slice(0, 10);
+  const day = new Date(`${date}T12:00:00`).getDay();
+  if (settingsSnapshot()?.hr.weekends.includes(day)) return 0;
   const approved = permissions.filter(
     (permission) =>
       permission.employeeId === record.employeeId &&
@@ -190,7 +193,7 @@ export const deviceAttendanceRecords = (
     const lateMinutes = checkIn
       ? Math.max(
           0,
-          Math.round((new Date(checkIn).getTime() - expectedCheckIn) / 60000),
+          Math.round((new Date(checkIn).getTime() - expectedCheckIn) / 60000) - (settingsSnapshot()?.hr.graceMinutes ?? 0),
         )
       : expectedMinutes;
     const earlyLeaveMinutes = checkOut

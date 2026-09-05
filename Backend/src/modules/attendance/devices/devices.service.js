@@ -1,3 +1,4 @@
+import { getSettings } from "../../settings/settings.service.js";
 import { verifySecret } from "../../../shared/security/password.js";
 import { HikvisionClient } from "../hikvision/hikvision.client.js";
 import { deviceModel } from "./devices.model.js";
@@ -8,7 +9,7 @@ const safe = (d) => ({ ...d, password: undefined }),
 const authorize = async (user, password) => {
   if (!user.roles.some(({ role }) => role.name === "Super Administrator"))
     fail("Only a Super Administrator can delete attendance records.", 403);
-  if (!(await verifySecret(password, user.passwordHash)))
+  if ((await getSettings("security")).passwordForDeletion && !(await verifySecret(password || "", user.passwordHash)))
     fail("Super Administrator password is incorrect.", 403);
 };
 export const deviceService = {

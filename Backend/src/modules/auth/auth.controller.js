@@ -10,7 +10,7 @@ const handle = (handler) => async (req, res, next) => {
 };
 export const authController = {
   login: handle(async (req, res) => {
-    const { user, token, remember } = await authService.login(
+    const { user, token, maxAge } = await authService.login(
       req.validatedBody,
     );
     req.auditUser = user;
@@ -18,7 +18,7 @@ export const authController = {
       httpOnly: true,
       secure: env.production,
       sameSite: "lax",
-      maxAge: remember ? 30 * 86400000 : 8 * 3600000,
+      maxAge,
       path: "/",
     });
     res.json({ user });

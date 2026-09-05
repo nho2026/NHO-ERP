@@ -1,3 +1,4 @@
+import { getSettings } from "../../settings/settings.service.js";
 import { prisma } from "../../../shared/database/client.js";
 const recordInclude = {
   user: {
@@ -39,11 +40,11 @@ const employeeData = (input, updating = false) => {
 };
 
 const validateLeadership = async (id, input) => {
+  if (!input.teamLeaderId) return;
   if (input.teamLeaderId === id)
     throw Object.assign(new Error("An employee cannot lead themselves."), {
       status: 422,
     });
-  if (!input.teamLeaderId) return;
   const [leader, current] = await Promise.all([
     prisma.employee.findUnique({
       where: { id: input.teamLeaderId },
@@ -75,6 +76,8 @@ export const employeeModel = {
       orderBy: { createdAt: "desc" },
     }),
   create: async (data) => {
+    const settings = await getSettings("hr");
+    data = { ...data, checkInTime: data.checkInTime ?? settings.startTime, checkOutTime: data.checkOutTime ?? settings.endTime };
     await validateLeadership(null, data);
     return prisma.employee.create({
       data: employeeData(data),

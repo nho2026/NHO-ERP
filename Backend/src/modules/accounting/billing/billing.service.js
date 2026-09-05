@@ -1,3 +1,4 @@
+import { getSettings } from "../../settings/settings.service.js";
 import { billingModel } from "./billing.model.js";
 const httpError = (message, status) =>
   Object.assign(new Error(message), { status });
@@ -32,14 +33,14 @@ export const billingService = {
   deleteCustomer: billingModel.deleteCustomer,
   listInvoices: (status) =>
     billingModel.listInvoices(status ? String(status) : undefined),
-  createInvoice: (input) => {
+  createInvoice: async (input) => {
+    const policy = await getSettings("finance");
     const calculated = totals(input);
     return billingModel.createInvoice({
-      invoiceNumber: `INV-${Date.now()}`,
       customerId: input.customerId,
       issueDate: input.issueDate,
       dueDate: input.dueDate,
-      currency: input.currency.toUpperCase(),
+      currency: (input.currency ?? policy.currency).toUpperCase(),
       discountAmount: input.discountAmount,
       status: input.status,
       notes: input.notes,
@@ -59,6 +60,8 @@ export const billingService = {
   deleteInvoice: billingModel.deleteDraftInvoice,
   listPayments: billingModel.listPayments,
   async recordPayment(data) {
+    const policy = await getSettings("finance");
+    if (!policy.paymentMethods.includes(data.method)) throw httpError("This payment method is disabled in Settings.", 400);
     return billingModel.recordPayment(data, (invoice) => {
       if (["draft", "cancelled"].includes(invoice.status))
         throw httpError(

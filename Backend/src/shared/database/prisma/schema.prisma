@@ -9,12 +9,12 @@ datasource db {
 
 model User {
   id                String               @id @default(cuid())
-  username          String               @unique
-  email             String               @unique
+  username          String               @unique(map: "User_username_key")
+  email             String               @unique(map: "User_email_key")
   name              String
   passwordHash      String
   pinHash           String?
-  pinLookup         String?              @unique
+  pinLookup         String?              @unique(map: "User_pinLookup_key")
   department        String?
   status            String               @default("active")
   roles             UserRole[]
@@ -32,6 +32,8 @@ model User {
   createdMeetings   Meeting[]            @relation("MeetingCreator")
   meetingAttendance MeetingParticipant[]
   createdTargets    EmployeeTarget[]     @relation("TargetCreator")
+
+  @@map("access_User")
 }
 
 model AttendanceDevice {
@@ -54,7 +56,8 @@ model AttendanceDevice {
   people              AttendancePerson[]
   events              AttendanceEvent[]
 
-  @@unique([ipAddress, port])
+  @@unique([ipAddress, port], map: "AttendanceDevice_ipAddress_port_key")
+  @@map("attendance_AttendanceDevice")
 }
 
 model AttendancePerson {
@@ -69,12 +72,13 @@ model AttendancePerson {
   hasPassword    Boolean           @default(false)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
-  device         AttendanceDevice  @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  employee       Employee?         @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  device         AttendanceDevice  @relation(fields: [deviceId], references: [id], onDelete: Cascade, map: "AttendancePerson_deviceId_fkey")
+  employee       Employee?         @relation(fields: [employeeId], references: [id], onDelete: SetNull, map: "AttendancePerson_employeeId_fkey")
   events         AttendanceEvent[]
 
-  @@unique([deviceId, employeeNo])
-  @@index([employeeId])
+  @@unique([deviceId, employeeNo], map: "AttendancePerson_deviceId_employeeNo_key")
+  @@index([employeeId], map: "AttendancePerson_employeeId_idx")
+  @@map("attendance_AttendancePerson")
 }
 
 model AttendanceEvent {
@@ -88,67 +92,75 @@ model AttendanceEvent {
   verification  String?
   deviceEventId String?
   createdAt     DateTime          @default(now())
-  device        AttendanceDevice  @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  person        AttendancePerson? @relation(fields: [personId], references: [id], onDelete: SetNull)
+  device        AttendanceDevice  @relation(fields: [deviceId], references: [id], onDelete: Cascade, map: "AttendanceEvent_deviceId_fkey")
+  person        AttendancePerson? @relation(fields: [personId], references: [id], onDelete: SetNull, map: "AttendanceEvent_personId_fkey")
 
-  @@unique([deviceId, deviceEventId])
-  @@index([occurredAt])
-  @@index([employeeNo])
+  @@unique([deviceId, deviceEventId], map: "AttendanceEvent_deviceId_deviceEventId_key")
+  @@index([occurredAt], map: "AttendanceEvent_occurredAt_idx")
+  @@index([employeeNo], map: "AttendanceEvent_employeeNo_idx")
+  @@map("attendance_AttendanceEvent")
 }
 
 model Role {
   id          String           @id @default(cuid())
-  name        String           @unique
+  name        String           @unique(map: "Role_name_key")
   description String?
   users       UserRole[]
   permissions RolePermission[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+
+  @@map("access_Role")
 }
 
 model Permission {
   id          String           @id @default(cuid())
-  key         String           @unique
+  key         String           @unique(map: "Permission_key_key")
   name        String
   module      String
   description String?
   roles       RolePermission[]
   createdAt   DateTime         @default(now())
+
+  @@map("access_Permission")
 }
 
 model UserRole {
   userId String
   roleId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, map: "UserRole_userId_fkey")
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade, map: "UserRole_roleId_fkey")
 
   @@id([userId, roleId])
+  @@map("access_UserRole")
 }
 
 model RolePermission {
   roleId       String
   permissionId String
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade, map: "role_permission_roleId_fkey")
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade, map: "role_permission_permissionId_fkey")
 
   @@id([roleId, permissionId])
-  @@map("role_permission")
+  @@map("access_RolePermission")
 }
 
 model Position {
   id          String     @id @default(cuid())
-  name        String     @unique
+  name        String     @unique(map: "Position_name_key")
   description String?
   status      String     @default("active")
   employees   Employee[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+
+  @@map("hr_Position")
 }
 
 model Employee {
   id                    String                 @id @default(cuid())
-  employeeCode          String                 @unique
-  userId                String?                @unique
+  employeeCode          String                 @unique(map: "Employee_employeeCode_key")
+  userId                String?                @unique(map: "Employee_userId_key")
   firstName             String
   lastName              String
   departmentId          String?
@@ -157,15 +169,15 @@ model Employee {
   checkInTime           String                 @default("09:00")
   checkOutTime          String                 @default("17:00")
   status                String                 @default("active")
-  position              Position?              @relation(fields: [positionId], references: [id], onDelete: SetNull)
-  department            Department?            @relation("DepartmentEmployees", fields: [departmentId], references: [id], onDelete: SetNull)
+  position              Position?              @relation(fields: [positionId], references: [id], onDelete: SetNull, map: "Employee_positionId_fkey")
+  department            Department?            @relation("DepartmentEmployees", fields: [departmentId], references: [id], onDelete: SetNull, map: "Employee_departmentId_fkey")
   managedDepartments    Department[]           @relation("DepartmentManager")
   isTeamLeader          Boolean                @default(false)
   teamLeaderId          String?
-  teamLeader            Employee?              @relation("TeamLeaderMembers", fields: [teamLeaderId], references: [id], onDelete: SetNull)
+  teamLeader            Employee?              @relation("TeamLeaderMembers", fields: [teamLeaderId], references: [id], onDelete: SetNull, map: "Employee_teamLeaderId_fkey")
   teamMembers           Employee[]             @relation("TeamLeaderMembers")
   healthStaff           HealthStaff?
-  user                  User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user                  User?                  @relation(fields: [userId], references: [id], onDelete: SetNull, map: "Employee_userId_fkey")
   devicePeople          AttendancePerson[]
   salaries              EmployeeSalary[]
   attendance            EmployeeAttendance[]
@@ -179,9 +191,10 @@ model Employee {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 
-  @@index([departmentId])
-  @@index([positionId])
-  @@index([teamLeaderId])
+  @@index([departmentId], map: "Employee_departmentId_idx")
+  @@index([positionId], map: "Employee_positionId_idx")
+  @@index([teamLeaderId], map: "Employee_teamLeaderId_idx")
+  @@map("hr_Employees")
 }
 
 model EmployeeTarget {
@@ -197,14 +210,15 @@ model EmployeeTarget {
   status       String   @default("active")
   employeeId   String
   createdById  String
-  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  createdBy    User     @relation("TargetCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade, map: "EmployeeTarget_employeeId_fkey")
+  createdBy    User     @relation("TargetCreator", fields: [createdById], references: [id], onDelete: Restrict, map: "EmployeeTarget_createdById_fkey")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@index([employeeId, status])
-  @@index([createdById])
-  @@index([dueDate])
+  @@index([employeeId, status], map: "EmployeeTarget_employeeId_status_idx")
+  @@index([createdById], map: "EmployeeTarget_createdById_idx")
+  @@index([dueDate], map: "EmployeeTarget_dueDate_idx")
+  @@map("hr_EmployeeTarget")
 }
 
 model Task {
@@ -222,8 +236,8 @@ model Task {
   reviewedById     String?
   reviewNote       String?          @db.Text
   createdById      String
-  createdBy        User             @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  reviewedBy       User?            @relation("TaskReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdBy        User             @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Restrict, map: "Task_createdById_fkey")
+  reviewedBy       User?            @relation("TaskReviewer", fields: [reviewedById], references: [id], onDelete: SetNull, map: "Task_reviewedById_fkey")
   assignees        TaskAssignee[]
   attachments      TaskAttachment[]
   comments         TaskComment[]
@@ -232,32 +246,38 @@ model Task {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
-  @@index([status])
-  @@index([team])
-  @@index([dueDate])
+  @@index([status], map: "Task_status_idx")
+  @@index([team], map: "Task_team_idx")
+  @@index([dueDate], map: "Task_dueDate_idx")
+  @@map("tasks_Task")
 }
 
 model Notification {
-  id        String    @id @default(cuid())
-  userId    String
-  taskId    String?
-  warningId String?
-  meetingId String?
-  crmLeadId String?
-  type      String
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  task      Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  warning   Warning?  @relation(fields: [warningId], references: [id], onDelete: Cascade)
-  meeting   Meeting?  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  crmLead   CrmLead?  @relation(fields: [crmLeadId], references: [id], onDelete: Cascade)
+  reminderKey String?   @unique
+  title       String?
+  body        String?   @db.Text
+  route       String?
+  id          String    @id @default(cuid())
+  userId      String
+  taskId      String?
+  warningId   String?
+  meetingId   String?
+  crmLeadId   String?
+  type        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Notification_userId_fkey")
+  task        Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade, map: "Notification_taskId_fkey")
+  warning     Warning?  @relation(fields: [warningId], references: [id], onDelete: Cascade, map: "Notification_warningId_fkey")
+  meeting     Meeting?  @relation(fields: [meetingId], references: [id], onDelete: Cascade, map: "Notification_meetingId_fkey")
+  crmLead     CrmLead?  @relation(fields: [crmLeadId], references: [id], onDelete: Cascade, map: "Notification_crmLeadId_fkey")
 
-  @@index([userId, readAt, createdAt])
-  @@index([taskId])
-  @@index([warningId])
-  @@index([meetingId])
-  @@index([crmLeadId])
+  @@index([userId, readAt, createdAt], map: "Notification_userId_readAt_createdAt_idx")
+  @@index([taskId], map: "Notification_taskId_idx")
+  @@index([warningId], map: "Notification_warningId_idx")
+  @@index([meetingId], map: "Notification_meetingId_idx")
+  @@index([crmLeadId], map: "Notification_crmLeadId_idx")
+  @@map("system_Notification")
 }
 
 model EmployeeIdea {
@@ -266,11 +286,12 @@ model EmployeeIdea {
   title       String
   description String   @db.Text
   status      String   @default("submitted")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "EmployeeIdea_userId_fkey")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([userId, createdAt])
+  @@index([userId, createdAt], map: "EmployeeIdea_userId_createdAt_idx")
+  @@map("hr_EmployeeIdea")
 }
 
 model Warning {
@@ -279,23 +300,25 @@ model Warning {
   title         String
   message       String             @db.Text
   severity      String             @default("warning")
-  sender        User               @relation("WarningSender", fields: [senderId], references: [id], onDelete: Restrict)
+  sender        User               @relation("WarningSender", fields: [senderId], references: [id], onDelete: Restrict, map: "Warning_senderId_fkey")
   recipients    WarningRecipient[]
   notifications Notification[]
   createdAt     DateTime           @default(now())
 
-  @@index([createdAt])
+  @@index([createdAt], map: "Warning_createdAt_idx")
+  @@map("hr_Warning")
 }
 
 model WarningRecipient {
   warningId String
   userId    String
   readAt    DateTime?
-  warning   Warning   @relation(fields: [warningId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  warning   Warning   @relation(fields: [warningId], references: [id], onDelete: Cascade, map: "WarningRecipient_warningId_fkey")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, map: "WarningRecipient_userId_fkey")
 
   @@id([warningId, userId])
-  @@index([userId, readAt])
+  @@index([userId, readAt], map: "WarningRecipient_userId_readAt_idx")
+  @@map("hr_WarningRecipient")
 }
 
 model TaskTimeEntry {
@@ -306,24 +329,26 @@ model TaskTimeEntry {
   workDate     DateTime
   minutes      Int
   note         String?  @db.Text
-  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  recordedBy   User     @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade, map: "TaskTimeEntry_taskId_fkey")
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade, map: "TaskTimeEntry_employeeId_fkey")
+  recordedBy   User     @relation(fields: [recordedById], references: [id], onDelete: Restrict, map: "TaskTimeEntry_recordedById_fkey")
   createdAt    DateTime @default(now())
 
-  @@index([taskId])
-  @@index([employeeId, workDate])
+  @@index([taskId], map: "TaskTimeEntry_taskId_idx")
+  @@index([employeeId, workDate], map: "TaskTimeEntry_employeeId_workDate_idx")
+  @@map("tasks_TaskTimeEntry")
 }
 
 model TaskAssignee {
   taskId     String
   employeeId String
-  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade, map: "TaskAssignee_taskId_fkey")
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade, map: "TaskAssignee_employeeId_fkey")
   assignedAt DateTime @default(now())
 
   @@id([taskId, employeeId])
-  @@index([employeeId])
+  @@index([employeeId], map: "TaskAssignee_employeeId_idx")
+  @@map("tasks_TaskAssignee")
 }
 
 model TaskAttachment {
@@ -333,10 +358,11 @@ model TaskAttachment {
   fileUrl   String
   mimeType  String
   fileSize  Int
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade, map: "TaskAttachment_taskId_fkey")
   createdAt DateTime @default(now())
 
-  @@index([taskId])
+  @@index([taskId], map: "TaskAttachment_taskId_idx")
+  @@map("tasks_TaskAttachment")
 }
 
 model TaskComment {
@@ -344,21 +370,22 @@ model TaskComment {
   taskId    String
   authorId  String
   body      String   @db.Text
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade, map: "TaskComment_taskId_fkey")
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade, map: "TaskComment_authorId_fkey")
   createdAt DateTime @default(now())
 
-  @@index([taskId])
+  @@index([taskId], map: "TaskComment_taskId_idx")
+  @@map("tasks_TaskComment")
 }
 
 model Department {
   id              String           @id @default(cuid())
-  code            String           @unique
-  name            String           @unique
+  code            String           @unique(map: "Department_code_key")
+  name            String           @unique(map: "Department_name_key")
   description     String?
   managerId       String?
   status          String           @default("active")
-  manager         Employee?        @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: SetNull)
+  manager         Employee?        @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: SetNull, map: "Department_managerId_fkey")
   employees       Employee[]       @relation("DepartmentEmployees")
   healthStaff     HealthStaff[]
   appointments    Appointment[]
@@ -367,25 +394,27 @@ model Department {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  @@index([managerId])
+  @@index([managerId], map: "Department_managerId_idx")
+  @@map("hr_Department")
 }
 
 model Meeting {
   id            String               @id @default(cuid())
   title         String
-  roomCode      String               @unique
+  roomCode      String               @unique(map: "Meeting_roomCode_key")
   departmentId  String
   creatorId     String
   status        String               @default("active")
   createdAt     DateTime             @default(now())
   endedAt       DateTime?
-  department    Department           @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  creator       User                 @relation("MeetingCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  department    Department           @relation(fields: [departmentId], references: [id], onDelete: Cascade, map: "Meeting_departmentId_fkey")
+  creator       User                 @relation("MeetingCreator", fields: [creatorId], references: [id], onDelete: Cascade, map: "Meeting_creatorId_fkey")
   participants  MeetingParticipant[]
   notifications Notification[]
 
-  @@index([departmentId, status])
-  @@index([creatorId])
+  @@index([departmentId, status], map: "Meeting_departmentId_status_idx")
+  @@index([creatorId], map: "Meeting_creatorId_idx")
+  @@map("meetings_Meeting")
 }
 
 model MeetingParticipant {
@@ -394,37 +423,40 @@ model MeetingParticipant {
   userId    String
   joinedAt  DateTime  @default(now())
   leftAt    DateTime?
-  meeting   Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meeting   Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade, map: "MeetingParticipant_meetingId_fkey")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, map: "MeetingParticipant_userId_fkey")
 
-  @@index([meetingId])
-  @@index([userId])
+  @@index([meetingId], map: "MeetingParticipant_meetingId_idx")
+  @@index([userId], map: "MeetingParticipant_userId_idx")
+  @@map("meetings_MeetingParticipant")
 }
 
 model HealthStaff {
-  id                   String               @id @default(cuid())
-  employeeId           String               @unique
+  id                   String                @id @default(cuid())
+  employeeId           String                @unique(map: "HealthStaff_employeeId_key")
   departmentId         String?
   staffType            String
   specialization       String?
-  licenseNumber        String?              @unique
-  biography            String?              @db.Text
-  publicBookingEnabled Boolean              @default(false)
-  status               String               @default("active")
-  employee             Employee             @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  department           Department?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  licenseNumber        String?               @unique(map: "HealthStaff_licenseNumber_key")
+  biography            String?               @db.Text
+  publicBookingEnabled Boolean               @default(false)
+  status               String                @default("active")
+  employee             Employee              @relation(fields: [employeeId], references: [id], onDelete: Cascade, map: "HealthStaff_employeeId_fkey")
+  department           Department?           @relation(fields: [departmentId], references: [id], onDelete: SetNull, map: "HealthStaff_departmentId_fkey")
   appointments         Appointment[]
   surgeryAppointments  SurgeryAppointment[]
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  specializationEntry  DoctorSpecialization? @relation(fields: [specialization], references: [name], onDelete: SetNull, onUpdate: Cascade)
 
-  @@index([departmentId])
-  @@index([staffType])
+  @@index([departmentId], map: "HealthStaff_departmentId_idx")
+  @@index([staffType], map: "HealthStaff_staffType_idx")
+  @@map("healthcare_HealthStaff")
 }
 
 model CrmLead {
   id                  String                 @id @default(cuid())
-  code                String?                @unique
+  code                String?                @unique(map: "CrmLead_code_key")
   name                String
   phone               String
   secondaryPhone      String?
@@ -456,15 +488,16 @@ model CrmLead {
   painPoints          String?                @db.Text
   status              String                 @default("new")
   convertedPatientId  String?
-  convertedPatient    Patient?               @relation(fields: [convertedPatientId], references: [id], onDelete: SetNull)
+  convertedPatient    Patient?               @relation(fields: [convertedPatientId], references: [id], onDelete: SetNull, map: "CrmLead_convertedPatientId_fkey")
   notifications       Notification[]
   statusHistory       CrmLeadStatusHistory[]
   attachments         CrmLeadAttachment[]
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
 
-  @@index([status, createdAt])
-  @@index([phone])
+  @@index([status, createdAt], map: "CrmLead_status_createdAt_idx")
+  @@index([phone], map: "CrmLead_phone_idx")
+  @@map("crm_CrmLead")
 }
 
 model CrmLeadAttachment {
@@ -475,9 +508,10 @@ model CrmLeadAttachment {
   mimeType  String?
   fileSize  Int?
   createdAt DateTime @default(now())
-  lead      CrmLead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  lead      CrmLead  @relation(fields: [leadId], references: [id], onDelete: Cascade, map: "CrmLeadAttachment_leadId_fkey")
 
-  @@index([leadId, createdAt])
+  @@index([leadId, createdAt], map: "CrmLeadAttachment_leadId_createdAt_idx")
+  @@map("crm_CrmLeadAttachment")
 }
 
 model CrmLeadStatusHistory {
@@ -486,14 +520,15 @@ model CrmLeadStatusHistory {
   fromStatus String?
   toStatus   String
   createdAt  DateTime @default(now())
-  lead       CrmLead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  lead       CrmLead  @relation(fields: [leadId], references: [id], onDelete: Cascade, map: "CrmLeadStatusHistory_leadId_fkey")
 
-  @@index([leadId, createdAt])
+  @@index([leadId, createdAt], map: "CrmLeadStatusHistory_leadId_createdAt_idx")
+  @@map("crm_CrmLeadStatusHistory")
 }
 
 model Patient {
   id                  String                  @id @default(cuid())
-  patientCode         String                  @unique
+  patientCode         String                  @unique(map: "Patient_patientCode_key")
   firstName           String
   lastName            String
   phone               String
@@ -519,8 +554,9 @@ model Patient {
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
 
-  @@index([phone])
-  @@index([status])
+  @@index([phone], map: "Patient_phone_idx")
+  @@index([status], map: "Patient_status_idx")
+  @@map("healthcare_Patient")
 }
 
 model PatientReferral {
@@ -537,17 +573,18 @@ model PatientReferral {
   referredAt           DateTime @default(now())
   notes                String?  @db.Text
   status               String   @default("active")
-  patient              Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patient              Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade, map: "PatientReferral_patientId_fkey")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  @@index([patientId, referredAt])
-  @@index([status])
+  @@index([patientId, referredAt], map: "PatientReferral_patientId_referredAt_idx")
+  @@index([status], map: "PatientReferral_status_idx")
+  @@map("healthcare_PatientReferral")
 }
 
 model CrmFormTemplate {
   id          String                  @id @default(cuid())
-  code        String                  @unique
+  code        String                  @unique(map: "CrmFormTemplate_code_key")
   name        String
   description String?                 @db.Text
   category    String                  @default("clinical")
@@ -557,7 +594,8 @@ model CrmFormTemplate {
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
 
-  @@index([category, status])
+  @@index([category, status], map: "CrmFormTemplate_category_status_idx")
+  @@map("crm_CrmFormTemplate")
 }
 
 model PatientFormSubmission {
@@ -566,18 +604,19 @@ model PatientFormSubmission {
   formTemplateId String
   data           Json
   submittedById  String?
-  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  formTemplate   CrmFormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Restrict)
+  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade, map: "PatientFormSubmission_patientId_fkey")
+  formTemplate   CrmFormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Restrict, map: "PatientFormSubmission_formTemplateId_fkey")
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
-  @@index([patientId, createdAt])
-  @@index([formTemplateId])
+  @@index([patientId, createdAt], map: "PatientFormSubmission_patientId_createdAt_idx")
+  @@index([formTemplateId], map: "PatientFormSubmission_formTemplateId_idx")
+  @@map("healthcare_PatientFormSubmission")
 }
 
 model Surgery {
   id              String               @id @default(cuid())
-  code            String               @unique
+  code            String               @unique(map: "Surgery_code_key")
   name            String
   description     String?              @db.Text
   durationMinutes Int
@@ -586,28 +625,31 @@ model Surgery {
   appointments    SurgeryAppointment[]
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
+
+  @@map("healthcare_Surgery")
 }
 
 model SurgeryAppointment {
   id            String           @id @default(cuid())
   patientId     String
-  doctorId      String
+  doctorId      String?
   surgeryId     String
   scheduledAt   DateTime
   operatingRoom String?
   status        String           @default("scheduled")
   preOpNotes    String?          @db.Text
   postOpNotes   String?          @db.Text
-  patient       Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  doctor        HealthStaff      @relation(fields: [doctorId], references: [id], onDelete: Restrict)
-  surgery       Surgery          @relation(fields: [surgeryId], references: [id], onDelete: Restrict)
+  patient       Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict, map: "SurgeryAppointment_patientId_fkey")
+  doctor        HealthStaff?     @relation(fields: [doctorId], references: [id], onDelete: SetNull, map: "healthcare_SurgeryAppointment_doctorId_fkey")
+  surgery       Surgery          @relation(fields: [surgeryId], references: [id], onDelete: Restrict, map: "SurgeryAppointment_surgeryId_fkey")
   payments      PatientPayment[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
-  @@index([scheduledAt, status])
-  @@index([patientId])
-  @@index([doctorId])
+  @@index([scheduledAt, status], map: "SurgeryAppointment_scheduledAt_status_idx")
+  @@index([patientId], map: "SurgeryAppointment_patientId_idx")
+  @@index([doctorId], map: "SurgeryAppointment_doctorId_idx")
+  @@map("healthcare_SurgeryAppointment")
 }
 
 model PatientPayment {
@@ -620,13 +662,14 @@ model PatientPayment {
   notes                String?             @db.Text
   paidAt               DateTime            @default(now())
   status               String              @default("paid")
-  patient              Patient             @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  surgeryAppointment   SurgeryAppointment? @relation(fields: [surgeryAppointmentId], references: [id], onDelete: SetNull)
+  patient              Patient             @relation(fields: [patientId], references: [id], onDelete: Restrict, map: "PatientPayment_patientId_fkey")
+  surgeryAppointment   SurgeryAppointment? @relation(fields: [surgeryAppointmentId], references: [id], onDelete: SetNull, map: "PatientPayment_surgeryAppointmentId_fkey")
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 
-  @@index([patientId, paidAt])
-  @@index([surgeryAppointmentId])
+  @@index([patientId, paidAt], map: "PatientPayment_patientId_paidAt_idx")
+  @@index([surgeryAppointmentId], map: "PatientPayment_surgeryAppointmentId_idx")
+  @@map("healthcare_PatientPayment")
 }
 
 model Appointment {
@@ -634,23 +677,24 @@ model Appointment {
   patientName     String
   patientPhone    String
   patientEmail    String?
-  doctorId        String
-  departmentId    String
+  doctorId        String?
+  departmentId    String?
   scheduledAt     DateTime
   durationMinutes Int              @default(30)
   reason          String?
   notes           String?          @db.Text
   status          String           @default("pending")
   source          String           @default("admin")
-  doctor          HealthStaff      @relation(fields: [doctorId], references: [id], onDelete: Restrict)
-  department      Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  doctor          HealthStaff?     @relation(fields: [doctorId], references: [id], onDelete: SetNull, map: "crm_Appointment_doctorId_fkey")
+  department      Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull, map: "Appointment_departmentId_fkey")
   serviceAdvances ServiceAdvance[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  @@index([scheduledAt])
-  @@index([doctorId, scheduledAt])
-  @@index([departmentId])
+  @@index([scheduledAt], map: "Appointment_scheduledAt_idx")
+  @@index([doctorId, scheduledAt], map: "Appointment_doctorId_scheduledAt_idx")
+  @@index([departmentId], map: "Appointment_departmentId_idx")
+  @@map("crm_Appointment")
 }
 
 model EmployeeSalary {
@@ -661,12 +705,13 @@ model EmployeeSalary {
   payType       String
   effectiveFrom DateTime
   effectiveTo   DateTime?
-  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade, map: "EmployeeSalary_employeeId_fkey")
   payrolls      Payroll[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  @@index([employeeId])
+  @@index([employeeId], map: "EmployeeSalary_employeeId_idx")
+  @@map("hr_EmployeeSalary")
 }
 
 model EmployeeAttendance {
@@ -680,12 +725,13 @@ model EmployeeAttendance {
   earlyLeaveMinutes Int       @default(0)
   overtimeMinutes   Int       @default(0)
   status            String    @default("present")
-  employee          Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee          Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade, map: "EmployeeAttendance_employeeId_fkey")
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  @@unique([employeeId, attendanceDate])
-  @@index([attendanceDate])
+  @@unique([employeeId, attendanceDate], map: "EmployeeAttendance_employeeId_attendanceDate_key")
+  @@index([attendanceDate], map: "EmployeeAttendance_attendanceDate_idx")
+  @@map("hr_EmployeeAttendance")
 }
 
 model AttendancePermission {
@@ -697,39 +743,42 @@ model AttendancePermission {
   permittedMinutes Int?
   reason           String?  @db.Text
   status           String   @default("approved")
-  employee         Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee         Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade, map: "AttendancePermission_employeeId_fkey")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  leaveType        String?
 
-  @@index([employeeId, fromDate, toDate])
-  @@index([status])
+  @@index([employeeId, fromDate, toDate], map: "AttendancePermission_employeeId_fromDate_toDate_idx")
+  @@index([status], map: "AttendancePermission_status_idx")
+  @@map("hr_AttendancePermission")
 }
 
 model Payroll {
-  id               String         @id @default(cuid())
+  id               String          @id @default(cuid())
   employeeId       String
-  salaryId         String
+  salaryId         String?
   year             Int
   month            Int
   baseSalary       Float
-  overtimeAmount   Float          @default(0)
-  bonusAmount      Float          @default(0)
-  allowanceAmount  Float          @default(0)
-  lateDeduction    Float          @default(0)
-  absenceDeduction Float          @default(0)
-  otherDeduction   Float          @default(0)
+  overtimeAmount   Float           @default(0)
+  bonusAmount      Float           @default(0)
+  allowanceAmount  Float           @default(0)
+  lateDeduction    Float           @default(0)
+  absenceDeduction Float           @default(0)
+  otherDeduction   Float           @default(0)
   grossSalary      Float
   totalDeduction   Float
   netSalary        Float
-  status           String         @default("draft")
+  status           String          @default("draft")
   paidAt           DateTime?
-  employee         Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  salary           EmployeeSalary @relation(fields: [salaryId], references: [id], onDelete: Restrict)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  employee         Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade, map: "Payroll_employeeId_fkey")
+  salary           EmployeeSalary? @relation(fields: [salaryId], references: [id], onDelete: SetNull, map: "hr_Payroll_salaryId_fkey")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
-  @@unique([employeeId, year, month])
-  @@index([salaryId])
+  @@unique([employeeId, year, month], map: "Payroll_employeeId_year_month_key")
+  @@index([salaryId], map: "Payroll_salaryId_idx")
+  @@map("hr_Payroll")
 }
 
 model PayrollAdjustment {
@@ -743,14 +792,15 @@ model PayrollAdjustment {
   sourceType String?
   sourceId   String?
   appliedAt  DateTime @default(now())
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade, map: "PayrollAdjustment_employeeId_fkey")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@unique([sourceType, sourceId])
-  @@index([employeeId, year, month])
-  @@index([appliedAt])
-  @@index([year, month, type])
+  @@unique([sourceType, sourceId], map: "PayrollAdjustment_sourceType_sourceId_key")
+  @@index([employeeId, year, month], map: "PayrollAdjustment_employeeId_year_month_idx")
+  @@index([appliedAt], map: "PayrollAdjustment_appliedAt_idx")
+  @@index([year, month, type], map: "PayrollAdjustment_year_month_type_idx")
+  @@map("hr_PayrollAdjustment")
 }
 
 model SalaryAdvance {
@@ -766,36 +816,38 @@ model SalaryAdvance {
   remainingAmount    Float
   status             String    @default("requested")
   notes              String?   @db.Text
-  employee           Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  employee           Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict, map: "SalaryAdvance_employeeId_fkey")
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  @@index([employeeId])
-  @@index([status])
-  @@index([requestedAt])
+  @@index([employeeId], map: "SalaryAdvance_employeeId_idx")
+  @@index([status], map: "SalaryAdvance_status_idx")
+  @@index([requestedAt], map: "SalaryAdvance_requestedAt_idx")
+  @@map("hr_SalaryAdvance")
 }
 
 model AccountingAccount {
   id        String              @id @default(cuid())
-  code      String              @unique
+  code      String              @unique(map: "AccountingAccount_code_key")
   name      String
   type      String
   parentId  String?
   currency  String              @default("IQD")
   status    String              @default("active")
-  parent    AccountingAccount?  @relation("AccountHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  parent    AccountingAccount?  @relation("AccountHierarchy", fields: [parentId], references: [id], onDelete: SetNull, map: "AccountingAccount_parentId_fkey")
   children  AccountingAccount[] @relation("AccountHierarchy")
   lines     JournalLine[]
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
 
-  @@index([type])
-  @@index([parentId])
+  @@index([type], map: "AccountingAccount_type_idx")
+  @@index([parentId], map: "AccountingAccount_parentId_idx")
+  @@map("accounting_AccountingAccount")
 }
 
 model JournalEntry {
   id          String        @id @default(cuid())
-  entryNumber String        @unique
+  entryNumber String        @unique(map: "JournalEntry_entryNumber_key")
   entryDate   DateTime
   description String
   reference   String?
@@ -804,8 +856,9 @@ model JournalEntry {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  @@index([entryDate])
-  @@index([status])
+  @@index([entryDate], map: "JournalEntry_entryDate_idx")
+  @@index([status], map: "JournalEntry_status_idx")
+  @@map("accounting_JournalEntry")
 }
 
 model JournalLine {
@@ -815,16 +868,17 @@ model JournalLine {
   description String?
   debit       Float             @default(0)
   credit      Float             @default(0)
-  entry       JournalEntry      @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  account     AccountingAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  entry       JournalEntry      @relation(fields: [entryId], references: [id], onDelete: Cascade, map: "JournalLine_entryId_fkey")
+  account     AccountingAccount @relation(fields: [accountId], references: [id], onDelete: Restrict, map: "JournalLine_accountId_fkey")
 
-  @@index([entryId])
-  @@index([accountId])
+  @@index([entryId], map: "JournalLine_entryId_idx")
+  @@index([accountId], map: "JournalLine_accountId_idx")
+  @@map("accounting_JournalLine")
 }
 
 model BillingCustomer {
   id        String           @id @default(cuid())
-  code      String           @unique
+  code      String           @unique(map: "BillingCustomer_code_key")
   name      String
   phone     String?
   email     String?
@@ -834,11 +888,13 @@ model BillingCustomer {
   invoices  BillingInvoice[]
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
+
+  @@map("billing_BillingCustomer")
 }
 
 model BillingInvoice {
   id             String               @id @default(cuid())
-  invoiceNumber  String               @unique
+  invoiceNumber  String               @unique(map: "BillingInvoice_invoiceNumber_key")
   customerId     String
   issueDate      DateTime
   dueDate        DateTime?
@@ -851,15 +907,16 @@ model BillingInvoice {
   balanceAmount  Float
   status         String               @default("draft")
   notes          String?              @db.Text
-  customer       BillingCustomer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  customer       BillingCustomer      @relation(fields: [customerId], references: [id], onDelete: Restrict, map: "BillingInvoice_customerId_fkey")
   items          BillingInvoiceItem[]
   payments       BillingPayment[]
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 
-  @@index([customerId])
-  @@index([issueDate])
-  @@index([status])
+  @@index([customerId], map: "BillingInvoice_customerId_idx")
+  @@index([issueDate], map: "BillingInvoice_issueDate_idx")
+  @@index([status], map: "BillingInvoice_status_idx")
+  @@map("billing_BillingInvoice")
 }
 
 model BillingInvoiceItem {
@@ -871,9 +928,10 @@ model BillingInvoiceItem {
   discount    Float          @default(0)
   taxRate     Float          @default(0)
   lineTotal   Float
-  invoice     BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice     BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade, map: "BillingInvoiceItem_invoiceId_fkey")
 
-  @@index([invoiceId])
+  @@index([invoiceId], map: "BillingInvoiceItem_invoiceId_idx")
+  @@map("billing_BillingInvoiceItem")
 }
 
 model BillingPayment {
@@ -884,16 +942,17 @@ model BillingPayment {
   reference String?
   paidAt    DateTime       @default(now())
   notes     String?
-  invoice   BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  invoice   BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict, map: "BillingPayment_invoiceId_fkey")
   createdAt DateTime       @default(now())
 
-  @@index([invoiceId])
-  @@index([paidAt])
+  @@index([invoiceId], map: "BillingPayment_invoiceId_idx")
+  @@index([paidAt], map: "BillingPayment_paidAt_idx")
+  @@map("billing_BillingPayment")
 }
 
 model ServiceAdvance {
   id            String       @id @default(cuid())
-  receiptNumber String       @unique
+  receiptNumber String       @unique(map: "ServiceAdvance_receiptNumber_key")
   patientName   String
   patientPhone  String?
   departmentId  String?
@@ -907,15 +966,16 @@ model ServiceAdvance {
   receivedAt    DateTime     @default(now())
   status        String       @default("open")
   notes         String?      @db.Text
-  department    Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  department    Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull, map: "ServiceAdvance_departmentId_fkey")
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull, map: "ServiceAdvance_appointmentId_fkey")
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  @@index([departmentId])
-  @@index([appointmentId])
-  @@index([receivedAt])
-  @@index([status])
+  @@index([departmentId], map: "ServiceAdvance_departmentId_idx")
+  @@index([appointmentId], map: "ServiceAdvance_appointmentId_idx")
+  @@index([receivedAt], map: "ServiceAdvance_receivedAt_idx")
+  @@index([status], map: "ServiceAdvance_status_idx")
+  @@map("billing_ServiceAdvance")
 }
 
 model FinanceBudget {
@@ -931,8 +991,9 @@ model FinanceBudget {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  @@index([fiscalYear])
-  @@index([status])
+  @@index([fiscalYear], map: "FinanceBudget_fiscalYear_idx")
+  @@index([status], map: "FinanceBudget_status_idx")
+  @@map("finance_FinanceBudget")
 }
 
 model FinanceCashFlow {
@@ -947,8 +1008,9 @@ model FinanceCashFlow {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([flowDate])
-  @@index([flowType])
+  @@index([flowDate], map: "FinanceCashFlow_flowDate_idx")
+  @@index([flowType], map: "FinanceCashFlow_flowType_idx")
+  @@map("finance_FinanceCashFlow")
 }
 
 model FinanceForecast {
@@ -965,8 +1027,9 @@ model FinanceForecast {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  @@index([periodStart, periodEnd])
-  @@index([scenario])
+  @@index([periodStart, periodEnd], map: "FinanceForecast_periodStart_periodEnd_idx")
+  @@index([scenario], map: "FinanceForecast_scenario_idx")
+  @@map("finance_FinanceForecast")
 }
 
 model FinanceFunding {
@@ -984,36 +1047,39 @@ model FinanceFunding {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  @@index([status])
-  @@index([startDate])
+  @@index([status], map: "FinanceFunding_status_idx")
+  @@index([startDate], map: "FinanceFunding_startDate_idx")
+  @@map("finance_FinanceFunding")
 }
 
 model ProductCategory {
   id          String             @id @default(cuid())
-  name        String             @unique
+  name        String             @unique(map: "ProductCategory_name_key")
   description String?
   status      String             @default("active")
   products    InventoryProduct[]
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
+
+  @@map("inventory_ProductCategory")
 }
 
 model ProductBrand {
   id          String             @id @default(cuid())
-  name        String             @unique
+  name        String             @unique(map: "product_brands_name_key")
   description String?
   status      String             @default("active")
   products    InventoryProduct[]
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
-  @@map("product_brands")
+  @@map("inventory_ProductBrand")
 }
 
 model InventoryProduct {
   id            String                  @id @default(cuid())
-  sku           String                  @unique
-  barcode       String?                 @unique
+  sku           String                  @unique(map: "InventoryProduct_sku_key")
+  barcode       String?                 @unique(map: "InventoryProduct_barcode_key")
   name          String
   categoryId    String?
   brandId       String?
@@ -1026,8 +1092,8 @@ model InventoryProduct {
   discountStart DateTime?
   discountEnd   DateTime?
   status        String                  @default("active")
-  category      ProductCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  brand         ProductBrand?           @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  category      ProductCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull, map: "InventoryProduct_categoryId_fkey")
+  brand         ProductBrand?           @relation(fields: [brandId], references: [id], onDelete: SetNull, map: "InventoryProduct_brandId_fkey")
   stocks        InventoryStock[]
   movements     InventoryMovement[]
   saleItems     PosSaleItem[]
@@ -1036,14 +1102,15 @@ model InventoryProduct {
   createdAt     DateTime                @default(now())
   updatedAt     DateTime                @updatedAt
 
-  @@index([categoryId])
-  @@index([brandId])
-  @@index([status])
+  @@index([categoryId], map: "InventoryProduct_categoryId_idx")
+  @@index([brandId], map: "InventoryProduct_brandId_idx")
+  @@index([status], map: "InventoryProduct_status_idx")
+  @@map("inventory_InventoryProduct")
 }
 
 model HealthcareService {
   id          String     @id @default(cuid())
-  code        String     @unique
+  code        String     @unique(map: "HealthcareService_code_key")
   name        String
   description String?    @db.Text
   price       Float?
@@ -1052,7 +1119,8 @@ model HealthcareService {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  @@index([status])
+  @@index([status], map: "HealthcareService_status_idx")
+  @@map("healthcare_HealthcareService")
 }
 
 model Feedback {
@@ -1066,15 +1134,16 @@ model Feedback {
   comment       String             @db.Text
   status        String             @default("pending")
   source        String             @default("website")
-  product       InventoryProduct?  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  service       HealthcareService? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  product       InventoryProduct?  @relation(fields: [productId], references: [id], onDelete: Cascade, map: "Feedback_productId_fkey")
+  service       HealthcareService? @relation(fields: [serviceId], references: [id], onDelete: Cascade, map: "Feedback_serviceId_fkey")
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
-  @@index([targetType, status])
-  @@index([productId])
-  @@index([serviceId])
-  @@index([createdAt])
+  @@index([targetType, status], map: "Feedback_targetType_status_idx")
+  @@index([productId], map: "Feedback_productId_idx")
+  @@index([serviceId], map: "Feedback_serviceId_idx")
+  @@index([createdAt], map: "Feedback_createdAt_idx")
+  @@map("crm_Feedback")
 }
 
 model InventoryProductImage {
@@ -1083,16 +1152,16 @@ model InventoryProductImage {
   imageUrl  String
   isMain    Boolean          @default(false)
   sortOrder Int              @default(0)
-  product   InventoryProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   InventoryProduct @relation(fields: [productId], references: [id], onDelete: Cascade, map: "products_images_productId_fkey")
   createdAt DateTime         @default(now())
 
-  @@index([productId, sortOrder])
-  @@map("products_images")
+  @@index([productId, sortOrder], map: "products_images_productId_sortOrder_idx")
+  @@map("inventory_InventoryProductImage")
 }
 
 model InventoryWarehouse {
   id        String              @id @default(cuid())
-  code      String              @unique
+  code      String              @unique(map: "InventoryWarehouse_code_key")
   name      String
   location  String?
   status    String              @default("active")
@@ -1101,6 +1170,8 @@ model InventoryWarehouse {
   sales     PosSale[]
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
+
+  @@map("inventory_InventoryWarehouse")
 }
 
 model InventoryStock {
@@ -1109,11 +1180,12 @@ model InventoryStock {
   warehouseId  String
   quantity     Float              @default(0)
   reorderLevel Float              @default(0)
-  product      InventoryProduct   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  warehouse    InventoryWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  product      InventoryProduct   @relation(fields: [productId], references: [id], onDelete: Cascade, map: "InventoryStock_productId_fkey")
+  warehouse    InventoryWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade, map: "InventoryStock_warehouseId_fkey")
 
-  @@unique([productId, warehouseId])
-  @@index([warehouseId])
+  @@unique([productId, warehouseId], map: "InventoryStock_productId_warehouseId_key")
+  @@index([warehouseId], map: "InventoryStock_warehouseId_idx")
+  @@map("inventory_InventoryStock")
 }
 
 model InventoryMovement {
@@ -1125,17 +1197,18 @@ model InventoryMovement {
   reference    String?
   notes        String?
   occurredAt   DateTime           @default(now())
-  product      InventoryProduct   @relation(fields: [productId], references: [id], onDelete: Restrict)
-  warehouse    InventoryWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  product      InventoryProduct   @relation(fields: [productId], references: [id], onDelete: Restrict, map: "InventoryMovement_productId_fkey")
+  warehouse    InventoryWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict, map: "InventoryMovement_warehouseId_fkey")
 
-  @@index([occurredAt])
-  @@index([productId])
-  @@index([warehouseId])
+  @@index([occurredAt], map: "InventoryMovement_occurredAt_idx")
+  @@index([productId], map: "InventoryMovement_productId_idx")
+  @@index([warehouseId], map: "InventoryMovement_warehouseId_idx")
+  @@map("inventory_InventoryMovement")
 }
 
 model PosSale {
   id             String             @id @default(cuid())
-  saleNumber     String             @unique
+  saleNumber     String             @unique(map: "PosSale_saleNumber_key")
   warehouseId    String
   customerName   String?
   paymentMethod  String
@@ -1149,13 +1222,14 @@ model PosSale {
   cashierName    String?
   notes          String?
   soldAt         DateTime           @default(now())
-  warehouse      InventoryWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  warehouse      InventoryWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict, map: "PosSale_warehouseId_fkey")
   items          PosSaleItem[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
-  @@index([soldAt])
-  @@index([status])
+  @@index([soldAt], map: "PosSale_soldAt_idx")
+  @@index([status], map: "PosSale_status_idx")
+  @@map("pos_PosSale")
 }
 
 model PosSaleItem {
@@ -1166,11 +1240,12 @@ model PosSaleItem {
   unitPrice Float
   taxRate   Float            @default(0)
   lineTotal Float
-  sale      PosSale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product   InventoryProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+  sale      PosSale          @relation(fields: [saleId], references: [id], onDelete: Cascade, map: "PosSaleItem_saleId_fkey")
+  product   InventoryProduct @relation(fields: [productId], references: [id], onDelete: Restrict, map: "PosSaleItem_productId_fkey")
 
-  @@index([saleId])
-  @@index([productId])
+  @@index([saleId], map: "PosSaleItem_saleId_idx")
+  @@index([productId], map: "PosSaleItem_productId_idx")
+  @@map("pos_PosSaleItem")
 }
 
 model AuditLog {
@@ -1188,9 +1263,26 @@ model AuditLog {
   durationMs Int
   createdAt  DateTime @default(now())
 
-  @@index([createdAt])
-  @@index([userId, createdAt])
-  @@index([module, createdAt])
-  @@index([action, createdAt])
-  @@index([statusCode, createdAt])
+  @@index([createdAt], map: "AuditLog_createdAt_idx")
+  @@index([userId, createdAt], map: "AuditLog_userId_createdAt_idx")
+  @@index([module, createdAt], map: "AuditLog_module_createdAt_idx")
+  @@index([action, createdAt], map: "AuditLog_action_createdAt_idx")
+  @@index([statusCode, createdAt], map: "AuditLog_statusCode_createdAt_idx")
+  @@map("system_AuditLog")
+}
+
+model DoctorSpecialization {
+  id    String        @id @default(cuid())
+  name  String        @unique
+  staff HealthStaff[]
+
+  @@map("healthcare_DoctorSpecialization")
+}
+
+model SystemSetting {
+  category  String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("system_Settings")
 }

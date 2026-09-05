@@ -1,3 +1,13 @@
+import { z } from "zod";
+import { prisma } from "../../shared/database/client.js";
+import { createCrudController } from "../../shared/controllers/crud.controller.js";
+const specializations = createCrudController({
+  list: () => prisma.doctorSpecialization.findMany({ orderBy: { name: "asc" } }),
+  create: (data) => prisma.doctorSpecialization.create({ data }),
+  update: (id, data) => prisma.doctorSpecialization.update({ where: { id }, data }),
+  remove: (id) => prisma.doctorSpecialization.delete({ where: { id } }),
+});
+const specializationSchema = z.object({ name: z.string().trim().min(1).max(191) });
 import { Router } from "express";
 import { requireAuth } from "../../shared/middleware/auth.middleware.js";
 import {
@@ -11,6 +21,10 @@ const router = Router();
 router.use(requireAuth);
 const view = requirePermission("employees.view"),
   manage = requirePermission("employees.manage");
+router.get("/specializations", view, specializations.list);
+router.post("/specializations", manage, validate(specializationSchema), specializations.create);
+router.patch("/specializations/:id", manage, validate(specializationSchema), specializations.update);
+router.delete("/specializations/:id", manage, specializations.remove);
 router.get(
   "/departments",
   requireAnyPermission("employees.view", "users.create", "users.update"),

@@ -1,3 +1,4 @@
+import { useSettings } from "@/features/settings/settings";
 import { useState } from "react";
 import { LoaderCircle, ShieldAlert } from "lucide-react";
 import { apiErrorMessage } from "@/shared/api/client";
@@ -17,7 +18,9 @@ export function DeleteConfirmationDialog({
   description,
   onOpenChange,
   onConfirm,
+  alwaysRequirePassword = false,
 }: {
+  alwaysRequirePassword?: boolean;
   open: boolean;
   title: string;
   description: string;
@@ -25,6 +28,9 @@ export function DeleteConfirmationDialog({
   onConfirm: (password: string) => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const settings = useSettings();
+  const requirePassword =
+    alwaysRequirePassword || settings?.security.passwordForDeletion !== false;
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -62,19 +68,21 @@ export function DeleteConfirmationDialog({
         </DialogHeader>
         <form className="space-y-4" onSubmit={submit}>
           <p className="text-sm text-muted-foreground">{description}</p>
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold">
-              {t("common.superAdminPassword")}
-            </label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t("common.enterPassword")}
-              autoFocus
-              required
-            />
-          </div>
+          {requirePassword && (
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold">
+                {t("common.superAdminPassword")}
+              </label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={t("common.enterPassword")}
+                autoFocus
+                required
+              />
+            </div>
+          )}
           {error && (
             <p className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
               {error}
@@ -92,7 +100,7 @@ export function DeleteConfirmationDialog({
             <Button
               type="submit"
               variant="destructive"
-              disabled={!password || busy}
+              disabled={(requirePassword && !password) || busy}
             >
               {busy && <LoaderCircle className="size-4 animate-spin" />}
               {busy ? t("common.deleting") : t("common.deletePermanently")}

@@ -4,6 +4,6 @@ export const salarySchema = z.object({
   baseSalary: z.coerce.number().nonnegative(),
   currencyId: z.string().trim().min(1),
   payType: z.string().trim().min(1),
-  effectiveFrom: z.coerce.date(),
+  effectiveFrom: z.coerce.date().optional(),
   effectiveTo: z.union([z.coerce.date(), z.null()]).optional(),
 });

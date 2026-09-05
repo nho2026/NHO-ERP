@@ -1,3 +1,4 @@
+import { useSettings } from "@/features/settings/settings";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import {
@@ -24,10 +25,17 @@ type Props = {
   includeTime?: boolean;
   mode?: "date" | "month";
   required?: boolean;
+  minDate?: Date;
 };
 function parseValue(value?: string, month = false) {
   if (!value) return undefined;
-  const parsed = new Date(month ? `${value}-01T12:00:00` : value);
+  const parsed = new Date(
+    month
+      ? `${value}-01T12:00:00`
+      : /^\d{4}-\d{2}-\d{2}$/.test(value)
+        ? `${value}T00:00:00`
+        : value,
+  );
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 export function FormDatePicker({
@@ -38,8 +46,12 @@ export function FormDatePicker({
   includeTime = false,
   mode = "date",
   required,
+  minDate,
 }: Props) {
   const { t, i18n } = useTranslation();
+  const system = useSettings()?.system;
+  const language = i18n.resolvedLanguage || i18n.language;
+  const dateLocale = language.split("-")[0] === "ku" ? "ckb-IQ" : language;
   const isMonth = mode === "month";
   const initialDate = parseValue(controlledValue ?? initialValue, isMonth);
   const [open, setOpen] = useState(false);
@@ -54,7 +66,10 @@ export function FormDatePicker({
     if (controlledValue !== undefined) {
       const next = parseValue(controlledValue, isMonth);
       setDate(next);
-      if (next) setDisplayYear(next.getFullYear());
+      if (next) {
+        setDisplayYear(next.getFullYear());
+        setTime(format(next, "HH:mm"));
+      }
     }
   }, [controlledValue, isMonth]);
   const output = date
@@ -76,19 +91,21 @@ export function FormDatePicker({
     onValueChange?.(nextValue);
   };
   const label = date
-    ? new Intl.DateTimeFormat(
-        i18n.resolvedLanguage,
-        isMonth
-          ? { year: "numeric", month: "long" }
-          : {
-              dateStyle: "medium",
-              ...(includeTime ? { timeStyle: "short" as const } : {}),
-            },
-      ).format(
-        includeTime && !isMonth
-          ? new Date(`${format(date, "yyyy-MM-dd")}T${time}`)
-          : date,
-      )
+    ? !isMonth && system
+      ? `${format(date, system.dateFormat)}${includeTime ? ` ${time}` : ""}`
+      : new Intl.DateTimeFormat(
+          dateLocale,
+          isMonth
+            ? { year: "numeric", month: "long" }
+            : {
+                dateStyle: "medium",
+                ...(includeTime ? { timeStyle: "short" as const } : {}),
+              },
+        ).format(
+          includeTime && !isMonth
+            ? new Date(`${format(date, "yyyy-MM-dd")}T${time}`)
+            : date,
+        )
     : t(
         isMonth
           ? "datePicker.pickMonth"
@@ -117,7 +134,7 @@ export function FormDatePicker({
             <ChevronDownIcon className="size-4 opacity-60" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0" align="start" dir={i18n.dir()}>
           {isMonth ? (
             <div className="w-72 p-3">
               <div className="mb-3 flex items-center justify-between">
@@ -125,15 +142,21 @@ export function FormDatePicker({
                   type="button"
                   size="icon"
                   variant="ghost"
+                  aria-label={t("monthPicker.previousYear")}
                   onClick={() => setDisplayYear((year) => year - 1)}
                 >
                   <ChevronLeft className="size-4 rtl:rotate-180" />
                 </Button>
-                <strong>{displayYear}</strong>
+                <strong>
+                  {new Intl.NumberFormat(dateLocale, {
+                    useGrouping: false,
+                  }).format(displayYear)}
+                </strong>
                 <Button
                   type="button"
                   size="icon"
                   variant="ghost"
+                  aria-label={t("monthPicker.nextYear")}
                   onClick={() => setDisplayYear((year) => year + 1)}
                 >
                   <ChevronRight className="size-4 rtl:rotate-180" />
@@ -156,7 +179,7 @@ export function FormDatePicker({
                       setOpen(false);
                     }}
                   >
-                    {new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+                    {new Intl.DateTimeFormat(dateLocale, {
                       month: "short",
                     }).format(month)}
                   </Button>
@@ -166,6 +189,7 @@ export function FormDatePicker({
           ) : (
             <Calendar
               mode="single"
+              disabled={minDate ? { before: minDate } : undefined}
               selected={date}
               defaultMonth={date}
               onSelect={(selected) => {
@@ -179,6 +203,7 @@ export function FormDatePicker({
               <CalendarIcon className="size-4 text-muted-foreground" />
               <Input
                 type="time"
+                dir="ltr"
                 value={time}
                 onChange={(event) => {
                   setTime(event.target.value);

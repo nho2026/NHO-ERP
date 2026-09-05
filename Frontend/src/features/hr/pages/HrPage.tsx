@@ -1,3 +1,4 @@
+import { settingsSnapshot } from "@/features/settings/settings";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Gift, Pencil, Plus, Printer, Search, Trash2 } from "lucide-react";
@@ -145,20 +146,12 @@ const configs: Record<
         type: "select",
         options: ["monthly", "daily", "hourly"],
       },
-      {
-        name: "effectiveFrom",
-        label: "Effective from",
-        type: "date",
-        required: true,
-      },
-      { name: "effectiveTo", label: "Effective to", type: "date" },
     ],
     columns: [
       ["employee", "Employee"],
       ["baseSalary", "Base salary"],
       ["currencyId", "Currency"],
       ["payType", "Pay type"],
-      ["effectiveFrom", "Effective from"],
     ],
   },
   attendance: {
@@ -425,10 +418,20 @@ export default function HrPage({ resource }: { resource?: Resource }) {
             String(department.name),
           ])
         : field.type === "employee"
-          ? employees.data?.map((e) => [
-              e.id,
-              `${e.employeeCode} — ${e.firstName} ${e.lastName}`,
-            ])
+          ? (employees.data ?? [])
+              .filter(
+                (employee) =>
+                  tab !== "salaries" ||
+                  employee.id === editing?.employeeId ||
+                  (salaries.data != null &&
+                    !salaries.data.some(
+                      (salary) => salary.employeeId === employee.id,
+                    )),
+              )
+              .map((e) => [
+                e.id,
+                `${e.employeeCode} — ${e.firstName} ${e.lastName}`,
+              ])
           : field.type === "teamLeader"
             ? employees.data
                 ?.filter((e) => e.isTeamLeader && e.id !== editing?.id)
@@ -655,7 +658,13 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                   {choices ? (
                     <Select
                       name={field.name}
-                      defaultValue={String(initial ?? "__none__")}
+                      defaultValue={
+                        initial != null
+                          ? String(initial)
+                          : field.required
+                            ? undefined
+                            : "__none__"
+                      }
                       required={field.required}
                     >
                       <SelectTrigger className="w-full">
@@ -707,9 +716,9 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                       defaultValue={String(
                         initial ??
                           (field.name === "checkInTime"
-                            ? "09:00"
+                            ? (settingsSnapshot()?.hr.startTime ?? "09:00")
                             : field.name === "checkOutTime"
-                              ? "17:00"
+                              ? (settingsSnapshot()?.hr.endTime ?? "17:00")
                               : ""),
                       )}
                       required={field.required}
@@ -834,8 +843,6 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                 <th>{t("hr.baseSalary")}</th>
                 <th>{t("hr.currency")}</th>
                 <th>{t("hr.payType")}</th>
-                <th>{t("hr.effectiveFrom")}</th>
-                <th>{t("hr.effectiveTo")}</th>
               </tr>
             </thead>
             <tbody>
@@ -846,8 +853,6 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                   <td>{Number(row.baseSalary).toLocaleString()}</td>
                   <td>{String(row.currencyId)}</td>
                   <td>{tr(String(row.payType))}</td>
-                  <td>{display(row, "effectiveFrom")}</td>
-                  <td>{display(row, "effectiveTo")}</td>
                 </tr>
               ))}
             </tbody>

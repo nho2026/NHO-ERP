@@ -14,3 +14,17 @@ contextBridge.exposeInMainWorld("electronWindow", {
   openMediaSettings: (kind) =>
     ipcRenderer.invoke("permissions:open-media-settings", kind),
 });
+
+contextBridge.exposeInMainWorld("electronUpdater", {
+  state: () => ipcRenderer.invoke("updater:state"),
+  check: () => ipcRenderer.invoke("updater:check"),
+  download: () => ipcRenderer.invoke("updater:download"),
+  install: (language) => ipcRenderer.invoke("updater:install", language),
+  automatic: (value) => ipcRenderer.invoke("updater:automatic", value),
+  meeting: (value) => ipcRenderer.invoke("updater:meeting", value),
+  onState: (callback) => {
+    const listener = (_event, state) => callback(state);
+    ipcRenderer.on("updater:state", listener);
+    return () => ipcRenderer.removeListener("updater:state", listener);
+  },
+});

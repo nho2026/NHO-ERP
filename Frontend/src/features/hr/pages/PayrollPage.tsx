@@ -75,38 +75,46 @@ export default function PayrollPage() {
   );
   const rows = useMemo(
     () =>
-      (employees.data ?? []).map((employee) => {
-        const salary = activeSalaryFor(employee.id, salaries.data ?? [], month);
-        const records = deviceRecords.filter(
-          (record) => record.employeeId === employee.id,
-        );
-        const minutesLost = records.reduce(
-          (sum, row) => sum + lostMinutes(row, permissions.data ?? []),
-          0,
-        );
-        const employeeAdjustments = (adjustments.data ?? []).filter(
-          (adjustment) => adjustment.employeeId === employee.id,
-        );
-        const rewardAmount = employeeAdjustments
-          .filter((adjustment) => adjustment.type === "reward")
-          .reduce((sum, adjustment) => sum + Number(adjustment.amount), 0);
-        const punishmentAmount = employeeAdjustments
-          .filter((adjustment) => adjustment.type === "punishment")
-          .reduce((sum, adjustment) => sum + Number(adjustment.amount), 0);
-        return {
-          employee,
-          salary,
-          minutesLost,
-          adjustments: employeeAdjustments,
-          ...payrollAmounts(
-            Number(salary?.baseSalary ?? 0),
+      (employees.data ?? [])
+        .filter((employee) =>
+          Boolean(activeSalaryFor(employee.id, salaries.data ?? [], month)),
+        )
+        .map((employee) => {
+          const salary = activeSalaryFor(
+            employee.id,
+            salaries.data ?? [],
+            month,
+          );
+          const records = deviceRecords.filter(
+            (record) => record.employeeId === employee.id,
+          );
+          const minutesLost = records.reduce(
+            (sum, row) => sum + lostMinutes(row, permissions.data ?? []),
+            0,
+          );
+          const employeeAdjustments = (adjustments.data ?? []).filter(
+            (adjustment) => adjustment.employeeId === employee.id,
+          );
+          const rewardAmount = employeeAdjustments
+            .filter((adjustment) => adjustment.type === "reward")
+            .reduce((sum, adjustment) => sum + Number(adjustment.amount), 0);
+          const punishmentAmount = employeeAdjustments
+            .filter((adjustment) => adjustment.type === "punishment")
+            .reduce((sum, adjustment) => sum + Number(adjustment.amount), 0);
+          return {
+            employee,
+            salary,
             minutesLost,
-            scheduledMinutes(employee) / 60,
-            rewardAmount,
-            punishmentAmount,
-          ),
-        };
-      }),
+            adjustments: employeeAdjustments,
+            ...payrollAmounts(
+              Number(salary?.baseSalary ?? 0),
+              minutesLost,
+              scheduledMinutes(employee) / 60,
+              rewardAmount,
+              punishmentAmount,
+            ),
+          };
+        }),
     [
       adjustments.data,
       employees.data,
@@ -132,14 +140,20 @@ export default function PayrollPage() {
             )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <MonthPicker
             value={month}
             onValueChange={setMonth}
             locale={i18n.resolvedLanguage}
             label={tx("attendanceMonth", "Attendance month")}
+            className="flex-1 sm:flex-none"
           />
-          <Button variant="outline" onClick={printDocument}>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 gap-2 px-4"
+            onClick={printDocument}
+          >
             <Printer className="size-4" />
             {tx("print", "Print")}
           </Button>

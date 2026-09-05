@@ -1,3 +1,5 @@
+import { startReminders } from "./modules/settings/settings.reminders.js";
+import { startBackupSchedule } from "./modules/settings/settings.backups.js";
 import { app } from "./app.js";
 import { createServer } from "node:http";
 import { env } from "./config/environment.js";
@@ -8,6 +10,8 @@ import {
 } from "./modules/attendance/events/events.live.js";
 import { attachMeetingSignaling } from "./modules/meetings/meetings.signaling.js";
 
+const stopReminders = startReminders();
+const stopBackups = startBackupSchedule();
 const server = createServer(app);
 attachMeetingSignaling(
   server,
@@ -22,6 +26,8 @@ startAttendanceStreams().catch((error) =>
 );
 const shutdown = async () => {
   stopAttendanceStreams();
+  stopBackups();
+  stopReminders();
   server.close();
   await prisma.$disconnect();
   process.exit(0);

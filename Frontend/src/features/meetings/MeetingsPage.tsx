@@ -1,3 +1,8 @@
+import {
+  loadSettings,
+  useSettings,
+  settingsSnapshot,
+} from "@/features/settings/settings";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import {
@@ -209,6 +214,9 @@ export default function MeetingsPage() {
   const [departmentId, setDepartmentId] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [active, setActive] = useState<Meeting | null>(null);
+  const policy = useSettings()?.meetings;
+  const policyRef = useRef(policy);
+  policyRef.current = policy;
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraFacing, setCameraFacing] = useState<"user" | "environment">(
     "user",
@@ -359,6 +367,8 @@ export default function MeetingsPage() {
         );
       pc.ondatachannel = ({ channel }) => configureChannel(peerId, channel);
       pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "connected")
+          void applyBitrate(pc, policyRef.current);
         if (["failed", "closed"].includes(pc.connectionState))
           setRemoteStreams(
             (current) =>
@@ -390,10 +400,12 @@ export default function MeetingsPage() {
           if (!pc.getSenders().some((sender) => sender.track === track))
             pc.addTrack(track, stream);
       await makeOffer(id, pc);
+      await applyBitrate(pc, policyRef.current);
     }
   }, [makeOffer]);
 
   const leave = useCallback(() => {
+    void window.electronUpdater?.meeting(false);
     socketRef.current?.disconnect();
     socketRef.current = null;
     peersRef.current.forEach((peer) => peer.close());
@@ -423,6 +435,12 @@ export default function MeetingsPage() {
   const join = async (code: string) => {
     if (!code.trim()) return;
     leave();
+    try {
+      policyRef.current = (await loadSettings()).meetings;
+    } catch {
+      toast.error("Unable to load meeting settings.");
+      return;
+    }
     const socket = io(socketUrl, {
       withCredentials: true,
       transports: ["polling"],
@@ -438,6 +456,7 @@ export default function MeetingsPage() {
       ]);
       const pc = createPeer(id, name, true);
       await makeOffer(id, pc);
+      await applyBitrate(pc, policyRef.current);
     });
     socket.on("webrtc:offer", async ({ from, name, payload }) => {
       const pc = createPeer(from, name, false);
@@ -512,6 +531,11 @@ export default function MeetingsPage() {
           return;
         }
         setActive(reply.meeting);
+        void window.electronUpdater?.meeting(true);
+        const defaults = settingsSnapshot()?.meetings;
+        if (defaults?.cameraDefault && defaults.videoQuality !== "audio_only")
+          void startCamera();
+        if (defaults?.microphoneDefault) void startMicrophone();
         setChatConnected(true);
         setRoomCode(reply.meeting.roomCode);
         setParticipants([
@@ -525,13 +549,20 @@ export default function MeetingsPage() {
   };
 
   const startCamera = async (facing: "user" | "environment" = cameraFacing) => {
+    if (policyRef.current?.videoQuality === "audio_only") {
+      toast.info("Video is disabled by the meeting audio-only policy.");
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia) {
       toast.error(t("liveMeetings.errors.cameraSecure"), { duration: 10_000 });
       return;
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: facing } },
+        video: {
+          facingMode: { ideal: facing },
+          ...cameraConstraints(policyRef.current),
+        },
         audio: false,
       });
       localStreamsRef.current.push(stream);
@@ -609,8 +640,10 @@ export default function MeetingsPage() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
+          echoCancellation: policyRef.current?.echoCancellation ?? true,
+          noiseSuppression: policyRef.current?.noiseSuppression ?? true,
+          channelCount: policyRef.current?.audioQuality === "high" ? 2 : 1,
+          sampleRate: policyRef.current?.audioQuality === "low" ? 16000 : 48000,
           autoGainControl: true,
         },
         video: false,
@@ -670,15 +703,27 @@ export default function MeetingsPage() {
     }
   };
   const startScreen = async () => {
+    if (policyRef.current?.screenSharing === false) {
+      toast.info("Screen sharing is disabled in meeting settings.");
+      return;
+    }
     if (!navigator.mediaDevices?.getDisplayMedia) {
       toast.error(t("liveMeetings.errors.screenSecure"));
       return;
     }
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
+        video: {
+          frameRate: {
+            ideal: policyRef.current?.screenQuality === "video" ? 30 : 5,
+          },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
         audio: true,
       });
+      stream.getVideoTracks()[0].contentHint =
+        policyRef.current?.screenQuality === "video" ? "motion" : "detail";
       localStreamsRef.current.push(stream);
       setScreenStream(stream);
       stream.getVideoTracks()[0].onended = () =>
@@ -1333,4 +1378,61 @@ export default function MeetingsPage() {
       </aside>
     </div>
   );
+}
+
+function cameraConstraints(
+  policy: { videoQuality: string; maxVideoQuality: string } | undefined,
+): MediaTrackConstraints {
+  const levels: Record<string, number> = {
+    "360p": 360,
+    "720p": 720,
+    "1080p": 1080,
+  };
+  const height = Math.min(
+    levels[policy?.videoQuality ?? ""] ?? 720,
+    levels[policy?.maxVideoQuality ?? ""] ?? 1080,
+  );
+  return {
+    height: { ideal: height, max: height },
+    width: {
+      ideal: Math.round((height * 16) / 9),
+      max: Math.round((height * 16) / 9),
+    },
+    frameRate: { ideal: 30, max: 30 },
+  };
+}
+async function applyBitrate(
+  pc: RTCPeerConnection,
+  policy:
+    | { videoQuality: string; maxVideoQuality: string; audioQuality: string }
+    | undefined,
+) {
+  for (const sender of pc.getSenders()) {
+    if (!sender.track) continue;
+    const parameters = sender.getParameters();
+    if (!parameters.encodings?.length) continue;
+    const height = Number(
+      cameraConstraints(policy).height &&
+        (cameraConstraints(policy).height as ConstrainULongRange).max,
+    );
+    const bitrate =
+      sender.track.kind === "audio"
+        ? policy?.audioQuality === "low"
+          ? 24000
+          : policy?.audioQuality === "high"
+            ? 128000
+            : 64000
+        : sender.track.contentHint === "detail" ||
+            sender.track.contentHint === "motion"
+          ? 3000000
+          : height <= 360
+            ? 500000
+            : height <= 720
+              ? 1500000
+              : 3000000;
+    parameters.encodings.forEach((encoding) => {
+      encoding.maxBitrate = bitrate;
+    });
+    await sender.setParameters(parameters).catch(() => {});
+  }
 }

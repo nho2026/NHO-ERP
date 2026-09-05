@@ -180,6 +180,7 @@ app.whenReady().then(() => {
     },
     { useSystemPicker: true },
   );
+  require("./updater.cjs").setupUpdater();
   createWindow();
 
   app.on("activate", () => {

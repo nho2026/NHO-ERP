@@ -213,6 +213,31 @@
         <div class="app-loader__progress" aria-hidden="true"></div>
       </div>
     </div>
+    <script>
+      (() => {
+        try {
+          const branding = JSON.parse(localStorage.getItem("nho-branding") || "null");
+          const language = (localStorage.getItem("nho-language") || navigator.language || "en").split("-")[0];
+          const loading = { en: "Loading your workspace…", ar: "جارٍ تحميل مساحة العمل…", ku: "بۆشایی کارەکەت بار دەکرێت…" };
+          const caption = branding?.loadingText || loading[language] || loading.en;
+          document.querySelector(".app-loader__caption").textContent = caption;
+          document.getElementById("app-loader").setAttribute("aria-label", caption);
+          document.querySelector(".app-loader__content").dir = ["ar", "ku"].includes(language) ? "rtl" : "ltr";
+          if (branding && typeof branding.name === "string") {
+            document.title = branding.name;
+            document.querySelector(".app-loader__name").textContent = branding.name;
+            const image = document.querySelector(".app-loader__logo");
+            image.alt = branding.name;
+            if (typeof branding.logo === "string" && (/^https:\/\//.test(branding.logo) || /^data:image\/(png|jpeg|webp);base64,/.test(branding.logo))) {
+              const fallback = image.src;
+              image.onerror = () => { image.onerror = null; image.src = fallback; };
+              image.src = branding.logo;
+              document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(icon => { icon.href = branding.logo; });
+            }
+          }
+        } catch { /* Keep the default loader if browser storage is unavailable. */ }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

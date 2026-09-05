@@ -1,3 +1,4 @@
+import { defaults } from "../../settings/settings.schema.js";
 import { prisma } from "../../../shared/database/client.js";
 const invoiceInclude = {
   customer: true,
@@ -22,7 +23,30 @@ export const billingModel = {
       take: 1000,
     }),
   createInvoice: (data) =>
-    prisma.billingInvoice.create({ data, include: invoiceInclude }),
+    prisma.$transaction(async (tx) => {
+      await tx.systemSetting.upsert({
+        where: { category: "finance" },
+        create: { category: "finance", value: defaults.finance },
+        update: {},
+      });
+      await tx.$queryRaw`SELECT category FROM system_Settings WHERE category = 'finance' FOR UPDATE`;
+      const row = await tx.systemSetting.findUniqueOrThrow({
+        where: { category: "finance" },
+      });
+      const policy = { ...defaults.finance, ...row.value };
+      const invoiceNumber = `${policy.invoicePrefix}-${String(policy.invoiceNextNumber).padStart(6, "0")}`;
+      const invoice = await tx.billingInvoice.create({
+        data: { ...data, invoiceNumber },
+        include: invoiceInclude,
+      });
+      await tx.systemSetting.update({
+        where: { category: "finance" },
+        data: {
+          value: { ...policy, invoiceNextNumber: policy.invoiceNextNumber + 1 },
+        },
+      });
+      return invoice;
+    }),
   findInvoice: (id) =>
     prisma.billingInvoice.findUniqueOrThrow({ where: { id } }),
   updateInvoiceStatus: (id, status) =>

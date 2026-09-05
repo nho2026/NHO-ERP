@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,19 +28,24 @@ export function MonthPicker({
   value,
   onValueChange,
   locale,
-  label = "Select month",
+  label,
   className,
 }: MonthPickerProps) {
+  const { t, i18n } = useTranslation();
+  const language = locale || i18n.resolvedLanguage || i18n.language;
+  const dateLocale = language.split("-")[0] === "ku" ? "ckb-IQ" : language;
+  const pickerLabel = label || t("monthPicker.selectMonth");
   const selected = parseMonth(value);
   const [open, setOpen] = useState(false);
   const [visibleYear, setVisibleYear] = useState(selected.year);
   const formatter = useMemo(
-    () => new Intl.DateTimeFormat(locale, { month: "short" }),
-    [locale],
+    () => new Intl.DateTimeFormat(dateLocale, { month: "short" }),
+    [dateLocale],
   );
   const displayFormatter = useMemo(
-    () => new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }),
-    [locale],
+    () =>
+      new Intl.DateTimeFormat(dateLocale, { month: "long", year: "numeric" }),
+    [dateLocale],
   );
   const months = useMemo(
     () =>
@@ -50,7 +56,9 @@ export function MonthPicker({
   );
 
   const selectMonth = (month: number) => {
-    onValueChange(`${visibleYear}-${String(month + 1).padStart(2, "0")}`);
+    onValueChange(
+      `${new Intl.NumberFormat(dateLocale, { useGrouping: false }).format(visibleYear)}-${String(month + 1).padStart(2, "0")}`,
+    );
     setOpen(false);
   };
 
@@ -66,7 +74,7 @@ export function MonthPicker({
         <Button
           type="button"
           variant="outline"
-          aria-label={label}
+          aria-label={pickerLabel}
           className={cn(
             "h-11 min-w-48 justify-start gap-2 bg-background font-medium shadow-sm",
             className,
@@ -76,33 +84,39 @@ export function MonthPicker({
           {displayFormatter.format(new Date(selected.year, selected.month, 1))}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-3" align="end">
+      <PopoverContent className="w-72 p-3" align="end" dir={i18n.dir()}>
         <div className="mb-3 flex items-center justify-between">
           <Button
             type="button"
             variant="outline"
             size="icon"
             className="size-8"
-            aria-label="Previous year"
+            aria-label={t("monthPicker.previousYear")}
             onClick={() => setVisibleYear((year) => year - 1)}
           >
             <ChevronLeft className="size-4 rtl:rotate-180" />
           </Button>
           <span className="text-sm font-semibold tabular-nums">
-            {visibleYear}
+            {new Intl.NumberFormat(dateLocale, { useGrouping: false }).format(
+              visibleYear,
+            )}
           </span>
           <Button
             type="button"
             variant="outline"
             size="icon"
             className="size-8"
-            aria-label="Next year"
+            aria-label={t("monthPicker.nextYear")}
             onClick={() => setVisibleYear((year) => year + 1)}
           >
             <ChevronRight className="size-4 rtl:rotate-180" />
           </Button>
         </div>
-        <div className="grid grid-cols-3 gap-1" role="grid" aria-label={label}>
+        <div
+          className="grid grid-cols-3 gap-1"
+          role="grid"
+          aria-label={pickerLabel}
+        >
           {months.map((name, month) => {
             const active =
               selected.year === visibleYear && selected.month === month;

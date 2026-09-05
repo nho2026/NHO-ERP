@@ -452,6 +452,11 @@ async function seed() {
       status: "approved",
     },
   });
+  await prisma.doctorSpecialization.upsert({
+    where: { name: "Cardiology" },
+    update: {},
+    create: { name: "Cardiology" },
+  });
   await prisma.healthStaff.upsert({
     where: { employeeId: doctorEmployee.id },
     update: {

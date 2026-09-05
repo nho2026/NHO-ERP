@@ -12,10 +12,10 @@ export const employeeSchema = z.object({
   checkInTime: z
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
-    .default("09:00"),
+    .optional(),
   checkOutTime: z
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
-    .default("17:00"),
+    .optional(),
   status: z.enum(["active", "inactive", "terminated"]).default("active"),
 });

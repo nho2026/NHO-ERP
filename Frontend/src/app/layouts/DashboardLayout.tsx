@@ -1,3 +1,4 @@
+import { loadSettings, useSettings, settingsSnapshot } from "@/features/settings/settings";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -88,6 +89,7 @@ import {
 } from "@/features/notifications/api/notifications.api";
 
 function notificationRoute(notification: NotificationItem) {
+  if (notification.route?.startsWith("/")) return notification.route;
   if (notification.task) return `/tasks/${notification.task.id}`;
   if (notification.meeting) return "/meetings";
   if (notification.warning) return "/hr/warnings";
@@ -328,6 +330,8 @@ export default function DashboardLayout() {
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const systemSettings = useSettings();
+  useEffect(() => { void loadSettings().catch(() => {}); }, []);
   const location = useLocation();
   useEffect(() => {
     const focusNavigationSearch = (event: KeyboardEvent) => {
@@ -371,15 +375,16 @@ export default function DashboardLayout() {
                   !notification.readAt && !previousIds.has(notification.id),
               )
               .forEach((notification) => {
-                window.electronWindow?.showNotification({
+                if (settingsSnapshot()?.notifications.desktopAlerts !== false) window.electronWindow?.showNotification({
                   title:
+                    notification.title ??
                     notification.warning?.title ??
                     notification.meeting?.title ??
                     notification.task?.title ??
                     "NHO ERP",
-                  body: notification.warning
+                  body: notification.body ?? (notification.warning
                     ? notification.warning.message
-                    : notificationLabel(notification.type, t),
+                    : notificationLabel(notification.type, t)),
                   route: notificationRoute(notification),
                 });
               });
@@ -459,7 +464,7 @@ export default function DashboardLayout() {
     if (location.pathname === "/employee-portal")
       return t("employeePortal.title");
     if (location.pathname === "/profile") return t("navigation.profile");
-    return item ? t(item.label) : "NHO Workspace";
+    return item ? t(item.label) : (systemSettings?.organization.name || "NHO Workspace");
   })();
   const normalizedNavigationSearch = navigationSearch
     .trim()
@@ -567,23 +572,19 @@ export default function DashboardLayout() {
           >
             {collapsed ? (
               <>
-                <HeartPulse
-                  className="hidden size-5 lg:block"
-                  aria-label="NHO"
-                />
                 <img
-                  className="size-8 object-contain lg:hidden"
-                  src={logo}
-                  alt="NHO"
+                  className="size-8 object-contain"
+                  src={systemSettings?.organization.logo || logo}
+                  alt={systemSettings?.organization.name || "NHO"}
                 />
               </>
             ) : (
-              <img className="size-8 object-contain" src={logo} alt="NHO" />
+              <img className="size-8 object-contain" src={systemSettings?.organization.logo || logo} alt={systemSettings?.organization.name || "NHO"} />
             )}
           </span>
           <div className={`min-w-0 flex-1 ${collapsed ? "lg:hidden" : ""}`}>
             <strong className="block truncate text-[12px] font-bold leading-4 tracking-wide">
-              NHO Workspace
+              {systemSettings?.organization.name || "NHO Workspace"}
             </strong>
             <span className="mt-0.5 block truncate text-[9px] font-medium text-muted-foreground">
               Management system
@@ -1003,6 +1004,7 @@ export default function DashboardLayout() {
               ].map(([Icon, label]) => (
                 <button
                   key={String(label)}
+                  onClick={() => { if (label === "navigation.settings") navigate("/settings"); }}
                   className={`flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-[13px] text-muted-foreground transition-colors hover:bg-primary/7 hover:text-primary ${collapsed ? "lg:justify-center lg:px-0" : ""}`}
                 >
                   <Icon className="size-4.25 stroke-[1.7]" />
@@ -1103,7 +1105,7 @@ export default function DashboardLayout() {
               {pageTitle}
             </p>
             <p className="hidden text-[10px] text-muted-foreground md:block">
-              NHO Management System
+              {systemSettings?.organization.name || "NHO ERP"}
             </p>
           </div>
           <div className="ms-auto hidden w-full max-w-72 md:block">
@@ -1208,12 +1210,12 @@ export default function DashboardLayout() {
                     />
                     <span className="min-w-0">
                       <span className="block text-xs font-semibold">
-                        {notificationLabel(notification.type, t)}
+                        {notification.title ?? notificationLabel(notification.type, t)}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
                         {notification.warning?.title ??
                           notification.meeting?.title ??
-                          notification.task?.title ??
+                          notification.body ?? notification.task?.title ??
                           t("notificationCenter.deletedTask")}
                       </span>
                       <span className="mt-1 block text-[10px] text-muted-foreground">

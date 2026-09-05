@@ -1,3 +1,4 @@
+import settingsRoutes from "./modules/settings/settings.routes.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -65,6 +66,7 @@ app.use(
 app.get("/api/health", (_req, res) =>
   res.json({ status: "ok", timestamp: new Date().toISOString() }),
 );
+app.use("/api/settings", settingsRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/roles", roleRoutes);

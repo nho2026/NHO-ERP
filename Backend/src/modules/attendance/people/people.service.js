@@ -1,3 +1,4 @@
+import { getSettings } from "../../settings/settings.service.js";
 import { verifySecret } from "../../../shared/security/password.js";
 import { HikvisionClient } from "../hikvision/hikvision.client.js";
 import { peopleModel as model } from "./people.model.js";
@@ -25,7 +26,7 @@ const syncDevice = async (d) => {
 const admin = async (user, password) => {
   if (
     !user.roles.some(({ role }) => role.name === "Super Administrator") ||
-    !(await verifySecret(password, user.passwordHash))
+    ((await getSettings("security")).passwordForDeletion && !(await verifySecret(password || "", user.passwordHash)))
   )
     fail("Super Administrator password is incorrect.", 403);
 };

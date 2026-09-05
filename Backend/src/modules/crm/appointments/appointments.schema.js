@@ -11,7 +11,7 @@ export const appointmentSchema = z.object({
   doctorId: z.string(),
   departmentId: z.string(),
   scheduledAt: z.coerce.date(),
-  durationMinutes: z.coerce.number().int().min(10).max(480).default(30),
+  durationMinutes: z.coerce.number().int().min(10).max(480).optional(),
   reason: nullableText,
   notes: nullableText,
   status: z
