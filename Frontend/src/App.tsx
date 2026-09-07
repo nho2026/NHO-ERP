@@ -1,3 +1,18 @@
+import ExpireSoonPage from "@/features/inventory/pages/ExpireSoonPage";
+import SpecialPricesPage from "@/features/inventory/pages/SpecialPricesPage";
+import StoragePage from "@/features/inventory/pages/StoragePage";
+import TransferProductPage from "@/features/inventory/pages/TransferProductPage";
+import AddSpecialProductPage from "@/features/inventory/pages/AddSpecialProductPage";
+import OrderHistoryPage from "@/features/inventory/pages/OrderHistoryPage";
+import OrderPage from "@/features/inventory/pages/OrderPage";
+import BuyDebtsPage from "@/features/inventory/pages/BuyDebtsPage";
+import BuyProductPage from "@/features/inventory/pages/BuyProductPage";
+import WarehouseDashboardPage from "@/features/inventory/pages/WarehouseDashboardPage";
+import { warehousePages } from "@/features/inventory/warehouse-pages";
+import WarehouseModulePage from "@/features/inventory/pages/WarehouseModulePage";
+import WarehouseStoragePage from "@/features/inventory/pages/WarehouseStoragePage";
+
+import DepartmentOrdersPage from "@/features/inventory/pages/DepartmentOrdersPage";
 import SettingsPage from "@/features/settings/SettingsPage";
 import { Navigate, Route, Routes } from "react-router-dom";
 import DashboardLayout from "@/app/layouts/DashboardLayout";
@@ -306,6 +321,20 @@ export default function App() {
               <FinancePage resource="funding" />,
             )}
           />
+          <Route path="/warehouses/buy/product" element={secured("inventory.warehouses.view", <BuyProductPage />)} />
+          <Route path="/warehouses/buy/debts" element={secured("inventory.warehouses.view", <BuyDebtsPage />)} />
+          <Route path="/warehouses/buy/order" element={secured("inventory.warehouses.view", <OrderPage />)} />
+          <Route path="/warehouses/buy/order-history" element={secured("inventory.warehouses.view", <OrderHistoryPage />)} />
+          <Route path="/warehouses/buy/department-orders" element={secured("inventory.warehouses.view", <DepartmentOrdersPage />)} />
+          <Route path="/warehouses/product/special" element={secured("inventory.products.view", <AddSpecialProductPage />)} />
+          <Route path="/warehouses/product/transfer" element={secured("inventory.products.view", <TransferProductPage />)} />
+          <Route path="/warehouses/storage/special-price" element={secured("inventory.stock.view", <SpecialPricesPage />)} />
+          <Route path="/warehouses/storage/expire-soon" element={secured("inventory.stock.view", <ExpireSoonPage />)} />
+          <Route path="/warehouses/storage/threshold" element={secured("inventory.stock.view", <WarehouseStoragePage page="threshold" />)} />
+          <Route path="/warehouses" element={secured("inventory.warehouses.view", <WarehouseDashboardPage />)} />
+          {warehousePages.map((page) => (
+            <Route key={page.path} path={page.path} element={secured("inventory.warehouses.view", <WarehouseModulePage page={page} />)} />
+          ))}
           <Route
             path="/inventory/products"
             element={secured(
@@ -342,7 +371,7 @@ export default function App() {
             path="/inventory/stock"
             element={secured(
               "inventory.stock.view",
-              <InventoryPage resource="stock" />,
+              <StoragePage />,
             )}
           />
           <Route

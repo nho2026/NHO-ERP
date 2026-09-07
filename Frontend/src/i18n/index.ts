@@ -37,6 +37,15 @@ void i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+// Our ku translations use Sorani (Arabic script), while i18next's generic
+// Kurdish language code defaults to Latin-script direction.
+const defaultDirection = i18n.dir.bind(i18n);
+i18n.dir = (language?: string) => {
+  const locale =
+    language ?? i18n.resolvedLanguage ?? i18n.language ?? initialLanguage;
+  return locale.split("-")[0] === "ku" ? "rtl" : defaultDirection(locale);
+};
+
 updateDocumentLanguage(initialLanguage);
 i18n.on("languageChanged", (language) => {
   localStorage.setItem("nho-language", language);

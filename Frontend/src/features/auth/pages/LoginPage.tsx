@@ -92,19 +92,19 @@ function LoginPage() {
               position="popper"
             >
               <SelectItem
-                className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800"
+                className="cursor-pointer focus:bg-teal-50 focus:text-[#0f766e] dark:focus:bg-slate-800"
                 value="en"
               >
                 {t("language.english")}
               </SelectItem>
               <SelectItem
-                className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800"
+                className="cursor-pointer focus:bg-teal-50 focus:text-[#0f766e] dark:focus:bg-slate-800"
                 value="ar"
               >
                 {t("language.arabic")}
               </SelectItem>
               <SelectItem
-                className="cursor-pointer focus:bg-sky-50 focus:text-[#07599a] dark:focus:bg-slate-800"
+                className="cursor-pointer focus:bg-teal-50 focus:text-[#0f766e] dark:focus:bg-slate-800"
                 value="ku"
               >
                 {t("language.kurdish")}
@@ -124,10 +124,10 @@ function LoginPage() {
                 alt="Nadir Health Organization"
               />
               <div className="flex flex-col">
-                <strong className="text-sm tracking-[0.16em] text-[#07599a] dark:text-sky-300">
+                <strong className="text-sm tracking-[0.16em] text-[#0f766e] dark:text-teal-300">
                   NADIR
                 </strong>
-                <span className="text-[8px] font-semibold uppercase tracking-[0.15em] text-[#20b4b8]">
+                <span className="text-[8px] font-semibold uppercase tracking-[0.15em] text-[#0d9488]">
                   Health Organization
                 </span>
               </div>
@@ -154,14 +154,14 @@ function LoginPage() {
               >
                 <TabsList className="mb-6 grid h-12 w-full grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1.5 dark:bg-slate-800">
                   <TabsTrigger
-                    className="h-full min-w-0 gap-2 rounded-lg px-2 text-xs focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#07599a] focus-visible:ring-offset-0 data-[state=active]:bg-white data-[state=active]:text-[#07599a] data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700 dark:data-[state=active]:text-sky-300"
+                    className="h-full min-w-0 gap-2 rounded-lg px-2 text-xs focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#0f766e] focus-visible:ring-offset-0 data-[state=active]:bg-white data-[state=active]:text-[#0f766e] data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700 dark:data-[state=active]:text-teal-300"
                     value="credentials"
                   >
                     <UserRound className="size-4 shrink-0" />
                     <span className="truncate">{t("auth.usernameTab")}</span>
                   </TabsTrigger>
                   <TabsTrigger
-                    className="h-full min-w-0 gap-2 rounded-lg px-2 text-xs focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#07599a] focus-visible:ring-offset-0 data-[state=active]:bg-white data-[state=active]:text-[#07599a] data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700 dark:data-[state=active]:text-sky-300"
+                    className="h-full min-w-0 gap-2 rounded-lg px-2 text-xs focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#0f766e] focus-visible:ring-offset-0 data-[state=active]:bg-white data-[state=active]:text-[#0f766e] data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700 dark:data-[state=active]:text-teal-300"
                     value="pin"
                   >
                     <LockKeyhole className="size-4 shrink-0" />
@@ -183,7 +183,7 @@ function LoginPage() {
                         <Input
                           id="username"
                           name="username"
-                          className="h-11 ps-10 text-sm focus-visible:ring-[#20b4b8]"
+                          className="h-11 ps-10 text-sm focus-visible:ring-[#0d9488]"
                           autoComplete="username"
                           placeholder={t("auth.usernamePlaceholder")}
                           required
@@ -203,14 +203,14 @@ function LoginPage() {
                         <Input
                           id="password"
                           name="password"
-                          className="h-11 px-10 text-sm focus-visible:ring-[#20b4b8]"
+                          className="h-11 px-10 text-sm focus-visible:ring-[#0d9488]"
                           type={showPassword ? "text" : "password"}
                           autoComplete="current-password"
                           placeholder={t("auth.passwordPlaceholder")}
                           required
                         />
                         <Button
-                          className="absolute inset-e-1 top-1/2 size-9 -translate-y-1/2 text-slate-400 hover:text-[#07599a]"
+                          className="absolute inset-e-1 top-1/2 size-9 -translate-y-1/2 text-slate-400 hover:text-[#0f766e]"
                           variant="ghost"
                           size="icon"
                           type="button"
@@ -237,7 +237,7 @@ function LoginPage() {
                           onCheckedChange={(value) =>
                             setRemember(value === true)
                           }
-                          className="border-slate-300 data-[state=checked]:border-[#07599a] data-[state=checked]:bg-[#07599a]"
+                          className="border-slate-300 data-[state=checked]:border-[#0f766e] data-[state=checked]:bg-[#0f766e]"
                         />
                         <Label
                           htmlFor="remember"
@@ -249,7 +249,7 @@ function LoginPage() {
                       <Button
                         type="button"
                         variant="link"
-                        className="h-auto p-0 text-xs text-[#07599a]"
+                        className="h-auto p-0 text-xs text-[#0f766e]"
                       >
                         {t("auth.forgotPassword")}
                       </Button>
@@ -263,7 +263,7 @@ function LoginPage() {
                       </p>
                     )}
                     <Button
-                      className="h-11 w-full gap-2 bg-linear-to-r from-[#07599a] to-[#168c90] text-xs font-semibold text-white shadow-lg shadow-sky-900/15 hover:opacity-90"
+                      className="h-11 w-full gap-2 bg-linear-to-r from-[#0f766e] to-[#0f766e] text-xs font-semibold text-white shadow-lg shadow-teal-900/15 hover:opacity-90"
                       disabled={isLoading}
                     >
                       {isLoading ? t("auth.signingIn") : t("auth.signIn")}
@@ -275,7 +275,7 @@ function LoginPage() {
                 <TabsContent value="pin" className="mt-0">
                   <form className="min-w-0 space-y-5" onSubmit={submitLogin}>
                     <div className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
-                      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-teal-50 text-[#168c90] dark:bg-teal-950">
+                      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-teal-50 text-[#0f766e] dark:bg-teal-950">
                         <LockKeyhole className="size-5" />
                       </span>
                       <span className="flex flex-col">
@@ -300,7 +300,7 @@ function LoginPage() {
                       <InputOTPGroup className="gap-2">
                         {Array.from({ length: 6 }, (_, index) => (
                           <InputOTPSlot
-                            className="size-11 rounded-lg border text-lg font-bold text-[#07599a] first:rounded-lg first:border last:rounded-lg focus-within:border-[#20b4b8]"
+                            className="size-11 rounded-lg border text-lg font-bold text-[#0f766e] first:rounded-lg first:border last:rounded-lg focus-within:border-[#0d9488]"
                             key={index}
                             index={index}
                             aria-label={t("auth.pinDigit", {
@@ -319,7 +319,7 @@ function LoginPage() {
                       </p>
                     )}
                     <Button
-                      className="h-11 w-full gap-2 bg-linear-to-r from-[#07599a] to-[#168c90] text-xs font-semibold text-white hover:opacity-90"
+                      className="h-11 w-full gap-2 bg-linear-to-r from-[#0f766e] to-[#0f766e] text-xs font-semibold text-white hover:opacity-90"
                       disabled={pin.length !== 6 || isLoading}
                     >
                       {isLoading ? t("auth.verifying") : t("auth.continue")}
@@ -328,7 +328,7 @@ function LoginPage() {
                     <Button
                       type="button"
                       variant="link"
-                      className="mx-auto flex h-auto p-0 text-xs text-[#07599a]"
+                      className="mx-auto flex h-auto p-0 text-xs text-[#0f766e]"
                     >
                       {t("auth.pinHelp")}
                     </Button>
@@ -343,9 +343,9 @@ function LoginPage() {
           </Card>
         </section>
 
-        <aside className="relative hidden overflow-hidden rounded-[22px] bg-linear-to-br from-[#06487d] via-[#07599a] to-[#168c90] p-14 text-white lg:flex lg:flex-col">
+        <aside className="relative hidden overflow-hidden rounded-[22px] bg-linear-to-br from-[#115e59] via-[#0f766e] to-[#0f766e] p-14 text-white lg:flex lg:flex-col">
           <div className="absolute -inset-e-28 -top-28 size-80 rounded-full border border-white/10" />
-          <div className="absolute -bottom-44 -inset-32 size-96 rounded-full bg-[#20b4b8]/20" />
+          <div className="absolute -bottom-44 -inset-32 size-96 rounded-full bg-[#0d9488]/20" />
           <div className="relative z-10 mt-12">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-200">
               {t("brand.system")}
@@ -365,7 +365,7 @@ function LoginPage() {
               <img className="size-40 max-w-none" src={logo} alt="" />
             </div>
             <div className="absolute inset-s-0 top-4 flex items-center gap-2 rounded-xl border border-white/50 bg-white/95 p-3 text-slate-800 shadow-xl">
-              <HeartPulse className="size-5 text-[#20b4b8]" />
+              <HeartPulse className="size-5 text-[#0d9488]" />
               <span className="flex flex-col">
                 <small className="text-[9px] text-slate-500">
                   {t("brand.clinicalCare")}
@@ -374,7 +374,7 @@ function LoginPage() {
               </span>
             </div>
             <div className="absolute inset-e-0 bottom-4 flex items-center gap-2 rounded-xl border border-white/50 bg-white/95 p-3 text-slate-800 shadow-xl">
-              <ShieldCheck className="size-5 text-[#07599a]" />
+              <ShieldCheck className="size-5 text-[#0f766e]" />
               <span className="flex flex-col">
                 <small className="text-[9px] text-slate-500">
                   {t("brand.systemStatus")}

@@ -1,1 +1,1 @@
-export const brandsModule = "brands";
+export { default } from "./brands.routes.js";

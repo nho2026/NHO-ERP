@@ -70,9 +70,9 @@ const fallbackLabels: Record<string, string> = {
   lost: "Lost",
 };
 const statusStyles: Record<string, string> = {
-  new: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300",
+  new: "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-300",
   contacted:
-    "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-900 dark:bg-cyan-950 dark:text-cyan-300",
+    "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-300",
   qualified:
     "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-300",
   appointment_requested:
@@ -86,7 +86,7 @@ const statusStyles: Record<string, string> = {
   lost: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300",
 };
 const progressColors: Record<string, string> = {
-  new: "#2563eb",
+  new: "#0f766e",
   contacted: "#0891b2",
   qualified: "#7c3aed",
   appointment_requested: "#d97706",
@@ -114,40 +114,41 @@ function Progress({
   translate: (status: string) => string;
 }) {
   const current = stages.indexOf(status);
-  const progressColor = status === "lost" ? progressColors.lost : "#10b981";
   if (status === "lost")
     return <StatusBadge status="lost" label={translate("lost")} />;
   return (
     <div
       className={`relative grid grid-cols-7 px-1 pb-1 pt-0.5 ${compact ? "min-w-[520px]" : "min-w-[650px]"}`}
     >
-      <span className="absolute inset-x-[10%] top-[7px] h-0.5 bg-blue-100 dark:bg-blue-950" />
-      {current > 0 && (
-        <span
-          className="absolute start-[10%] top-[7px] h-0.5 transition-all duration-500"
-          style={{
-            width: `${(current / (stages.length - 1)) * 80}%`,
-            backgroundColor: progressColor,
-          }}
-        />
-      )}
       {stages.map((stage, index) => (
         <div key={stage} className="relative z-10 flex flex-col items-center">
+          {index < stages.length - 1 && (
+            <span
+              className="absolute start-1/2 top-[6px] -z-10 h-0.5 w-full bg-slate-200 dark:bg-slate-800"
+              style={
+                index < current
+                  ? { backgroundColor: progressColors[stage] }
+                  : undefined
+              }
+            />
+          )}
           <span
-            className={`size-3.5 rounded-full border-2 transition-colors ${index <= current ? "" : "border-blue-200 bg-slate-50 dark:border-blue-900 dark:bg-slate-950"}`}
+            className={`size-3.5 rounded-full border-2 transition-colors ${index <= current ? "" : "border-teal-200 bg-slate-50 dark:border-teal-900 dark:bg-slate-950"}`}
             style={
               index <= current
                 ? {
-                    borderColor: progressColor,
-                    backgroundColor: progressColor,
-                    boxShadow: `0 0 0 3px color-mix(in srgb, ${progressColor} 10%, transparent)`,
+                    borderColor: progressColors[stage],
+                    backgroundColor: progressColors[stage],
+                    boxShadow: `0 0 0 ${index === current ? 4 : 3}px color-mix(in srgb, ${progressColors[stage]} ${index === current ? 25 : 12}%, transparent)`,
                   }
                 : undefined
             }
           />
           <span
             className={`mt-1.5 max-w-20 text-center leading-[.9] ${compact ? "text-[7px]" : "text-[9px]"} ${index <= current ? "font-semibold" : "font-medium text-slate-400"}`}
-            style={index <= current ? { color: progressColor } : undefined}
+            style={
+              index <= current ? { color: progressColors[stage] } : undefined
+            }
           >
             {translate(stage)}
           </span>
@@ -464,7 +465,7 @@ export default function LeadProgressPage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {rows.map((lead) => (
             <Card key={lead.id} className="overflow-hidden">
-              <div className="h-1.5 bg-gradient-to-r from-primary to-cyan-400" />
+              <div className="h-1.5 bg-gradient-to-r from-primary to-teal-400" />
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <span className="grid size-12 place-items-center rounded-xl bg-primary/10 text-primary">

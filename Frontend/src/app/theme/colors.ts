@@ -1,11 +1,11 @@
 /** Nadir Health Organization color tokens. CSS equivalents live in index.css. */
 export const brandColors = {
-  blue: "#0093ef",
-  blueDark: "#008cff",
-  blueLight: "#E8F3FB",
-  teal: "#20B4B8",
-  tealDark: "#168C90",
-  tealLight: "#E5F8F8",
+  blue: "#0f766e",
+  blueDark: "#115e59",
+  blueLight: "#e6f5f2",
+  teal: "#0d9488",
+  tealDark: "#0f766e",
+  tealLight: "#e6f5f2",
 } as const;
 
 export const windowControlColors = {
@@ -19,12 +19,12 @@ export const colors = {
   windowControls: windowControlColors,
   light: {
     primary: brandColors.blue,
-    primaryHover: "#064E87",
-    primaryPressed: "#043D6B",
+    primaryHover: "#115e59",
+    primaryPressed: "#134e4a",
     primarySubtle: brandColors.blueLight,
     onPrimary: "#FFFFFF",
     secondary: brandColors.teal,
-    secondaryHover: "#199DA1",
+    secondaryHover: "#0f766e",
     secondaryPressed: brandColors.tealDark,
     secondarySubtle: brandColors.tealLight,
     onSecondary: "#062F31",
@@ -48,9 +48,9 @@ export const colors = {
     info: "#0284C7",
   },
   dark: {
-    primary: "#58A9E3",
-    primaryHover: "#75B9E8",
-    primaryPressed: "#91C8ED",
+    primary: "#5eead4",
+    primaryHover: "#99f6e4",
+    primaryPressed: "#ccfbf1",
     primarySubtle: "#000000",
     onPrimary: "#000000",
     secondary: "#4FD0D2",
@@ -67,7 +67,7 @@ export const colors = {
       secondary: "#D4D4D4",
       muted: "#A3A3A3",
       inverse: "#070707",
-      link: "#75C7F2",
+      link: "#5eead4",
     },
     border: "#303030",
     borderStrong: "#484848",

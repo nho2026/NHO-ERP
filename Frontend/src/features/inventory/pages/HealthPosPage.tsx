@@ -1,3 +1,12 @@
+import { Card } from "@/shared/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/shared/components/ui/table";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -188,7 +197,7 @@ export default function HealthPosPage() {
   };
   return (
     <div className="h-svh overflow-hidden bg-background">
-      <header className="electron-titlebar relative flex h-16 items-center gap-3 border-b border-primary/15 bg-card px-4 shadow-[0_4px_20px_-16px_var(--primary)] before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-primary before:via-sky-400 before:to-cyan-400">
+      <header className="electron-titlebar relative flex h-16 items-center gap-3 border-b border-primary/15 bg-card px-4 shadow-[0_4px_20px_-16px_var(--primary)] before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-primary before:via-teal-400 before:to-teal-400">
         <Link
           to={cashier ? "/profile" : "/dashboard"}
           className="grid size-9 place-items-center rounded-lg border border-primary/20 bg-primary/5 text-primary transition hover:bg-primary/12"
@@ -257,8 +266,8 @@ export default function HealthPosPage() {
         </Button>
         <WindowControls />
       </header>
-      <main className="grid h-[calc(100svh-4rem)] xl:grid-cols-[1fr_390px]">
-        <section className="overflow-y-auto bg-[radial-gradient(circle_at_top,var(--accent),transparent_28%)] p-5 scrollbar-none [&::-webkit-scrollbar]:hidden">
+      <main className="grid h-[calc(100svh-4rem)] xl:grid-cols-[minmax(0,1fr)_390px]">
+        <section className="min-w-0 overflow-y-auto bg-[radial-gradient(circle_at_top,var(--accent),transparent_28%)] p-5 scrollbar-none [&::-webkit-scrollbar]:hidden">
           <form
             className="mb-4 flex gap-2"
             onSubmit={(e) => {
@@ -322,13 +331,15 @@ export default function HealthPosPage() {
           {catalogView === "grid" ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {visible.map((p) => (
-                <button
+                <Button
+                  variant="outline"
+                  type="button"
                   key={p.id}
                   disabled={!stock(p)}
                   onClick={() => add(p)}
-                  className="group relative flex min-h-72 flex-col overflow-hidden rounded-2xl border border-primary/15 bg-card text-start shadow-sm outline-none transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="group relative flex h-auto min-w-0 items-stretch whitespace-normal p-0 flex-col overflow-hidden rounded-2xl border border-primary/15 bg-card text-start shadow-sm outline-none transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-100"
                 >
-                  <div className="relative h-40 overflow-hidden border-b border-primary/10 bg-white dark:bg-slate-100">
+                  <div className="relative h-28 w-full shrink-0 overflow-hidden border-b border-primary/10 bg-white dark:bg-slate-100">
                     {mainImage(p) ? (
                       <img
                         src={productImageUrl(mainImage(p))}
@@ -342,7 +353,7 @@ export default function HealthPosPage() {
                         </span>
                       </div>
                     )}
-                    <span className="absolute end-2.5 top-2.5 rounded-full border border-white/20 bg-slate-950/65 px-2 py-1 text-[10px] font-bold text-white shadow-sm backdrop-blur">
+                    <span className="absolute end-2.5 top-2.5 whitespace-nowrap rounded-full border border-white/20 bg-slate-950/80 px-2 py-1 text-[10px] font-bold text-white shadow-sm backdrop-blur">
                       {stock(p)} {t("inventory.fields.stock")}
                     </span>
                     {discounted(p) && (
@@ -353,7 +364,7 @@ export default function HealthPosPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-1 flex-col p-3.5">
+                  <div className="flex w-full flex-1 flex-col p-3.5">
                     <small className="truncate font-medium text-primary/70">
                       {p.category?.name ?? p.sku}
                     </small>
@@ -362,7 +373,7 @@ export default function HealthPosPage() {
                     </b>
                     <span className="mt-1.5 flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
                       <Barcode className="size-3" />
-                      {p.barcode}
+                      {p.barcode || p.sku}
                     </span>
                     <div className="mt-auto flex items-end justify-between gap-2 border-t border-primary/10 pt-3">
                       <span className="flex min-w-0 flex-col">
@@ -375,45 +386,52 @@ export default function HealthPosPage() {
                           </small>
                         )}
                       </span>
-                      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-sm transition group-hover:scale-110">
+                      <span className={`grid size-8 shrink-0 place-items-center rounded-full ${stock(p) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                         <Plus className="size-4" />
                       </span>
                     </div>
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-primary/20 bg-card">
-              <table className="w-full text-sm">
-                <thead className="bg-primary/10 text-primary">
-                  <tr>
-                    <th className="p-3 text-start">{t("pos.image")}</th>
-                    <th className="p-3 text-start">
+            <Card className="overflow-hidden rounded-xl border border-primary/20 bg-card">
+              <Table className="w-full text-sm">
+                <TableHeader className="bg-primary/10 text-primary">
+                  <TableRow>
+                    <TableHead className="p-3 text-start">
+                      {t("pos.image")}
+                    </TableHead>
+                    <TableHead className="p-3 text-start">
                       {t("inventory.fields.product")}
-                    </th>
-                    <th className="p-3 text-start">
+                    </TableHead>
+                    <TableHead className="p-3 text-start">
                       {t("inventory.fields.sku")}
-                    </th>
-                    <th className="p-3 text-start">
+                    </TableHead>
+                    <TableHead className="p-3 text-start">
                       {t("inventory.fields.barcode")}
-                    </th>
-                    <th className="p-3 text-start">
+                    </TableHead>
+                    <TableHead className="p-3 text-start">
                       {t("inventory.fields.category")}
-                    </th>
-                    <th className="p-3 text-end">
+                    </TableHead>
+                    <TableHead className="p-3 text-end">
                       {t("inventory.fields.sellingPrice")}
-                    </th>
-                    <th className="p-3 text-end">
+                    </TableHead>
+                    <TableHead className="p-3 text-end">
                       {t("inventory.fields.stock")}
-                    </th>
-                    <th className="p-3 text-end">{t("table.actions")}</th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                    <TableHead className="p-3 text-end">
+                      {t("table.actions")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {visible.map((p) => (
-                    <tr key={p.id} className="border-t hover:bg-primary/5">
-                      <td className="p-2">
+                    <TableRow
+                      key={p.id}
+                      className="border-t hover:bg-primary/5"
+                    >
+                      <TableCell className="p-2">
                         {mainImage(p) ? (
                           <img
                             src={productImageUrl(mainImage(p))}
@@ -425,17 +443,23 @@ export default function HealthPosPage() {
                             <ShoppingCart className="size-4" />
                           </div>
                         )}
-                      </td>
-                      <td className="p-3 font-semibold">{p.name}</td>
-                      <td className="p-3 font-mono text-xs">{p.sku}</td>
-                      <td className="p-3 font-mono text-xs">
+                      </TableCell>
+                      <TableCell className="p-3 font-semibold">
+                        {p.name}
+                      </TableCell>
+                      <TableCell className="p-3 font-mono text-xs">
+                        {p.sku}
+                      </TableCell>
+                      <TableCell className="p-3 font-mono text-xs">
                         <span className="flex items-center gap-2">
                           <Barcode className="size-4 text-primary" />
                           {p.barcode}
                         </span>
-                      </td>
-                      <td className="p-3">{p.category?.name ?? "—"}</td>
-                      <td className="p-3 text-end font-semibold">
+                      </TableCell>
+                      <TableCell className="p-3">
+                        {p.category?.name ?? "—"}
+                      </TableCell>
+                      <TableCell className="p-3 text-end font-semibold">
                         <span className="font-semibold text-primary">
                           {price(p).toLocaleString()} IQD
                         </span>
@@ -444,9 +468,9 @@ export default function HealthPosPage() {
                             {Number(p.sellingPrice).toLocaleString()}
                           </span>
                         )}
-                      </td>
-                      <td className="p-3 text-end">{stock(p)}</td>
-                      <td className="p-3 text-end">
+                      </TableCell>
+                      <TableCell className="p-3 text-end">{stock(p)}</TableCell>
+                      <TableCell className="p-3 text-end">
                         <Button
                           size="sm"
                           disabled={!stock(p)}
@@ -455,12 +479,12 @@ export default function HealthPosPage() {
                           <Plus />
                           {t("pos.addBarcode")}
                         </Button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
+            </Card>
           )}
         </section>
         <aside className="flex min-h-0 flex-col border-s border-primary/20 bg-card shadow-[-8px_0_24px_-24px_var(--primary)]">
@@ -480,7 +504,7 @@ export default function HealthPosPage() {
               </p>
             )}
             {lines.map(({ product, quantity }) => (
-              <div
+              <Card
                 key={product.id}
                 className="flex items-center gap-3 rounded-2xl border border-primary/15 bg-card p-3 shadow-sm transition hover:border-primary/40 hover:shadow-md"
               >
@@ -536,7 +560,7 @@ export default function HealthPosPage() {
                     <Plus className="size-4" />
                   </Button>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
           <div className="space-y-3 border-t border-primary/20 bg-gradient-to-b from-primary/4 to-card p-5 shadow-[0_-8px_24px_-20px_var(--primary)]">

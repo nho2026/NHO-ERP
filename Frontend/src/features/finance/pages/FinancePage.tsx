@@ -220,7 +220,7 @@ function FundingChart({
       </div>
       <div className="space-y-4">
         {[
-          [labels[0], committed, "bg-sky-500"],
+          [labels[0], committed, "bg-teal-500"],
           [labels[1], received, "bg-primary"],
           [labels[2], gap, "bg-amber-500"],
         ].map(([label, value, color]) => (
@@ -313,7 +313,7 @@ export default function FinancePage({ resource }: { resource: PageResource }) {
                     {
                       label: t("finance.fields.plannedBudget"),
                       value: data.plannedBudget,
-                      color: "bg-sky-500",
+                      color: "bg-teal-500",
                     },
                     {
                       label: t("finance.fields.actualRevenue"),

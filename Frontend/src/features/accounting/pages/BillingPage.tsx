@@ -460,8 +460,8 @@ export default function BillingPage({ resource }: { resource: Resource }) {
         </DialogContent>
       </Dialog>
       {printInvoice && (
-        <section className="print-document hidden bg-white px-[9mm] py-[7mm] text-[11px] text-slate-900 print:absolute print:inset-0 print:block print:w-full [&_td]:border [&_td]:border-slate-300 [&_td]:p-[7px] [&_td]:text-start [&_th]:border [&_th]:border-slate-300 [&_th]:bg-sky-50 [&_th]:p-[7px] [&_th]:text-start [&_th]:font-bold [&_table]:w-full [&_table]:border-collapse">
-          <header className="mb-5 flex items-start justify-between border-b-2 border-[#07599a] pb-3.5">
+        <section className="print-document hidden bg-white px-[9mm] py-[7mm] text-[11px] text-slate-900 print:absolute print:inset-0 print:block print:w-full [&_td]:border [&_td]:border-slate-300 [&_td]:p-[7px] [&_td]:text-start [&_th]:border [&_th]:border-slate-300 [&_th]:bg-teal-50 [&_th]:p-[7px] [&_th]:text-start [&_th]:font-bold [&_table]:w-full [&_table]:border-collapse">
+          <header className="mb-5 flex items-start justify-between border-b-2 border-[#0f766e] pb-3.5">
             <div className="space-y-2">
               <img
                 className="h-[46px] w-[105px] rounded-[9px] border border-slate-200 bg-white px-2 py-1 object-contain object-center shadow-[0_4px_12px_rgba(15,23,42,0.14)]"
@@ -473,7 +473,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
               </p>
             </div>
             <div className="text-end">
-              <strong className="text-xl font-extrabold text-[#07599a]">
+              <strong className="text-xl font-extrabold text-[#0f766e]">
                 {settingsSnapshot()?.organization.name}
                 <br />
                 {printInvoice.invoiceNumber}
@@ -548,7 +548,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
               <span>{t("billing.tax")}</span>
               <b>{amount(printInvoice.taxAmount)}</b>
             </p>
-            <p className="!border-b-2 !border-[#07599a] text-sm text-[#07599a]">
+            <p className="!border-b-2 !border-[#0f766e] text-sm text-[#0f766e]">
               <span>{t("billing.total")}</span>
               <b>
                 {amount(printInvoice.totalAmount)} {printInvoice.currency}

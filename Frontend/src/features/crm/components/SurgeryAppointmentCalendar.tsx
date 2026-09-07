@@ -28,9 +28,9 @@ import { ScrollArea } from "@/shared/components/ui/scroll-area";
 
 const colors: Record<string, string> = {
   scheduled:
-    "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300",
+    "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-300",
   confirmed:
-    "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-900 dark:bg-cyan-950 dark:text-cyan-300",
+    "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-300",
   in_progress:
     "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300",
   completed:
@@ -39,8 +39,8 @@ const colors: Record<string, string> = {
     "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300",
 };
 const dots: Record<string, string> = {
-  scheduled: "bg-blue-500",
-  confirmed: "bg-cyan-500",
+  scheduled: "bg-teal-500",
+  confirmed: "bg-teal-500",
   in_progress: "bg-amber-500",
   completed: "bg-emerald-500",
   cancelled: "bg-red-500",
@@ -85,14 +85,14 @@ export function SurgeryAppointmentCalendar({
   );
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-      <div className="bg-gradient-to-r from-violet-950 via-blue-950 to-cyan-800 p-5 text-white">
+      <div className="bg-gradient-to-r from-violet-950 via-teal-950 to-teal-800 p-5 text-white">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="grid size-11 place-items-center rounded-xl bg-white/10">
               <Scissors />
             </span>
             <div>
-              <p className="text-xs text-cyan-200">
+              <p className="text-xs text-teal-200">
                 {t("pageText.operatingSchedule")}
               </p>
               <h2 className="text-xl font-bold">
@@ -155,7 +155,7 @@ export function SurgeryAppointmentCalendar({
               key={String(label)}
               className="rounded-lg bg-white/10 px-3 py-2"
             >
-              <p className="text-[10px] text-blue-200">{label}</p>
+              <p className="text-[10px] text-teal-200">{label}</p>
               <p className="text-lg font-bold">{value}</p>
             </div>
           ))}

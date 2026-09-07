@@ -374,6 +374,9 @@ export default function HrPage({ resource }: { resource?: Resource }) {
   const tab = resource ?? selectedTab;
   const [editing, setEditing] = useState<HrRecord | null | undefined>();
   const [search, setSearch] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [positionFilter, setPositionFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [adjustmentEmployee, setAdjustmentEmployee] = useState<HrRecord | null>(
@@ -404,10 +407,22 @@ export default function HrPage({ resource }: { resource?: Resource }) {
   const current = resources[tab];
   const rows = useMemo(
     () =>
-      (current.data ?? []).filter((row) =>
-        JSON.stringify(row).toLowerCase().includes(search.toLowerCase()),
-      ),
-    [current.data, search],
+      (current.data ?? []).filter((row) => {
+        if (
+          !JSON.stringify(row)
+            .toLowerCase()
+            .includes(search.trim().toLowerCase())
+        )
+          return false;
+        return (
+          tab !== "employees" ||
+          ((departmentFilter === "all" ||
+            row.departmentId === departmentFilter) &&
+            (positionFilter === "all" || row.positionId === positionFilter) &&
+            (statusFilter === "all" || row.status === statusFilter))
+        );
+      }),
+    [current.data, search, tab, departmentFilter, positionFilter, statusFilter],
   );
   const options = (field: Field) =>
     field.type === "systemUser"
@@ -544,6 +559,89 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                     </Button>
                   </div>
                 </div>
+                {key === "employees" && (
+                  <div className="flex flex-wrap items-center gap-3 border-b p-4">
+                    <Select
+                      value={departmentFilter}
+                      onValueChange={setDepartmentFilter}
+                    >
+                      <SelectTrigger
+                        className="w-full sm:w-56"
+                        aria-label={tr("Department")}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">
+                          {t("hr.allDepartments")}
+                        </SelectItem>
+                        {(departments.data ?? []).map((department) => (
+                          <SelectItem key={department.id} value={department.id}>
+                            {String(department.name)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={positionFilter}
+                      onValueChange={setPositionFilter}
+                    >
+                      <SelectTrigger
+                        className="w-full sm:w-56"
+                        aria-label={tr("Position")}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">
+                          {t("hr.allPositions")}
+                        </SelectItem>
+                        {(positions.data ?? []).map((position) => (
+                          <SelectItem key={position.id} value={position.id}>
+                            {String(position.name)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={statusFilter}
+                      onValueChange={setStatusFilter}
+                    >
+                      <SelectTrigger
+                        className="w-full sm:w-48"
+                        aria-label={tr("Status")}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">
+                          {t("hr.allStatuses")}
+                        </SelectItem>
+                        {["active", "inactive", "terminated"].map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {tr(status)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {(search ||
+                      departmentFilter !== "all" ||
+                      positionFilter !== "all" ||
+                      statusFilter !== "all") && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSearch("");
+                          setDepartmentFilter("all");
+                          setPositionFilter("all");
+                          setStatusFilter("all");
+                        }}
+                      >
+                        {t("hr.clearFilters")}
+                      </Button>
+                    )}
+                  </div>
+                )}
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>

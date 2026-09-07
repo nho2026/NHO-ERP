@@ -1,1 +1,1 @@
-export const categoriesModule = "categories";
+export { default } from "./categories.routes.js";

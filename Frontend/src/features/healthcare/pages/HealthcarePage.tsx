@@ -300,7 +300,7 @@ const appointmentColors: Record<string, string> = {
   pending:
     "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300",
   confirmed:
-    "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300",
+    "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-300",
   completed:
     "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300",
   cancelled:
@@ -310,7 +310,7 @@ const appointmentColors: Record<string, string> = {
 };
 const appointmentDots: Record<string, string> = {
   pending: "bg-amber-500",
-  confirmed: "bg-blue-500",
+  confirmed: "bg-teal-500",
   completed: "bg-emerald-500",
   cancelled: "bg-red-500",
   no_show: "bg-slate-500",
@@ -374,7 +374,7 @@ function AppointmentCalendar({
   return (
     <div className="grid min-h-[700px] xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="min-w-0 border-e">
-        <div className="border-b bg-gradient-to-r from-primary/10 via-cyan-500/5 to-transparent p-4">
+        <div className="border-b bg-gradient-to-r from-primary/10 via-teal-500/5 to-transparent p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="grid size-11 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md">
@@ -436,7 +436,7 @@ function AppointmentCalendar({
                 "Confirmed",
                 monthAppointments.filter((item) => item.status === "confirmed")
                   .length,
-                "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+                "bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300",
               ],
               [
                 "Completed",
@@ -600,7 +600,7 @@ function AppointmentCalendar({
         </div>
       </div>
       <aside className="bg-muted/20 p-4">
-        <div className="mb-4 rounded-2xl bg-gradient-to-br from-slate-950 to-blue-900 p-4 text-white shadow-md">
+        <div className="mb-4 rounded-2xl bg-gradient-to-br from-slate-950 to-teal-900 p-4 text-white shadow-md">
           <div className="flex items-start justify-between">
             <span className="grid size-10 place-items-center rounded-xl bg-white/10">
               <CalendarCheck />
@@ -609,7 +609,7 @@ function AppointmentCalendar({
               {selectedAppointments.length} scheduled
             </Badge>
           </div>
-          <p className="mt-4 text-xs text-blue-200">
+          <p className="mt-4 text-xs text-teal-200">
             {t("pageText.dailyAgenda")}
           </p>
           <h3 className="mt-0.5 text-lg font-bold">

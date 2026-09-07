@@ -1,0 +1,14 @@
+import { Router } from "express";
+import { view, manage } from "../shared/inventory.permissions.js";
+import { departmentOrdersController as controller } from "./department-orders.controller.js";
+const router = Router();
+router.get("/department-requests/catalog", controller.myCatalog);
+router.get("/department-requests", controller.myList);
+router.post("/department-requests", controller.myCreate);
+router.get("/department-orders/departments", view, controller.departments);
+router.get("/department-orders", view, controller.list);
+router.post("/department-orders", manage, controller.create);
+router.patch("/department-orders/:id", manage, controller.update);
+router.get("/department-orders/:id/comments", view, controller.comments);
+router.post("/department-orders/:id/comments", manage, controller.comment);
+export default router;

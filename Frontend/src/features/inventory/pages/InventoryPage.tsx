@@ -1,3 +1,5 @@
+import { SearchableSelect } from "@/shared/components/ui/searchable-select";
+import { Label } from "@/shared/components/ui/label";
 import { useCallback, useDeferredValue, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -117,6 +119,7 @@ const configs = {
       "discountValue",
       "discountStart",
       "discountEnd",
+      "expiryDate",
       "status",
     ],
     columns: [
@@ -129,18 +132,19 @@ const configs = {
       "sellingPrice",
       "discount",
       "stock",
+      "expiryDate",
       "status",
     ],
   },
 } as const;
 export default function InventoryPage({ resource }: { resource: Resource }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const canManage = hasPermission(
     storedUser(),
     resource === "stock" ? "inventory.adjust" : "inventory.manage",
   );
   const [page, setPage] = useState(1);
-  const [productSearch, setProductSearch] = useState(""),
+  const [productSearch, setProductSearch] = useState(() => new URLSearchParams(window.location.search).get("search") ?? ""),
     [categoryFilter, setCategoryFilter] = useState("all"),
     [statusFilter, setStatusFilter] = useState("all"),
     [skuFilter, setSkuFilter] = useState(""),
@@ -231,23 +235,29 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
           ]
         : cfg!.columns;
   const value = (row: RecordItem, key: string) =>
-    key === "category"
-      ? row.category?.name
-      : key === "brand"
-        ? row.brand?.name
-        : key === "stock"
-          ? row.stocks?.reduce((s: number, x: any) => s + x.quantity, 0)
-          : key === "product"
-            ? row.product?.name
-            : key === "warehouse"
-              ? row.warehouse?.name
-              : key === "occurredAt"
-                ? formatDateTime(row[key])
-                : key === "discount"
-                  ? row.discountType && row.discountValue
-                    ? `${row.discountType === "percentage" ? `${row.discountValue}%` : `${Number(row.discountValue).toLocaleString()} IQD`} · ${row.discountStart ? formatDate(row.discountStart) : t("inventory.values.now")} — ${row.discountEnd ? formatDate(row.discountEnd) : t("inventory.values.noExpiry")}`
-                    : t("inventory.values.noDiscount")
-                  : String(row[key] ?? "—");
+    key === "expiryDate"
+      ? row.expiryDate
+        ? new Date(row.expiryDate).toLocaleDateString(i18n.language, {
+            timeZone: "UTC",
+          })
+        : t("expiry.unknown")
+      : key === "category"
+        ? row.category?.name
+        : key === "brand"
+          ? row.brand?.name
+          : key === "stock"
+            ? row.stocks?.reduce((s: number, x: any) => s + x.quantity, 0)
+            : key === "product"
+              ? row.product?.name
+              : key === "warehouse"
+                ? row.warehouse?.name
+                : key === "occurredAt"
+                  ? formatDateTime(row[key])
+                  : key === "discount"
+                    ? row.discountType && row.discountValue
+                      ? `${row.discountType === "percentage" ? `${row.discountValue}%` : `${Number(row.discountValue).toLocaleString()} IQD`} · ${row.discountStart ? formatDate(row.discountStart) : t("inventory.values.now")} — ${row.discountEnd ? formatDate(row.discountEnd) : t("inventory.values.noExpiry")}`
+                      : t("inventory.values.noDiscount")
+                    : String(row[key] ?? "—");
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setBusy(true);
@@ -397,7 +407,7 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
         </Card>
       )}
       <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <SlidersHorizontal />
@@ -581,7 +591,7 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
                   )}
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody autoPaginate={false}>
                 <TableResourceState
                   isLoading={data.isLoading}
                   error={data.error}
@@ -696,7 +706,7 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
         open={editing !== undefined}
         onOpenChange={(o) => !o && setEditing(undefined)}
       >
-        <DialogContent>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {t(
@@ -753,85 +763,103 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
               </>
             ) : (
               <>
-                {cfg?.fields.map((k) =>
-                  k === "categoryId" ? (
-                    <Picker
-                      key={k}
-                      name={k}
-                      items={categories}
-                      label={t("inventory.fields.category")}
-                      initial={editing?.[k] ? String(editing[k]) : undefined}
-                    />
-                  ) : k === "brandId" ? (
-                    <Picker
-                      key={k}
-                      name={k}
-                      items={brands}
-                      label={t("inventory.fields.brand")}
-                      initial={editing?.[k] ? String(editing[k]) : undefined}
-                    />
-                  ) : k === "status" ? (
-                    <Picker
-                      key={k}
-                      name={k}
-                      label={t("inventory.fields.status")}
-                      initial={String(editing?.[k] ?? "active")}
-                      items={["active", "inactive"].map((id) => ({
-                        id,
-                        name: t(`inventory.values.${id}`),
-                      }))}
-                    />
-                  ) : k === "discountType" ? (
-                    <Picker
-                      key={k}
-                      name={k}
-                      label={t("inventory.fields.discountType")}
-                      initial={String(editing?.[k] ?? "none")}
-                      items={["none", "percentage", "fixed"].map((id) => ({
-                        id,
-                        name: t(`inventory.values.${id}`),
-                      }))}
-                    />
-                  ) : ["discountStart", "discountEnd"].includes(k) ? (
-                    <FormDatePicker
-                      key={k}
-                      name={k}
-                      initialValue={toDateInputValue(editing?.[k])}
-                    />
-                  ) : (
-                    <Input
-                      key={k}
-                      name={k}
-                      type={
-                        [
-                          "costPrice",
-                          "sellingPrice",
-                          "taxRate",
-                          "discountValue",
-                        ].includes(k)
-                          ? "number"
-                          : "text"
-                      }
-                      step="0.01"
-                      defaultValue={String(editing?.[k] ?? "")}
-                      placeholder={t(`inventory.fields.${k}`)}
-                      required={
-                        ![
-                          "barcode",
-                          "description",
-                          "location",
-                          "discountStart",
-                          "discountEnd",
-                        ].includes(k)
-                      }
-                    />
-                  ),
-                )}
+                {cfg?.fields.map((k) => (
+                  <div
+                    key={k}
+                    className="min-w-0 space-y-2"
+                    role="group"
+                    aria-labelledby={`inventory-label-${k}`}
+                  >
+                    <Label
+                      id={`inventory-label-${k}`}
+                      htmlFor={`inventory-field-${k}`}
+                    >
+                      {t(
+                        `inventory.fields.${k === "categoryId" ? "category" : k === "brandId" ? "brand" : k}`,
+                      )}
+                    </Label>
+                    {k === "categoryId" ? (
+                      <Picker
+                        key={k}
+                        name={k}
+                        items={categories}
+                        label={t("inventory.fields.category")}
+                        initial={editing?.[k] ? String(editing[k]) : undefined}
+                      />
+                    ) : k === "brandId" ? (
+                      <Picker
+                        key={k}
+                        name={k}
+                        items={brands}
+                        label={t("inventory.fields.brand")}
+                        initial={editing?.[k] ? String(editing[k]) : undefined}
+                      />
+                    ) : k === "status" ? (
+                      <Picker
+                        key={k}
+                        name={k}
+                        label={t("inventory.fields.status")}
+                        initial={String(editing?.[k] ?? "active")}
+                        items={["active", "inactive"].map((id) => ({
+                          id,
+                          name: t(`inventory.values.${id}`),
+                        }))}
+                      />
+                    ) : k === "discountType" ? (
+                      <Picker
+                        key={k}
+                        name={k}
+                        label={t("inventory.fields.discountType")}
+                        initial={String(editing?.[k] ?? "none")}
+                        items={["none", "percentage", "fixed"].map((id) => ({
+                          id,
+                          name: t(`inventory.values.${id}`),
+                        }))}
+                      />
+                    ) : ["discountStart", "discountEnd", "expiryDate"].includes(
+                        k,
+                      ) ? (
+                      <FormDatePicker
+                        key={k}
+                        name={k}
+                        initialValue={toDateInputValue(editing?.[k])}
+                      />
+                    ) : (
+                      <Input
+                        key={k}
+                        id={`inventory-field-${k}`}
+                        name={k}
+                        type={
+                          [
+                            "costPrice",
+                            "sellingPrice",
+                            "taxRate",
+                            "discountValue",
+                          ].includes(k)
+                            ? "number"
+                            : "text"
+                        }
+                        step="0.01"
+                        defaultValue={String(editing?.[k] ?? "")}
+                        placeholder={t(`inventory.fields.${k}`)}
+                        required={
+                          ![
+                            "barcode",
+                            "description",
+                            "location",
+                            "discountStart",
+                            "discountEnd",
+                          ].includes(k)
+                        }
+                      />
+                    )}
+                  </div>
+                ))}
                 {resource === "products" && (
                   <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm font-medium">
+                    <Label className="text-sm font-medium">
                       {t("inventory.fields.images")}
-                    </label>
+                    </Label>
                     <Input
                       name="productImages"
                       type="file"
@@ -1069,17 +1097,12 @@ function Picker({
   initial?: string;
 }) {
   return (
-    <Select name={name} defaultValue={initial}>
-      <SelectTrigger>
-        <SelectValue placeholder={label} />
-      </SelectTrigger>
-      <SelectContent>
-        {items.map((x) => (
-          <SelectItem key={x.id} value={x.id}>
-            {x.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SearchableSelect
+      id={`inventory-field-${name}`}
+      name={name}
+      defaultValue={initial}
+      placeholder={label}
+      options={items.map((item) => ({ value: item.id, label: item.name }))}
+    />
   );
 }

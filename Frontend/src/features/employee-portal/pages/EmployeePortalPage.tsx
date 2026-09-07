@@ -1,3 +1,4 @@
+import DepartmentRequests from "./DepartmentRequests";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Lightbulb, ListTodo, TriangleAlert } from "lucide-react";
@@ -58,6 +59,7 @@ export default function EmployeePortalPage() {
           {t("employeePortal.subtitle")}
         </p>
       </div>
+      <DepartmentRequests />
       <div className="grid gap-5 xl:grid-cols-3">
         <Card>
           <CardHeader>

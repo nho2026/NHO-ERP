@@ -1,1 +1,1 @@
-export const productsModule = "products";
+export { default } from "./products.routes.js";

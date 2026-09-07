@@ -40,7 +40,7 @@ import {
 } from "@/shared/components/ui/select";
 
 const statusStyle: Record<string, string> = {
-  active: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
+  active: "bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300",
   completed:
     "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
   paused: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
@@ -301,7 +301,7 @@ export default function TargetsPage() {
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-500 transition-all"
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-teal-500 transition-all"
                     style={{ width: `${percent}%` }}
                   />
                 </div>

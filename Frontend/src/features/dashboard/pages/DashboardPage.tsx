@@ -62,7 +62,7 @@ const divisions = [
 ];
 const appointments = [
   ["09:00", "General consultation", "Dr. Ahmed Salim", "bg-violet-500"],
-  ["10:30", "Dental examination", "Dr. Sara Karim", "bg-sky-500"],
+  ["10:30", "Dental examination", "Dr. Sara Karim", "bg-teal-500"],
   ["12:00", "Pediatric follow-up", "Dr. Lana Omar", "bg-emerald-500"],
   ["14:15", "Cardiology review", "Dr. Kamal Ali", "bg-rose-500"],
 ];
@@ -254,7 +254,7 @@ export default function DashboardPage() {
       change: "8.2%",
       up: true,
       icon: UsersRound,
-      color: "bg-sky-100 text-sky-600 dark:bg-sky-950",
+      color: "bg-teal-100 text-teal-600 dark:bg-teal-950",
     },
     {
       label: t("health.totalIncome", { defaultValue: "Total revenue" }),
@@ -462,7 +462,7 @@ export default function DashboardPage() {
             <AdmissionChart />
           </CardContent>
         </Card>
-        <Card className="border-border/60 bg-gradient-to-br from-primary to-cyan-600 text-white shadow-sm">
+        <Card className="border-border/60 bg-gradient-to-br from-primary to-teal-600 text-white shadow-sm">
           <CardContent className="flex h-full min-h-44 flex-col justify-between p-6">
             <div className="flex items-center justify-between">
               <span className="rounded-xl bg-white/15 p-2.5">

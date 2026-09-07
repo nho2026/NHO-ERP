@@ -1077,6 +1077,14 @@ model ProductBrand {
 }
 
 model InventoryProduct {
+  expiryDate DateTime? @db.Date
+  isSpecial Boolean @default(false)
+  size String?
+  boxPrice Float @default(0)
+  specialProfitRate Float @default(0)
+  specialPrice Float @default(0)
+  productType String @default("patient_use")
+  productionCompany String?
   id            String                  @id @default(cuid())
   sku           String                  @unique(map: "InventoryProduct_sku_key")
   barcode       String?                 @unique(map: "InventoryProduct_barcode_key")
@@ -1285,4 +1293,74 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 
   @@map("system_Settings")
+}
+
+model InventoryPurchase {
+  paidAmount    Decimal @default(0) @db.Decimal(18, 2)
+  payments      InventoryPurchasePayment[]
+  status        String   @default("completed")
+  id            String   @id @default(cuid())
+  requestId     String   @unique
+  invoiceNumber String
+  buyDate       DateTime
+  retailer      String
+  salesperson   String?
+  isDebt        Boolean  @default(false)
+  note          String?  @db.Text
+  attachmentUrl String?
+  totalPrice    Decimal  @db.Decimal(18, 2)
+  items         Json
+  createdAt     DateTime @default(now())
+
+  @@unique([retailer, invoiceNumber])
+  @@map("inventory_InventoryPurchase")
+}
+
+model InventoryPurchasePayment {
+  id String @id @default(cuid())
+  requestId String @unique
+  purchaseId String
+  amount Decimal @db.Decimal(18, 2)
+  paidAt DateTime @default(now())
+  note String? @db.Text
+  purchase InventoryPurchase @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  @@index([purchaseId])
+  @@map("inventory_InventoryPurchasePayment")
+}
+
+model InventoryOrder {
+  id String @id @default(cuid())
+  requestId String @unique
+  name String
+  note String? @db.Text
+  items Json
+  totalPrice Decimal @db.Decimal(18, 2)
+  createdAt DateTime @default(now())
+  @@map("inventory_InventoryOrder")
+}
+
+model InventoryDepartmentOrder {
+ id String @id @default(cuid())
+ departmentId String
+ departmentName String
+ type String
+ deadline DateTime?
+ note String? @db.Text
+ phone String?
+ items Json
+ status String @default("pending")
+ price Decimal? @db.Decimal(18, 2)
+ reason String? @db.Text
+ createdAt DateTime @default(now())
+ comments InventoryDepartmentOrderComment[]
+ @@map("inventory_InventoryDepartmentOrder")
+}
+model InventoryDepartmentOrderComment {
+ id String @id @default(cuid())
+ orderId String
+ note String @db.Text
+ createdAt DateTime @default(now())
+ order InventoryDepartmentOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+ @@index([orderId])
+ @@map("inventory_InventoryDepartmentOrderComment")
 }

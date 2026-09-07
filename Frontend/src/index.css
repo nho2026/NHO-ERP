@@ -45,24 +45,24 @@
 }
 
 :root {
-  --background: #f3f8fc;
+  --background: #f0f8f6;
   --foreground: #102a43;
   --card: #ffffff;
   --card-foreground: #102a43;
   --popover: #ffffff;
   --popover-foreground: #102a43;
-  --primary: #07599a;
+  --primary: #0f766e;
   --primary-foreground: #ffffff;
-  --secondary: #e5f1fa;
-  --secondary-foreground: #06487d;
-  --muted: #edf4f9;
+  --secondary: #e6f5f2;
+  --secondary-foreground: #115e59;
+  --muted: #edf7f5;
   --muted-foreground: #718396;
-  --accent: #dceefa;
-  --accent-foreground: #06487d;
+  --accent: #ccfbf1;
+  --accent-foreground: #115e59;
   --destructive: #dc2626;
-  --border: #cfdeea;
-  --input: #c5d9e8;
-  --ring: #07599a;
+  --border: #cce3df;
+  --input: #bad9d3;
+  --ring: #0f766e;
   --radius: 0.625rem;
   font-family: "NHO Kurdish", system-ui, sans-serif;
   color-scheme: light;
@@ -75,8 +75,8 @@
   --card-foreground: #ffffff;
   --popover: #151515;
   --popover-foreground: #ffffff;
-  --primary: #58a9e3;
-  --primary-foreground: #03131e;
+  --primary: #5eead4;
+  --primary-foreground: #042f2e;
   --secondary: #202020;
   --secondary-foreground: #ffffff;
   --muted: #1a1a1a;
@@ -86,7 +86,7 @@
   --destructive: #fb7185;
   --border: #303030;
   --input: #3a3a3a;
-  --ring: #58a9e3;
+  --ring: #5eead4;
   color-scheme: dark;
 }
 
@@ -98,8 +98,8 @@
     --card-foreground: #ffffff;
     --popover: #151515;
     --popover-foreground: #ffffff;
-    --primary: #58a9e3;
-    --primary-foreground: #03131e;
+    --primary: #5eead4;
+    --primary-foreground: #042f2e;
     --secondary: #202020;
     --secondary-foreground: #ffffff;
     --muted: #1a1a1a;
@@ -109,7 +109,7 @@
     --destructive: #fb7185;
     --border: #303030;
     --input: #3a3a3a;
-    --ring: #58a9e3;
+    --ring: #5eead4;
     color-scheme: dark;
   }
 }
@@ -122,7 +122,7 @@
   html {
     @apply bg-background;
     scroll-behavior: smooth;
-    scrollbar-color: #07599a var(--muted);
+    scrollbar-color: #0f766e var(--muted);
     scrollbar-width: thin;
   }
   body {
@@ -195,7 +195,7 @@ html[lang="ku"] [data-sonner-toaster] {
 *::-webkit-scrollbar-thumb {
   border: 2px solid var(--muted);
   border-radius: 999px;
-  background: linear-gradient(#07599a, #20b4b8);
+  background: linear-gradient(#0f766e, #0d9488);
   background-clip: padding-box;
 }
 *::-webkit-scrollbar-thumb:hover {
@@ -311,12 +311,12 @@ html[lang="ku"] [data-sonner-toaster] {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    border-bottom: 2px solid #07599a;
+    border-bottom: 2px solid #0f766e;
     padding-bottom: 14px;
     margin-bottom: 20px;
   }
   .salary-list-print h1 {
-    color: #07599a;
+    color: #0f766e;
     font-size: 28px;
     font-weight: 800;
   }
@@ -344,7 +344,7 @@ html[lang="ku"] [data-sonner-toaster] {
     width: 45%;
     margin-inline-start: auto;
     margin-top: 18px;
-    border-top: 2px solid #07599a;
+    border-top: 2px solid #0f766e;
     padding-top: 8px;
   }
   .salary-print-totals p {

@@ -1,3 +1,4 @@
+import { NavigationPreference } from "./NavigationPreference";
 import { useSettingsTranslation } from "./useSettingsTranslation";
 import { Card } from "@/shared/components/ui/card";
 import { Checkbox } from "@/shared/components/ui/checkbox";
@@ -503,6 +504,7 @@ export default function SettingsPage() {
           )}
           {category === "system" && (
             <>
+              <NavigationPreference />
               <UpdatesPanel />
               <Card className="p-5">
                 <h2 className="font-semibold mb-3">{tr("Integrations")}</h2>

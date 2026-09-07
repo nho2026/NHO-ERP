@@ -109,7 +109,7 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <Card className="overflow-hidden border-0 shadow-sm">
-        <div className="h-32 bg-[linear-gradient(120deg,#07599a,#1596b7,#20b4b8)]" />
+        <div className="h-32 bg-[linear-gradient(120deg,#0f766e,#1596b7,#0d9488)]" />
         <CardContent className="relative flex flex-wrap items-end gap-5 px-6 pb-6">
           <Avatar className="-mt-14 size-28 border-4 border-card shadow-lg">
             <AvatarFallback className="bg-primary text-3xl font-bold text-primary-foreground">

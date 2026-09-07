@@ -250,7 +250,7 @@ export default function HrAttendancePage() {
         </div>
         <div className="relative mt-6 grid gap-3 sm:grid-cols-3">
           <div className="flex items-center gap-3 rounded-2xl border bg-background/80 p-4 backdrop-blur">
-            <span className="grid size-10 place-items-center rounded-xl bg-blue-500/10 text-blue-600">
+            <span className="grid size-10 place-items-center rounded-xl bg-teal-500/10 text-teal-600">
               <UsersRound className="size-5" />
             </span>
             <div>
@@ -433,9 +433,9 @@ export default function HrAttendancePage() {
                 onClick={() => setSelected(employee)}
                 className="group text-start"
               >
-                <Card className="relative h-full overflow-hidden border-0 bg-card shadow-sm ring-1 ring-border/70 transition duration-200 before:absolute before:inset-y-0 before:start-0 before:w-1 before:bg-linear-to-b before:from-primary before:to-cyan-400 group-hover:-translate-y-0.5 group-hover:ring-primary/35 group-hover:shadow-md">
+                <Card className="relative h-full overflow-hidden border-0 bg-card shadow-sm ring-1 ring-border/70 transition duration-200 before:absolute before:inset-y-0 before:start-0 before:w-1 before:bg-linear-to-b before:from-primary before:to-teal-400 group-hover:-translate-y-0.5 group-hover:ring-primary/35 group-hover:shadow-md">
                   <CardContent className="flex min-h-28 items-center gap-3 p-4 ps-5">
-                    <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-linear-to-br from-primary/15 to-cyan-500/10 text-sm font-bold text-primary ring-1 ring-primary/15">
+                    <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-linear-to-br from-primary/15 to-teal-500/10 text-sm font-bold text-primary ring-1 ring-primary/15">
                       {String(employee.firstName ?? "E").charAt(0)}
                       {String(employee.lastName ?? "").charAt(0)}
                     </div>

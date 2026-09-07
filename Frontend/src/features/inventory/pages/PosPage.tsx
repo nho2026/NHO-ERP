@@ -147,7 +147,7 @@ export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
                   <TableHead>{t("table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody autoPaginate={false}>
                 <TableResourceState
                   isLoading={sales.isLoading}
                   error={sales.error}
@@ -295,11 +295,13 @@ export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p) => (
-              <button
+              <Button
+                variant="outline"
+                type="button"
                 key={p.id}
                 disabled={!stock(p)}
                 onClick={() => add(p.id)}
-                className="rounded-xl border p-4 text-start transition hover:border-primary disabled:opacity-40"
+                className="block h-auto whitespace-normal rounded-xl border p-4 text-start transition hover:border-primary disabled:opacity-40"
               >
                 <b>{p.name}</b>
                 <small className="mt-1 block text-muted-foreground">
@@ -308,7 +310,7 @@ export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
                 <strong className="mt-3 block text-primary">
                   {p.sellingPrice.toLocaleString()} IQD
                 </strong>
-              </button>
+              </Button>
             ))}
           </CardContent>
         </Card>

@@ -50,6 +50,29 @@ export default function DeviceUsersPage() {
     useCallback(() => attendanceApi.devices(), []),
   );
   const people = useApiResource(useCallback(() => attendanceApi.people(), []));
+  const [employeeFilter, setEmployeeFilter] = useState("all");
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const filteredPeople = useMemo(() => {
+    const search = employeeSearch.trim().toLocaleLowerCase();
+    return (people.data ?? []).filter((person) => {
+      const matchesEmployee =
+        employeeFilter === "all" ||
+        (employeeFilter === "unlinked"
+          ? !person.employeeId
+          : person.employeeId === employeeFilter);
+      const text = [
+        person.name,
+        person.employeeNo,
+        person.employee?.employeeCode,
+        person.employee?.firstName,
+        person.employee?.lastName,
+        person.employee?.user?.username,
+      ]
+        .join(" ")
+        .toLocaleLowerCase();
+      return matchesEmployee && text.includes(search);
+    });
+  }, [people.data, employeeFilter, employeeSearch]);
   const employees = useApiResource(
     useCallback(() => hrApi.employees.list(), []),
   );
@@ -184,7 +207,36 @@ export default function DeviceUsersPage() {
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="flex justify-end border-b p-4">
+        <div className="flex flex-wrap items-center gap-3 border-b p-4">
+          <Input
+            className="w-full sm:w-72"
+            value={employeeSearch}
+            onChange={(event) => setEmployeeSearch(event.target.value)}
+            placeholder={t("attendanceFilters.searchEmployee")}
+            aria-label={t("attendanceFilters.searchEmployee")}
+          />
+          <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+            <SelectTrigger
+              className="w-full sm:w-64"
+              aria-label={t("table.headers.employee")}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {t("attendanceFilters.allEmployees")}
+              </SelectItem>
+              <SelectItem value="unlinked">
+                {t("deviceUsers.notLinked")}
+              </SelectItem>
+              {(employees.data ?? []).map((employee) => (
+                <SelectItem key={employee.id} value={employee.id}>
+                  {String(employee.employeeCode)} — {String(employee.firstName)}{" "}
+                  {String(employee.lastName)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Dialog
             open={open}
             onOpenChange={(value) => {
@@ -204,7 +256,7 @@ export default function DeviceUsersPage() {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="ms-auto gap-2">
                 <Plus className="size-4" />
                 {t("deviceUsers.add")}
               </Button>
@@ -294,12 +346,12 @@ export default function DeviceUsersPage() {
             <TableResourceState
               isLoading={people.isLoading}
               error={people.error}
-              isEmpty={!people.data?.length}
+              isEmpty={!filteredPeople.length}
               colSpan={5}
             />
             {!people.isLoading &&
               !people.error &&
-              people.data?.map((p) => (
+              filteredPeople.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
                     <b>{p.name}</b>

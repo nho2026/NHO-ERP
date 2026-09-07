@@ -228,7 +228,7 @@ export default function HrReportsPage() {
       t("hrReports.totalEmployees"),
       employeeRows.length,
       UsersRound,
-      "bg-sky-100 text-sky-600 dark:bg-sky-950",
+      "bg-teal-100 text-teal-600 dark:bg-teal-950",
     ],
     [
       t("hrReports.activeEmployees"),

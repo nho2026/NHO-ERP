@@ -1,1 +1,1 @@
-export const warehousesModule = "warehouses";
+export { default } from "./warehouses.routes.js";

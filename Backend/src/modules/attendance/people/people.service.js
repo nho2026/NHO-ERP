@@ -7,7 +7,15 @@ const fail = (m, s) => {
 };
 const syncDevice = async (d) => {
   let count = 0;
-  for (const user of await new HikvisionClient(d).allUsers()) {
+  const api = new HikvisionClient(d);
+  const users = await api.allUsers();
+  const cards = new Map();
+  for (const card of await api.allCards()) {
+    const employeeNo = String(card.employeeNo ?? "");
+    if (employeeNo && card.cardNo != null && !cards.has(employeeNo))
+      cards.set(employeeNo, String(card.cardNo));
+  }
+  for (const user of users) {
     const employeeNo = String(user.employeeNo ?? user.employeeNoString ?? "");
     if (!employeeNo) continue;
     const matchedEmployeeId = await model.employee(employeeNo);
@@ -16,7 +24,12 @@ const syncDevice = async (d) => {
       // Never erase an explicit ERP employee link when the terminal number
       // does not happen to equal the ERP employee code.
       employeeId: matchedEmployeeId ?? undefined,
-      hasPassword: Boolean(user.password),
+      cardNo: cards.get(employeeNo) ?? null,
+      hasFingerprint:
+        user.numOfFP == null ? undefined : Number(user.numOfFP) > 0,
+      hasFace: user.numOfFace == null ? undefined : Number(user.numOfFace) > 0,
+      hasPassword:
+        user.password == null ? undefined : String(user.password).length > 0,
     });
     count++;
   }
@@ -26,7 +39,8 @@ const syncDevice = async (d) => {
 const admin = async (user, password) => {
   if (
     !user.roles.some(({ role }) => role.name === "Super Administrator") ||
-    ((await getSettings("security")).passwordForDeletion && !(await verifySecret(password || "", user.passwordHash)))
+    ((await getSettings("security")).passwordForDeletion &&
+      !(await verifySecret(password || "", user.passwordHash)))
   )
     fail("Super Administrator password is incorrect.", 403);
 };

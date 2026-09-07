@@ -37,7 +37,8 @@ app.use(helmet());
 const allowedOrigins = new Set([
   env.frontendUrl,
   ...env.publicWebsiteUrls,
-  "http://192.168.1.90:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:3000"
 ]);
 app.use(
   cors({

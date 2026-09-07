@@ -203,8 +203,8 @@ export default function AccountingPage({
           </CardContent>
         </Card>
         {report && (
-          <section className="print-document hidden bg-white px-[9mm] py-[7mm] text-[10px] text-slate-900 print:absolute print:inset-0 print:block print:w-full [&_td]:border [&_td]:border-slate-300 [&_td]:px-[7px] [&_td]:py-[5px] [&_th]:border [&_th]:border-slate-300 [&_th]:bg-sky-50 [&_th]:px-[7px] [&_th]:py-[5px] [&_th]:font-bold [&_table]:w-full [&_table]:border-collapse [&_tbody_tr:nth-child(even)]:bg-slate-50">
-            <header className="mb-2.5 flex items-center justify-between border-b-[3px] border-[#07599a] pb-2.5">
+          <section className="print-document hidden bg-white px-[9mm] py-[7mm] text-[10px] text-slate-900 print:absolute print:inset-0 print:block print:w-full [&_td]:border [&_td]:border-slate-300 [&_td]:px-[7px] [&_td]:py-[5px] [&_th]:border [&_th]:border-slate-300 [&_th]:bg-teal-50 [&_th]:px-[7px] [&_th]:py-[5px] [&_th]:font-bold [&_table]:w-full [&_table]:border-collapse [&_tbody_tr:nth-child(even)]:bg-slate-50">
+            <header className="mb-2.5 flex items-center justify-between border-b-[3px] border-[#0f766e] pb-2.5">
               <div className="flex items-center gap-2.5">
                 <img
                   className="h-11 w-23 rounded-[9px] border border-slate-200 bg-white px-2 py-1 object-contain object-center shadow-[0_4px_12px_rgba(15,23,42,0.14)]"
@@ -221,7 +221,7 @@ export default function AccountingPage({
                 </div>
               </div>
               <div className="grid gap-0.5 text-end text-slate-500">
-                <b className="text-[13px] text-[#07599a]">
+                <b className="text-[13px] text-[#0f766e]">
                   {t("accounting.reports")}
                 </b>
                 <span>
@@ -261,7 +261,7 @@ export default function AccountingPage({
                 {report.trialBalance.length} {t("accounting.accountsCount")}
               </span>
             </div>
-            <table className="mt-[7px] [&_td:nth-last-child(-n+2)]:text-end [&_td:nth-last-child(-n+2)]:tabular-nums [&_th:nth-last-child(-n+2)]:text-end [&_th:nth-last-child(-n+2)]:tabular-nums [&_tfoot_th]:border-t-2 [&_tfoot_th]:border-t-[#07599a]">
+            <table className="mt-[7px] [&_td:nth-last-child(-n+2)]:text-end [&_td:nth-last-child(-n+2)]:tabular-nums [&_th:nth-last-child(-n+2)]:text-end [&_th:nth-last-child(-n+2)]:tabular-nums [&_tfoot_th]:border-t-2 [&_tfoot_th]:border-t-[#0f766e]">
               <thead>
                 <tr>
                   <th>{t("accounting.code")}</th>

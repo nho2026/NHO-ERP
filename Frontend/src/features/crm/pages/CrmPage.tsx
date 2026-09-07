@@ -502,9 +502,9 @@ const labelOf = (
   );
 };
 const statusStyles: Record<string, string> = {
-  new: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300",
+  new: "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/60 dark:text-teal-300",
   contacted:
-    "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300",
+    "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/60 dark:text-teal-300",
   qualified:
     "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-300",
   converted:
@@ -519,9 +519,9 @@ const statusStyles: Record<string, string> = {
   completed:
     "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
   scheduled:
-    "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300",
+    "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/60 dark:text-teal-300",
   confirmed:
-    "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300",
+    "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/60 dark:text-teal-300",
   pending:
     "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
   in_progress:
@@ -716,7 +716,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
     return (
       <span className="inline-flex items-center gap-1.5 capitalize">
         <Icon
-          className={`size-4 ${gender === "male" ? "text-blue-600" : gender === "female" ? "text-pink-600" : "text-violet-600"}`}
+          className={`size-4 ${gender === "male" ? "text-teal-600" : gender === "female" ? "text-pink-600" : "text-violet-600"}`}
         />
         {gender}
       </span>
@@ -886,7 +886,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       result[key] = (result[key] ?? 0) + 1;
       return result;
     }, {});
-    const colors = ["#2563eb", "#14b8a6", "#8b5cf6", "#f59e0b", "#ef4444"];
+    const colors = ["#0f766e", "#14b8a6", "#8b5cf6", "#f59e0b", "#ef4444"];
     const bars = (values: Record<string, number>) => {
       const max = Math.max(1, ...Object.values(values));
       return Object.entries(values)
@@ -901,7 +901,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       kind === "leads" ? "Lead Performance Report" : "Patient Registry Report";
     const logoUrl = new URL(nhoLogo, window.location.href).href;
     reportWindow.document.write(
-      `<!doctype html><html><head><title>${title}</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;font:12px Arial;color:#172033;-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover{height:267mm;display:flex;flex-direction:column;justify-content:center;padding:58px;background:linear-gradient(145deg,#f8fbff,#e2edff);page-break-after:always;position:relative;overflow:hidden}.cover:after{content:"";position:absolute;width:360px;height:360px;border-radius:50%;background:#2563eb;right:-170px;top:-130px}.logo{width:110px;margin-bottom:40px}.eyebrow{color:#2563eb;font-weight:bold;letter-spacing:3px}.cover h1{font-size:42px;color:#102a56;margin:15px 0}.meta{font-size:16px;color:#60728a}.report-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #2563eb;padding-bottom:12px}.brand{display:flex;align-items:center;gap:10px}.brand img{width:42px}.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}.kpi,.chart{border:1px solid #dce5f0;border-radius:12px;padding:16px}.kpi strong{display:block;font-size:26px;color:#163b70;margin-top:4px}.charts{display:grid;grid-template-columns:1fr 1fr;gap:15px;break-inside:avoid}.chart h2{font-size:15px}.bar-row{margin:12px 0}.bar-row div{display:flex;justify-content:space-between;text-transform:capitalize}.bar-row i{display:block;height:10px;background:#edf1f7;border-radius:10px;margin-top:5px;overflow:hidden}.bar-row b{display:block;height:100%;border-radius:10px}table{width:100%;border-collapse:collapse;margin-top:22px;font-size:9px}thead{display:table-header-group}th{background:#163b70;color:white;text-align:left;padding:8px;text-transform:capitalize}td{padding:7px;border-bottom:1px solid #dde5ef}tr{break-inside:avoid}tbody tr:nth-child(even){background:#f7f9fc}</style></head><body><section class="cover"><img class="logo" src="${logoUrl}"><div class="eyebrow">NHO WORKSPACE · CRM ANALYTICS</div><h1>${title}</h1><p class="meta">Comprehensive overview and detailed records</p><p class="meta">Generated ${escapeReportValue(new Date().toLocaleString())} · ${items.length} records</p></section><main><header class="report-header"><div class="brand"><img src="${logoUrl}"><h1>${title}</h1></div><span>${items.length} records</span></header><section class="kpis"><div class="kpi">Total records<strong>${items.length}</strong></div><div class="kpi">Active / new<strong>${(statuses.active ?? 0) + (statuses.new ?? 0)}</strong></div><div class="kpi">Categories<strong>${Object.keys(groups).length}</strong></div></section><section class="charts"><div class="chart"><h2>By ${groupField}</h2>${bars(groups)}</div><div class="chart"><h2>By status</h2>${bars(statuses)}</div></section>${table}</main><script>window.onload=()=>setTimeout(()=>window.print(),250)</script></body></html>`,
+      `<!doctype html><html><head><title>${title}</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;font:12px Arial;color:#172033;-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover{height:267mm;display:flex;flex-direction:column;justify-content:center;padding:58px;background:linear-gradient(145deg,#f8fbff,#e2edff);page-break-after:always;position:relative;overflow:hidden}.cover:after{content:"";position:absolute;width:360px;height:360px;border-radius:50%;background:#0f766e;right:-170px;top:-130px}.logo{width:110px;margin-bottom:40px}.eyebrow{color:#0f766e;font-weight:bold;letter-spacing:3px}.cover h1{font-size:42px;color:#102a56;margin:15px 0}.meta{font-size:16px;color:#60728a}.report-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f766e;padding-bottom:12px}.brand{display:flex;align-items:center;gap:10px}.brand img{width:42px}.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}.kpi,.chart{border:1px solid #dce5f0;border-radius:12px;padding:16px}.kpi strong{display:block;font-size:26px;color:#134e4a;margin-top:4px}.charts{display:grid;grid-template-columns:1fr 1fr;gap:15px;break-inside:avoid}.chart h2{font-size:15px}.bar-row{margin:12px 0}.bar-row div{display:flex;justify-content:space-between;text-transform:capitalize}.bar-row i{display:block;height:10px;background:#edf1f7;border-radius:10px;margin-top:5px;overflow:hidden}.bar-row b{display:block;height:100%;border-radius:10px}table{width:100%;border-collapse:collapse;margin-top:22px;font-size:9px}thead{display:table-header-group}th{background:#134e4a;color:white;text-align:left;padding:8px;text-transform:capitalize}td{padding:7px;border-bottom:1px solid #dde5ef}tr{break-inside:avoid}tbody tr:nth-child(even){background:#f7f9fc}</style></head><body><section class="cover"><img class="logo" src="${logoUrl}"><div class="eyebrow">NHO WORKSPACE · CRM ANALYTICS</div><h1>${title}</h1><p class="meta">Comprehensive overview and detailed records</p><p class="meta">Generated ${escapeReportValue(new Date().toLocaleString())} · ${items.length} records</p></section><main><header class="report-header"><div class="brand"><img src="${logoUrl}"><h1>${title}</h1></div><span>${items.length} records</span></header><section class="kpis"><div class="kpi">Total records<strong>${items.length}</strong></div><div class="kpi">Active / new<strong>${(statuses.active ?? 0) + (statuses.new ?? 0)}</strong></div><div class="kpi">Categories<strong>${Object.keys(groups).length}</strong></div></section><section class="charts"><div class="chart"><h2>By ${groupField}</h2>${bars(groups)}</div><div class="chart"><h2>By status</h2>${bars(statuses)}</div></section>${table}</main><script>window.onload=()=>setTimeout(()=>window.print(),250)</script></body></html>`,
     );
     reportWindow.document.close();
   };
@@ -920,7 +920,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       }, {});
     const typeCounts = countsFor("referralType");
     const statusCounts = countsFor("status");
-    const colors = ["#2563eb", "#14b8a6", "#8b5cf6", "#f59e0b", "#ef4444"];
+    const colors = ["#0f766e", "#14b8a6", "#8b5cf6", "#f59e0b", "#ef4444"];
     const barChart = () => {
       const maximum = Math.max(1, ...Object.values(typeCounts));
       return Object.entries(typeCounts)
@@ -954,7 +954,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       )
       .join("");
     reportWindow.document.write(
-      `<!doctype html><html><head><title>NHO Referral Report</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;font:12px Arial,sans-serif;color:#172033;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover{height:267mm;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:58px;background:linear-gradient(145deg,#f8fbff 0%,#eef6ff 58%,#e2edff 100%);page-break-after:always}.cover:before{content:"";position:absolute;width:360px;height:360px;border-radius:50%;background:#2563eb;right:-170px;top:-130px}.cover:after{content:"";position:absolute;width:220px;height:220px;border:42px solid #14b8a6;border-radius:50%;left:-130px;bottom:-100px}.logo{width:112px;height:112px;object-fit:contain;margin-bottom:44px;filter:drop-shadow(0 12px 20px #1e3a5f33)}.eyebrow{color:#2563eb;font-weight:700;letter-spacing:3px;text-transform:uppercase}.cover h1{font-size:42px;line-height:1.05;margin:14px 0;color:#102a56}.cover .subtitle{font-size:18px;color:#526783;margin-bottom:54px}.cover-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:520px}.cover-meta{padding:16px 0;border-top:1px solid #bdcee4}.cover-meta span{display:block;color:#70829a;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px}.cover-meta strong{font-size:14px}.report{padding:4px}.report-header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #2563eb;padding-bottom:12px}.report-brand{display:flex;align-items:center;gap:10px}.report-brand img{width:42px;height:42px}.report-header h1{font-size:22px;margin:0}.muted{color:#667085}.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}.kpi{border:1px solid #dce5f0;border-radius:12px;padding:15px;background:linear-gradient(145deg,#fff,#f7faff)}.kpi span{color:#667085}.kpi strong{display:block;font-size:25px;margin-top:5px;color:#163b70}.charts{display:grid;grid-template-columns:1.15fr .85fr;gap:15px;margin:16px 0 24px;break-inside:avoid}.chart{border:1px solid #dce5f0;border-radius:12px;padding:16px}.chart h2{font-size:15px;margin:0 0 15px}.bar-row{margin:12px 0}.bar-label{display:flex;justify-content:space-between;text-transform:capitalize}.track{height:10px;background:#edf1f7;border-radius:10px;margin-top:6px;overflow:hidden}.bar{height:100%;border-radius:10px}.donut-wrap{display:flex;align-items:center;justify-content:center;gap:20px}.donut{width:120px;height:120px;border-radius:50%;background:conic-gradient(${donutStops.join(",") || "#e5e7eb 0deg 360deg"});position:relative}.donut:after{content:"${items.length}";position:absolute;inset:25px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:24px;font-weight:700;color:#163b70}.legend{min-width:110px}.legend-row{display:grid;grid-template-columns:10px 1fr auto;gap:7px;align-items:center;margin:9px 0;text-transform:capitalize}.legend-row i{width:8px;height:8px;border-radius:50%}table{width:100%;border-collapse:collapse;margin-top:10px;font-size:10px}thead{display:table-header-group}th{background:#163b70;color:#fff;text-align:left;padding:9px 7px}td{border-bottom:1px solid #dde5ef;padding:8px 7px}tbody tr:nth-child(even){background:#f7f9fc}tr{break-inside:avoid}.section-title{font-size:17px;margin:22px 0 8px}@media print{.cover{height:267mm}.report{padding:0}}</style></head><body><section class="cover"><img class="logo" src="${logoUrl}" alt="NHO"><div class="eyebrow">NHO Workspace · CRM Analytics</div><h1>Referral<br>Performance Report</h1><p class="subtitle">Patient acquisition sources, referral outcomes, and detailed activity.</p><div class="cover-grid"><div class="cover-meta"><span>Reporting period</span><strong>${escapeReportValue(reportingPeriod)}</strong></div><div class="cover-meta"><span>Total referrals</span><strong>${items.length}</strong></div><div class="cover-meta"><span>Prepared on</span><strong>${escapeReportValue(new Date().toLocaleDateString())}</strong></div><div class="cover-meta"><span>Report status</span><strong>Confidential</strong></div></div></section><main class="report"><header class="report-header"><div class="report-brand"><img src="${logoUrl}" alt="NHO"><div><h1>Referral Overview</h1><div class="muted">${escapeReportValue(reportingPeriod)}</div></div></div><div class="muted">Generated ${escapeReportValue(new Date().toLocaleString())}</div></header><section class="kpis"><div class="kpi"><span>Total referrals</span><strong>${items.length}</strong></div><div class="kpi"><span>Active referrals</span><strong>${active}</strong></div><div class="kpi"><span>Completion rate</span><strong>${completionRate}%</strong></div></section><section class="charts"><div class="chart"><h2>Referrals by source type</h2>${barChart()}</div><div class="chart"><h2>Referral status</h2><div class="donut-wrap"><div class="donut"></div><div class="legend">${statusLegend}</div></div></div></section><h2 class="section-title">Referral Details</h2><table><thead><tr><th>Patient</th><th>Referrer</th><th>Phone</th><th>Type</th><th>Date</th><th>Status</th></tr></thead><tbody>${referralReportTable(items)}</tbody></table></main><script>window.onload=()=>setTimeout(()=>window.print(),250)</script></body></html>`,
+      `<!doctype html><html><head><title>NHO Referral Report</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;font:12px Arial,sans-serif;color:#172033;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover{height:267mm;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:58px;background:linear-gradient(145deg,#f8fbff 0%,#eef6ff 58%,#e2edff 100%);page-break-after:always}.cover:before{content:"";position:absolute;width:360px;height:360px;border-radius:50%;background:#0f766e;right:-170px;top:-130px}.cover:after{content:"";position:absolute;width:220px;height:220px;border:42px solid #14b8a6;border-radius:50%;left:-130px;bottom:-100px}.logo{width:112px;height:112px;object-fit:contain;margin-bottom:44px;filter:drop-shadow(0 12px 20px #1e3a5f33)}.eyebrow{color:#0f766e;font-weight:700;letter-spacing:3px;text-transform:uppercase}.cover h1{font-size:42px;line-height:1.05;margin:14px 0;color:#102a56}.cover .subtitle{font-size:18px;color:#526783;margin-bottom:54px}.cover-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:520px}.cover-meta{padding:16px 0;border-top:1px solid #bdcee4}.cover-meta span{display:block;color:#70829a;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px}.cover-meta strong{font-size:14px}.report{padding:4px}.report-header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0f766e;padding-bottom:12px}.report-brand{display:flex;align-items:center;gap:10px}.report-brand img{width:42px;height:42px}.report-header h1{font-size:22px;margin:0}.muted{color:#667085}.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}.kpi{border:1px solid #dce5f0;border-radius:12px;padding:15px;background:linear-gradient(145deg,#fff,#f7faff)}.kpi span{color:#667085}.kpi strong{display:block;font-size:25px;margin-top:5px;color:#134e4a}.charts{display:grid;grid-template-columns:1.15fr .85fr;gap:15px;margin:16px 0 24px;break-inside:avoid}.chart{border:1px solid #dce5f0;border-radius:12px;padding:16px}.chart h2{font-size:15px;margin:0 0 15px}.bar-row{margin:12px 0}.bar-label{display:flex;justify-content:space-between;text-transform:capitalize}.track{height:10px;background:#edf1f7;border-radius:10px;margin-top:6px;overflow:hidden}.bar{height:100%;border-radius:10px}.donut-wrap{display:flex;align-items:center;justify-content:center;gap:20px}.donut{width:120px;height:120px;border-radius:50%;background:conic-gradient(${donutStops.join(",") || "#e5e7eb 0deg 360deg"});position:relative}.donut:after{content:"${items.length}";position:absolute;inset:25px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:24px;font-weight:700;color:#134e4a}.legend{min-width:110px}.legend-row{display:grid;grid-template-columns:10px 1fr auto;gap:7px;align-items:center;margin:9px 0;text-transform:capitalize}.legend-row i{width:8px;height:8px;border-radius:50%}table{width:100%;border-collapse:collapse;margin-top:10px;font-size:10px}thead{display:table-header-group}th{background:#134e4a;color:#fff;text-align:left;padding:9px 7px}td{border-bottom:1px solid #dde5ef;padding:8px 7px}tbody tr:nth-child(even){background:#f7f9fc}tr{break-inside:avoid}.section-title{font-size:17px;margin:22px 0 8px}@media print{.cover{height:267mm}.report{padding:0}}</style></head><body><section class="cover"><img class="logo" src="${logoUrl}" alt="NHO"><div class="eyebrow">NHO Workspace · CRM Analytics</div><h1>Referral<br>Performance Report</h1><p class="subtitle">Patient acquisition sources, referral outcomes, and detailed activity.</p><div class="cover-grid"><div class="cover-meta"><span>Reporting period</span><strong>${escapeReportValue(reportingPeriod)}</strong></div><div class="cover-meta"><span>Total referrals</span><strong>${items.length}</strong></div><div class="cover-meta"><span>Prepared on</span><strong>${escapeReportValue(new Date().toLocaleDateString())}</strong></div><div class="cover-meta"><span>Report status</span><strong>Confidential</strong></div></div></section><main class="report"><header class="report-header"><div class="report-brand"><img src="${logoUrl}" alt="NHO"><div><h1>Referral Overview</h1><div class="muted">${escapeReportValue(reportingPeriod)}</div></div></div><div class="muted">Generated ${escapeReportValue(new Date().toLocaleString())}</div></header><section class="kpis"><div class="kpi"><span>Total referrals</span><strong>${items.length}</strong></div><div class="kpi"><span>Active referrals</span><strong>${active}</strong></div><div class="kpi"><span>Completion rate</span><strong>${completionRate}%</strong></div></section><section class="charts"><div class="chart"><h2>Referrals by source type</h2>${barChart()}</div><div class="chart"><h2>Referral status</h2><div class="donut-wrap"><div class="donut"></div><div class="legend">${statusLegend}</div></div></div></section><h2 class="section-title">Referral Details</h2><table><thead><tr><th>Patient</th><th>Referrer</th><th>Phone</th><th>Type</th><th>Date</th><th>Status</th></tr></thead><tbody>${referralReportTable(items)}</tbody></table></main><script>window.onload=()=>setTimeout(()=>window.print(),250)</script></body></html>`,
     );
     reportWindow.document.close();
   };
@@ -1807,7 +1807,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                   to={`/crm/patients/${patient.id}`}
                   className="block h-full"
                 >
-                  <div className="bg-gradient-to-br from-primary/10 via-cyan-500/5 to-transparent p-4 pb-3">
+                  <div className="bg-gradient-to-br from-primary/10 via-teal-500/5 to-transparent p-4 pb-3">
                     <div className="flex items-start gap-3">
                       <span className="grid size-12 shrink-0 place-items-center rounded-xl border border-primary/15 bg-background text-sm font-bold text-primary shadow-sm transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                         {String(patient.firstName ?? "P").charAt(0)}
@@ -1977,7 +1977,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                       ) : key === "status" &&
                         resource === "leads" &&
                         canManage ? (
-                        <div className="flex w-44 items-center gap-2">
+                        <div className="flex min-w-60 items-center gap-2">
                           <Select
                             value={String(row.status)}
                             onValueChange={(status) =>
@@ -2001,7 +2001,9 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                                 "lost",
                               ].map((status) => (
                                 <SelectItem key={status} value={status}>
-                                  {status}
+                                  {t(`crm.values.${status}`, {
+                                    defaultValue: status.replaceAll("_", " "),
+                                  })}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -2043,7 +2045,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                               title={t("crm.actions.viewReferralDetails")}
                               onClick={() => setSelectedReferral(row)}
                             >
-                              <Eye className="size-4 text-sky-600" />
+                              <Eye className="size-4 text-teal-600" />
                             </Button>
                             {canManage && (
                               <Button
@@ -2069,7 +2071,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                               title={t("crm.actions.viewDetails")}
                             >
                               <Link to={`/crm/leads/${row.id}`}>
-                                <Eye className="size-4 text-sky-600" />
+                                <Eye className="size-4 text-teal-600" />
                               </Link>
                             </Button>
                             <Button

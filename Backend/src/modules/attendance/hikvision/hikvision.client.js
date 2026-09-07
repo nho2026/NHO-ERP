@@ -303,6 +303,34 @@ export class HikvisionClient {
     }
     return users;
   }
+  async allCards() {
+    const searchID = crypto.randomUUID().replaceAll("-", "");
+    const cards = [];
+    while (true) {
+      const result = await this.readRequest(
+        "POST",
+        "/ISAPI/AccessControl/CardInfo/Search?format=json",
+        {
+          CardInfoSearchCond: {
+            searchID,
+            searchResultPosition: cards.length,
+            maxResults: 100,
+          },
+        },
+      );
+      const search = result.CardInfoSearch;
+      if (!search)
+        throw new Error("The terminal returned invalid card search data.");
+      const page = search.CardInfo ?? [];
+      cards.push(...page);
+      const more =
+        search.responseStatusStrg === "MORE" ||
+        cards.length < Number(search.totalMatches ?? cards.length);
+      if (!more) return cards;
+      if (!page.length)
+        throw new Error("The terminal returned incomplete card search data.");
+    }
+  }
   addCard(employeeNo, cardNo) {
     return this.request(
       "POST",

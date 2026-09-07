@@ -1,3 +1,4 @@
+import { Label } from "@/shared/components/ui/label";
 import { useCallback, useMemo, useState } from "react";
 import {
   Barcode,
@@ -129,7 +130,7 @@ export default function BarcodeLabelsPage() {
               <SelectItem value="40x25">40 × 25 mm</SelectItem>
             </SelectContent>
           </Select>
-          <label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 text-sm font-medium shadow-sm hover:bg-muted">
+          <Label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 text-sm font-medium shadow-sm hover:bg-muted">
             <Checkbox
               className="size-5 rounded-md"
               checked={
@@ -142,7 +143,7 @@ export default function BarcodeLabelsPage() {
               }
             />
             {t("inventory.barcode.selectAll")}
-          </label>
+          </Label>
           <Button
             disabled={!chosen.length}
             onClick={() =>
@@ -169,7 +170,7 @@ export default function BarcodeLabelsPage() {
                 className={`group min-w-0 overflow-hidden border bg-card transition-all duration-200 ${checked ? "border-primary ring-2 ring-primary/20" : "hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-lg"}`}
               >
                 <CardContent className="relative flex min-w-0 flex-col gap-3 p-3">
-                  <label className="absolute end-5 top-5 z-10 grid size-9 shrink-0 cursor-pointer place-items-center rounded-xl border border-slate-200 bg-white/95 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900/95 dark:hover:bg-slate-800">
+                  <Label className="absolute end-5 top-5 z-10 grid size-9 shrink-0 cursor-pointer place-items-center rounded-xl border border-slate-200 bg-white/95 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900/95 dark:hover:bg-slate-800">
                     <Checkbox
                       className="size-5 rounded-md"
                       checked={checked}
@@ -178,7 +179,7 @@ export default function BarcodeLabelsPage() {
                       }
                       aria-label={t("inventory.barcode.selectProduct")}
                     />
-                  </label>
+                  </Label>
                   <div className="flex h-36 w-full min-w-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-inner dark:border-slate-700">
                     <ProductBarcode value={String(product.barcode)} />
                   </div>
