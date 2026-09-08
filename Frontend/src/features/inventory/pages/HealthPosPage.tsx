@@ -386,7 +386,9 @@ export default function HealthPosPage() {
                           </small>
                         )}
                       </span>
-                      <span className={`grid size-8 shrink-0 place-items-center rounded-full ${stock(p) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                      <span
+                        className={`grid size-8 shrink-0 place-items-center rounded-full ${stock(p) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                      >
                         <Plus className="size-4" />
                       </span>
                     </div>
@@ -527,8 +529,8 @@ export default function HealthPosPage() {
                     {(price(product) * quantity).toLocaleString()} IQD
                   </small>
                 </div>
-                <div className="flex shrink-0 items-center gap-1 rounded-xl border border-primary/15 bg-primary/5 p-1 shadow-inner">
-                  <Button
+                <div className="flex shrink-0 items-center gap-2 rounded-xl border border-primary/15 bg-primary/5 p-1 shadow-inner">
+                  <Button data-action="delete"
                     className={`size-8 rounded-lg ${quantity === 1 ? "text-destructive hover:bg-destructive hover:text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
                     size="icon"
                     variant="ghost"

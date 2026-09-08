@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { prisma } from "../../../shared/database/client.js";
 export const eventsModel = {
   devices: (id) =>
@@ -12,17 +13,19 @@ export const eventsModel = {
     const existing = await prisma.attendanceEvent.findUnique({
       where: { deviceId_deviceEventId: { deviceId, deviceEventId } },
     });
-    if (existing) return { event: existing, created: false };
+    if (existing && existing.employeeNo === data.employeeNo && existing.eventType === data.eventType && existing.occurredAt.getTime() === data.occurredAt.getTime())
+      return { event: existing, created: false };
+    // Device serial numbers can be reused after its event history is cleared.
+    if (existing) {
+      deviceEventId = createHash("sha256").update(`${deviceEventId}:${data.employeeNo}:${data.eventType}:${data.occurredAt.toISOString()}`).digest("hex");
+    }
 
     const duplicate = await prisma.attendanceEvent.findFirst({
       where: {
         deviceId,
         employeeNo: data.employeeNo,
         eventType: data.eventType,
-        occurredAt: {
-          gte: new Date(data.occurredAt.getTime() - 60 * 60 * 1000),
-          lte: new Date(data.occurredAt.getTime() + 60 * 60 * 1000),
-        },
+        occurredAt: data.occurredAt,
       },
       orderBy: { occurredAt: "asc" },
     });

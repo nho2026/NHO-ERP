@@ -1,3 +1,10 @@
+import { useTranslation } from "react-i18next";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "./tooltip";
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -39,17 +46,37 @@ export interface ButtonProps
     React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  "data-action"?: "edit" | "delete";
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, title, ...props }, ref) => {
+    const { t, i18n } = useTranslation();
+    const action = props["data-action"];
+    const tooltip =
+      title ||
+      (action
+        ? props["aria-label"] || t(`actionTooltip.${action}`)
+        : undefined);
     const Comp = asChild ? Slot : "button";
-    return (
+    const button = (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
+        aria-label={
+          props["aria-label"] || (size === "icon" ? tooltip : undefined)
+        }
       />
+    );
+    if (!tooltip) return button;
+    return (
+      <TooltipProvider delayDuration={350}>
+        <Tooltip>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipContent dir={i18n.dir()}>{tooltip}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   },
 );

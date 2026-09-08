@@ -347,7 +347,7 @@ export default function LeadDetailPage() {
                       {String(attachment.fileName)}
                     </a>
                     {canManage && (
-                      <Button
+                      <Button data-action="delete"
                         size="icon"
                         variant="ghost"
                         onClick={() =>

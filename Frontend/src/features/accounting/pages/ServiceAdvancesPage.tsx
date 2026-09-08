@@ -145,33 +145,35 @@ export default function ServiceAdvancesPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setError("");
-                        setEditing(row);
-                      }}
-                    >
-                      <Pencil />
-                    </Button>
-                    {row.appliedAmount === 0 && (
-                      <DeleteConfirmationDialog
-                        description={t("serviceAdvance.deleteConfirm")}
-                        onConfirm={async () => {
-                          await billingApi.serviceAdvances.remove(row.id);
-                          await advances.refresh();
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button data-action="edit"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setError("");
+                          setEditing(row);
                         }}
                       >
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
+                        <Pencil />
+                      </Button>
+                      {row.appliedAmount === 0 && (
+                        <DeleteConfirmationDialog
+                          description={t("serviceAdvance.deleteConfirm")}
+                          onConfirm={async () => {
+                            await billingApi.serviceAdvances.remove(row.id);
+                            await advances.refresh();
+                          }}
                         >
-                          <Trash2 />
-                        </Button>
-                      </DeleteConfirmationDialog>
-                    )}
+                          <Button data-action="delete"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                          >
+                            <Trash2  className="size-4 text-white" />
+                          </Button>
+                        </DeleteConfirmationDialog>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

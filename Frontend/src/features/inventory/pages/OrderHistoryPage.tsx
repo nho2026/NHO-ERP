@@ -22,12 +22,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/shared/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-} from "@/shared/components/ui/dropdown-menu";
+
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { hasPermission, storedUser } from "@/features/auth/access";
@@ -69,10 +64,12 @@ export default function OrderHistoryPage({
   headerAction,
 }: { title?: string; headerAction?: ReactNode } = {}) {
   const { t, i18n } = useTranslation();
-  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get("search") ?? "");
+  const [search, setSearch] = useState(
+    () => new URLSearchParams(window.location.search).get("search") ?? "",
+  );
   const query = useDeferredValue(search);
   const [page, setPage] = useState(1);
-  const [visible, setVisible] = useState<Column[]>([...columns]);
+  const visible: Column[] = [...columns];
   const [selected, setSelected] = useState<Order | null>(null);
   const [deleting, setDeleting] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
@@ -186,30 +183,6 @@ export default function OrderHistoryPage({
               setPage(1);
             }}
           />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">{t("buyHistory.columns")}</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {columns.map((key) => (
-                <DropdownMenuCheckboxItem
-                  key={key}
-                  checked={visible.includes(key)}
-                  disabled={visible.length === 1 && visible.includes(key)}
-                  onSelect={(e) => e.preventDefault()}
-                  onCheckedChange={(checked) =>
-                    setVisible((items) =>
-                      checked
-                        ? [...items, key]
-                        : items.filter((item) => item !== key),
-                    )
-                  }
-                >
-                  {label(key)}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
         <Table>
           <TableHeader>
@@ -273,7 +246,7 @@ export default function OrderHistoryPage({
                       </TableCell>
                     ))}
                   <TableCell>
-                    <div className="flex justify-end gap-1.5">
+                    <div className="flex justify-end gap-2">
                       <Button
                         size="icon"
                         className="size-8 bg-teal-500 text-white hover:bg-teal-600"
@@ -294,7 +267,7 @@ export default function OrderHistoryPage({
                         <Eye className="size-4" />
                       </Button>
                       {canManage && (
-                        <Button
+                        <Button data-action="delete"
                           size="icon"
                           variant="destructive"
                           className="size-8"

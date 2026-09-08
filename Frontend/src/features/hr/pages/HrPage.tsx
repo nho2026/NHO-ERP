@@ -675,50 +675,52 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                               </TableCell>
                             ))}
                             <TableCell className="whitespace-nowrap">
-                              {key === "employees" && (
-                                <Button
+                              <div className="flex flex-wrap items-center gap-2">
+                                {key === "employees" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title={t("hr.rewardPunishment", {
+                                      defaultValue: "Reward or punishment",
+                                    })}
+                                    onClick={() => {
+                                      setError("");
+                                      setAdjustmentEmployee(row);
+                                    }}
+                                  >
+                                    <Gift className="size-4 text-amber-600" />
+                                  </Button>
+                                )}
+                                <Button data-action="edit"
                                   variant="ghost"
                                   size="icon"
-                                  title={t("hr.rewardPunishment", {
-                                    defaultValue: "Reward or punishment",
-                                  })}
                                   onClick={() => {
                                     setError("");
-                                    setAdjustmentEmployee(row);
+                                    setEditing(row);
                                   }}
                                 >
-                                  <Gift className="size-4 text-amber-600" />
+                                  <Pencil className="size-4" />
                                 </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setError("");
-                                  setEditing(row);
-                                }}
-                              >
-                                <Pencil className="size-4" />
-                              </Button>
-                              <DeleteConfirmationDialog
-                                description={t("hr.deleteConfirm")}
-                                onConfirm={async () => {
-                                  try {
-                                    await hrApi[key].remove(row.id);
-                                    await current.refresh();
-                                  } catch (cause) {
-                                    setError(apiErrorMessage(cause));
-                                  }
-                                }}
-                              >
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-destructive"
+                                <DeleteConfirmationDialog
+                                  description={t("hr.deleteConfirm")}
+                                  onConfirm={async () => {
+                                    try {
+                                      await hrApi[key].remove(row.id);
+                                      await current.refresh();
+                                    } catch (cause) {
+                                      setError(apiErrorMessage(cause));
+                                    }
+                                  }}
                                 >
-                                  <Trash2 className="size-4" />
-                                </Button>
-                              </DeleteConfirmationDialog>
+                                  <Button data-action="delete"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </Button>
+                                </DeleteConfirmationDialog>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}

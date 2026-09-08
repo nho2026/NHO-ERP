@@ -23,14 +23,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Columns3,
-  Eye,
-  Printer,
-  RotateCcw,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { Eye, Printer, RotateCcw, Search, Trash2 } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { hasPermission, storedUser } from "@/features/auth/access";
@@ -43,12 +36,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/shared/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-} from "@/shared/components/ui/dropdown-menu";
+
 import { productImageUrl } from "../api/inventory.api";
 
 type Purchase = {
@@ -64,6 +52,7 @@ type Purchase = {
   attachmentUrl: string | null;
   items: {
     productName: string;
+    unit?: string;
     warehouseName: string;
     quantity: number;
     price: number;
@@ -91,11 +80,13 @@ export default function BuyHistoryPage({
   headerAction,
 }: { title?: string; headerAction?: ReactNode } = {}) {
   const { t, i18n } = useTranslation();
-  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get("search") ?? "");
+  const [search, setSearch] = useState(
+    () => new URLSearchParams(window.location.search).get("search") ?? "",
+  );
   const [retailer, setRetailer] = useState("");
   const [page, setPage] = useState(1);
   const query = useDeferredValue(search);
-  const [visible, setVisible] = useState<Column[]>([...columns]);
+  const visible: Column[] = [...columns];
   const [selected, setSelected] = useState<Purchase | null>(null);
   const [action, setAction] = useState<{
     purchase: Purchase;
@@ -154,7 +145,7 @@ export default function BuyHistoryPage({
     target.opener = null;
     const heading = (key: string) => escapeHtml(t(key));
     target.document.write(
-      `<!doctype html><html dir="${i18n.dir()}"><head><meta charset="utf-8"><title>${escapeHtml(row.invoiceNumber)}</title><style>body{font:14px Arial,sans-serif;padding:32px;color:#172b36}h1{color:#128775}table{width:100%;border-collapse:collapse;margin:24px 0}th,td{text-align:start;border-bottom:1px solid #ddd;padding:12px}th{background:#edf8f5}p{white-space:pre-wrap}@page{size:A4;margin:15mm}</style></head><body><h1>${heading("warehouseModule.buyProduct")} · ${escapeHtml(row.invoiceNumber)}</h1><p>${heading("buyProductForm.retailer")}: ${escapeHtml(row.retailer)}</p><p>${heading("buyProductForm.buyDate")}: ${escapeHtml(new Date(row.buyDate).toLocaleDateString(i18n.language))}</p><p>${heading("buyProductForm.salesperson")}: ${escapeHtml(row.salesperson || "—")}</p><p>${heading(row.isDebt ? "buyHistory.debt" : "buyHistory.paid")} · ${heading(`buyHistory.${row.status}`)}</p><table><thead><tr>${["product", "storage", "quantity", "price", "totalPrice"].map((key) => `<th>${heading(`buyProductForm.${key}`)}</th>`).join("")}</tr></thead><tbody>${row.items.map((item) => `<tr><td>${escapeHtml(item.productName)}</td><td>${escapeHtml(item.warehouseName)}</td><td>${escapeHtml(item.quantity)}</td><td>${escapeHtml(money(item.price))}</td><td>${escapeHtml(money(item.totalPrice))}</td></tr>`).join("")}</tbody></table><h2>${heading("buyProductForm.totalPrice")}: ${escapeHtml(money(row.totalPrice))}</h2><p>${heading("buyProductForm.note")}: ${escapeHtml(row.note || "—")}</p></body></html>`,
+      `<!doctype html><html dir="${i18n.dir()}"><head><meta charset="utf-8"><title>${escapeHtml(row.invoiceNumber)}</title><style>body{font:14px Arial,sans-serif;padding:32px;color:#172b36}h1{color:#128775}table{width:100%;border-collapse:collapse;margin:24px 0}th,td{text-align:start;border-bottom:1px solid #ddd;padding:12px}th{background:#edf8f5}p{white-space:pre-wrap}@page{size:A4;margin:15mm}</style></head><body><h1>${heading("warehouseModule.buyProduct")} · ${escapeHtml(row.invoiceNumber)}</h1><p>${heading("buyProductForm.retailer")}: ${escapeHtml(row.retailer)}</p><p>${heading("buyProductForm.buyDate")}: ${escapeHtml(new Date(row.buyDate).toLocaleDateString(i18n.language))}</p><p>${heading("buyProductForm.salesperson")}: ${escapeHtml(row.salesperson || "—")}</p><p>${heading(row.isDebt ? "buyHistory.debt" : "buyHistory.paid")} · ${heading(`buyHistory.${row.status}`)}</p><table><thead><tr>${["product", "storage", "quantity", "price", "totalPrice"].map((key) => `<th>${heading(`buyProductForm.${key}`)}</th>`).join("")}</tr></thead><tbody>${row.items.map((item) => `<tr><td>${escapeHtml(item.productName)}</td><td>${escapeHtml(item.warehouseName)}</td><td>${escapeHtml(item.quantity)} ${escapeHtml(item.unit ?? "")}</td><td>${escapeHtml(money(item.price))}</td><td>${escapeHtml(money(item.totalPrice))}</td></tr>`).join("")}</tbody></table><h2>${heading("buyProductForm.totalPrice")}: ${escapeHtml(money(row.totalPrice))}</h2><p>${heading("buyProductForm.note")}: ${escapeHtml(row.note || "—")}</p></body></html>`,
     );
     target.document.close();
     target.focus();
@@ -243,35 +234,7 @@ export default function BuyHistoryPage({
               ))}
             </SelectContent>
           </Select>
-          <div className="ms-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <Columns3 className="size-4" />
-                  {t("buyHistory.columns")}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {columns.map((column) => (
-                  <DropdownMenuCheckboxItem
-                    key={column}
-                    checked={visible.includes(column)}
-                    disabled={visible.length === 1 && visible.includes(column)}
-                    onSelect={(e) => e.preventDefault()}
-                    onCheckedChange={(checked) =>
-                      setVisible((items) =>
-                        checked
-                          ? [...items, column]
-                          : items.filter((item) => item !== column),
-                      )
-                    }
-                  >
-                    {label(column)}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <div className="ms-auto"></div>
         </div>
         <div className="overflow-x-auto">
           <Table className="w-full text-sm">
@@ -343,7 +306,7 @@ export default function BuyHistoryPage({
                         </TableCell>
                       ))}
                     <TableCell className="px-3 py-2">
-                      <div className="flex justify-end gap-1.5">
+                      <div className="flex justify-end gap-2">
                         {[
                           {
                             icon: Printer,
@@ -405,6 +368,7 @@ export default function BuyHistoryPage({
                             disabled,
                           }) => (
                             <Button
+                              data-action={key === "delete" ? "delete" : undefined}
                               key={key}
                               variant="ghost"
                               size="icon"
@@ -516,7 +480,7 @@ export default function BuyHistoryPage({
                           {item.warehouseName}
                         </TableCell>
                         <TableCell className="border-b p-2">
-                          {item.quantity}
+                          {item.quantity} {item.unit ?? ""}
                         </TableCell>
                         <TableCell className="border-b p-2">
                           {money(item.price)}

@@ -353,3 +353,33 @@ html[lang="ku"] [data-sonner-toaster] {
     padding: 4px 0;
   }
 }
+
+/* Consistent ghost styling for edit and delete actions across all pages. */
+[data-action="delete"],
+[data-action="edit"] {
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+[data-action="delete"] {
+  color: #dc2626;
+}
+[data-action="delete"]:hover,
+[data-action="delete"]:focus-visible {
+  background-color: rgb(220 38 38 / 10%);
+  color: #dc2626;
+}
+[data-action="edit"] {
+  color: var(--primary);
+}
+[data-action="edit"]:hover,
+[data-action="edit"]:focus-visible {
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+}
+[data-action="delete"] svg,
+[data-action="edit"] svg {
+  width: 1rem;
+  height: 1rem;
+  color: inherit;
+}

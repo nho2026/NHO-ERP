@@ -405,7 +405,7 @@ export default function DeviceUsersPage() {
                       ].map(({ method, active, Icon }) => (
                         <div
                           key={method}
-                          className="inline-flex overflow-hidden rounded-md border shadow-xs"
+                          className="inline-flex items-center gap-2"
                         >
                           <Button
                             title={t(
@@ -413,13 +413,13 @@ export default function DeviceUsersPage() {
                             )}
                             variant={active ? "secondary" : "ghost"}
                             size="icon"
-                            className="rounded-none border-0 shadow-none"
+                            className="border-0 shadow-none"
                             onClick={() => startCredential(p, method)}
                           >
                             <Icon className="size-4" />
                           </Button>
                           {active && (
-                            <Button
+                            <Button data-action="delete"
                               title={t("attendancePage.removeCredential", {
                                 credential: t(
                                   `attendancePage.credentials.${method}.label`,
@@ -427,7 +427,7 @@ export default function DeviceUsersPage() {
                               })}
                               variant="ghost"
                               size="icon"
-                              className="size-9 rounded-none border-s text-destructive shadow-none hover:bg-destructive/10 hover:text-destructive"
+                              className="size-9 text-destructive shadow-none hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => {
                                 setRemoveError("");
                                 setRemovingCredential({ person: p, method });
@@ -441,25 +441,27 @@ export default function DeviceUsersPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-end">
-                    <Button
-                      title={t("deviceUsers.edit")}
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setEditError("");
-                        setEditing(p);
-                      }}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive"
-                      onClick={() => setDeleting(p)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2 justify-end">
+                      <Button data-action="edit"
+                        title={t("deviceUsers.edit")}
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditError("");
+                          setEditing(p);
+                        }}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button data-action="delete"
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                        onClick={() => setDeleting(p)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

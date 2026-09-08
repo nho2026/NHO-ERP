@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AuthApiError, loginUser } from "../api/auth.api";
@@ -16,13 +17,15 @@ export function useLogin() {
       const result = await loginUser(request);
       setUser(result.user);
       sessionStorage.setItem("nho-current-user", JSON.stringify(result.user));
+      toast.success(t("auth.loginSuccess"));
       return result.user;
     } catch (cause) {
-      setError(
+      const message =
         cause instanceof AuthApiError
           ? cause.message
-          : t("auth.errors.unavailable"),
-      );
+          : t("auth.errors.unavailable");
+      setError(message);
+      toast.error(message, { id: "login-error" });
       return null;
     } finally {
       setIsLoading(false);

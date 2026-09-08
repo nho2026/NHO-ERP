@@ -1,3 +1,4 @@
+import { SearchableFilter } from "@/shared/components/ui/searchable-filter";
 import { NavigationPreference } from "./NavigationPreference";
 import { useSettingsTranslation } from "./useSettingsTranslation";
 import { Card } from "@/shared/components/ui/card";
@@ -126,6 +127,12 @@ const hints: Record<string, string> = {
   invoiceNextNumber:
     "Used with the prefix for new invoices. Choose an unused sequence.",
 };
+const timezoneOptions = (() => {
+  const fallback = ["Asia/Baghdad", "Asia/Dubai", "Asia/Riyadh", "Asia/Tehran", "Asia/Kolkata", "Asia/Tokyo", "Europe/London", "Europe/Paris", "Europe/Istanbul", "America/New_York", "America/Chicago", "America/Los_Angeles", "Australia/Sydney"];
+  try { return [...new Set(["UTC", ...Intl.supportedValuesOf("timeZone")])].sort(); }
+  catch { return ["UTC", ...fallback].sort(); }
+})();
+
 export default function SettingsPage() {
   const { tr } = useSettingsTranslation();
   const settings = useSettings();
@@ -185,7 +192,7 @@ export default function SettingsPage() {
       <div className="grid gap-5 lg:grid-cols-[250px_1fr]">
         <nav
           aria-label={tr("Settings categories")}
-          className="flex gap-2 overflow-x-auto lg:block lg:space-y-1"
+          className="sticky top-0 z-10 flex self-start gap-2 overflow-x-auto bg-background pb-2 lg:top-4 lg:block lg:space-y-1 lg:overflow-visible lg:bg-transparent lg:pb-0"
         >
           {categories.map(([key, title, Icon, description]) => (
             <Button
@@ -264,6 +271,15 @@ export default function SettingsPage() {
                             change(key, checked === true)
                           }
                           className="size-5"
+                        />
+                      ) : key === "timezone" ? (
+                        <SearchableFilter
+                          value={String(value)}
+                          onValueChange={next => { if (admin && !busy) change(key, next); }}
+                          options={[...new Set([...timezoneOptions, String(value)])].filter(Boolean).sort().map(zone => ({ value: zone, label: zone }))}
+                          label={tr(labels[key] ?? key)}
+                          className="w-full"
+                          searchable
                         />
                       ) : choices[key] ? (
                         <Select

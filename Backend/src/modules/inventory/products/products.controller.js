@@ -1,6 +1,7 @@
 import { inventoryAction } from "../shared/inventory.controller.js";
 import { productsService } from "./products.service.js";
 export const productsController = {
+  removeImage: inventoryAction(productsService.removeImage),
   updateExpiryDate: inventoryAction(productsService.updateExpiryDate),
   updateSpecialPrice: inventoryAction(productsService.updateSpecialPrice),
   updateSpecial: inventoryAction(productsService.updateSpecial),

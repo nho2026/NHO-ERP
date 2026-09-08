@@ -1,3 +1,4 @@
+import { prisma } from "../../../shared/database/client.js";
 import { purchasesModel } from "./purchases.model.js";
 import {
   purchaseSchema,
@@ -31,9 +32,16 @@ export async function savePurchase(db, input) {
       error.status = 400;
       throw error;
     }
+    for (const item of input.items) {
+      const product = products.find((p) => p.id === item.productId);
+      if (item.unit && item.unit.toLowerCase() !== product.unit.trim().toLowerCase()) {
+        throw Object.assign(new Error(`Unit for ${product.name} must match its stock unit (${product.unit}). Unit conversion is not configured.`), { status: 400 });
+      }
+    }
     const items = input.items.map((item) => ({
       ...item,
       productName: products.find((p) => p.id === item.productId).name,
+      unit: products.find((p) => p.id === item.productId).unit,
       warehouseName: warehouses.find((w) => w.id === item.warehouseId).name,
       totalPrice:
         Math.round(item.quantity * Math.round(item.price * 100)) / 100,
@@ -300,7 +308,8 @@ export const purchasesService = {
       distinct: ["retailer"],
       orderBy: { retailer: "asc" },
     });
-    return rows.map((row) => row.retailer);
+    const retailers = await prisma.inventoryRetailer.findMany({ select: { name: true } });
+    return [...new Set([...rows.map((row) => row.retailer), ...retailers.map((row) => row.name)])].sort();
   },
   create: async ({ body }) => {
     try {

@@ -1,6 +1,7 @@
+import PrescriptionWorkspace from "../components/PrescriptionWorkspace";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   CalendarDays,
@@ -65,10 +66,20 @@ const doctorName = (visit: CrmRecord) => {
     : "Doctor not assigned";
 };
 
-export default function PatientProfilePage() {
+export default function PatientProfilePage({
+  patientId,
+  onBack,
+  compact = false,
+}: { patientId?: string; onBack?: () => void; compact?: boolean } = {}) {
   const { t } = useTranslation();
-  const { id = "" } = useParams();
+  const { id: routeId = "" } = useParams();
+  const id = patientId ?? routeId;
   const navigate = useNavigate();
+  const location = useLocation();
+  const backPath =
+    location.state?.from === "/crm/today-patients"
+      ? "/crm/today-patients"
+      : "/crm/patients";
   const canManage = hasPermission(storedUser(), "employees.manage");
   const profile = useApiResource(
     useCallback(() => crmApi.patients.get(id), [id]),
@@ -79,6 +90,7 @@ export default function PatientProfilePage() {
   const submissions = useApiResource(
     useCallback(() => crmFormsApi.submissions(id), [id]),
   );
+  const [showDetails, setShowDetails] = useState(false);
   const [editing, setEditing] = useState(false);
   const [isMarried, setIsMarried] = useState(false);
   const [hasDiabetes, setHasDiabetes] = useState(false);
@@ -258,7 +270,7 @@ export default function PatientProfilePage() {
               size="icon"
               variant="ghost"
               className="text-white hover:bg-white/10 hover:text-white"
-              onClick={() => navigate("/crm/patients")}
+              onClick={() => (onBack ? onBack() : navigate(backPath))}
             >
               <ArrowLeft className="rtl:rotate-180" />
             </Button>
@@ -303,7 +315,7 @@ export default function PatientProfilePage() {
               <Download /> PDF report with charts
             </Button>
             {canManage && (
-              <Button
+              <Button data-action="edit"
                 variant="secondary"
                 onClick={() => {
                   setIsMarried(Boolean(patient.isMarried));
@@ -384,22 +396,10 @@ export default function PatientProfilePage() {
         ))}
       </section>
 
-      <Card>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
-          <div className="flex items-center gap-3">
-            <Pill className="size-5 text-emerald-600" />
-            <div>
-              <h2 className="font-bold">Discharge / follow-up medications</h2>
-              <p className="text-xs text-muted-foreground">
-                No discharge or follow-up medications recorded yet.
-              </p>
-            </div>
-          </div>
-          <Button size="sm" disabled>
-            Add medication
-          </Button>
-        </CardContent>
-      </Card>
+      <PrescriptionWorkspace key={id} patientId={id} canManage={canManage} />
+      {compact && <Button variant="outline" onClick={() => setShowDetails(value => !value)}>{t(showDetails ? "todayPatients.hideDetails" : "todayPatients.showDetails")}</Button>}
+      {(!compact || showDetails) && <>
+
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         {[
@@ -504,11 +504,9 @@ export default function PatientProfilePage() {
           <CardContent className="p-0">
             <div className="flex items-center gap-2 border-b p-4">
               <Pill className="size-4 text-emerald-600" />
-              <h2 className="text-sm font-bold">Medications (active)</h2>
+              <h2 className="text-sm font-bold">{t("prescription.medications")}</h2>
             </div>
-            <p className="p-4 text-xs text-muted-foreground">
-              No active medications recorded.
-            </p>
+            <div className="p-4"><Button variant="outline" onClick={() => document.getElementById("patient-medications")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{t("prescription.viewMedications")}</Button></div>
           </CardContent>
         </Card>
         <Card className="min-h-52">
@@ -739,6 +737,7 @@ export default function PatientProfilePage() {
         </div>
       </section>
 
+      </>}
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="flex max-h-[min(90vh,760px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
           <DialogHeader className="shrink-0 border-b px-6 py-5">

@@ -175,38 +175,40 @@ export default function UsersPage() {
                       <Badge>{u.status}</Badge>
                     </TableCell>
                     <TableCell className="text-end">
-                      {canUpdate && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditor(u)}
-                        >
-                          <Pencil />
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <DeleteConfirmationDialog
-                          description={t("usersAdmin.deleteConfirm", {
-                            name: u.name,
-                          })}
-                          onConfirm={async () => {
-                            try {
-                              await usersApi.remove(u.id);
-                              await users.refresh();
-                            } catch (c) {
-                              setError(apiErrorMessage(c));
-                            }
-                          }}
-                        >
-                          <Button
+                      <div className="flex flex-wrap items-center gap-2 justify-end">
+                        {canUpdate && (
+                          <Button data-action="edit"
                             variant="ghost"
                             size="icon"
-                            className="text-destructive"
+                            onClick={() => openEditor(u)}
                           >
-                            <Trash2 />
+                            <Pencil />
                           </Button>
-                        </DeleteConfirmationDialog>
-                      )}
+                        )}
+                        {canDelete && (
+                          <DeleteConfirmationDialog
+                            description={t("usersAdmin.deleteConfirm", {
+                              name: u.name,
+                            })}
+                            onConfirm={async () => {
+                              try {
+                                await usersApi.remove(u.id);
+                                await users.refresh();
+                              } catch (c) {
+                                setError(apiErrorMessage(c));
+                              }
+                            }}
+                          >
+                            <Button data-action="delete"
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                            >
+                              <Trash2  className="size-4 text-white" />
+                            </Button>
+                          </DeleteConfirmationDialog>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

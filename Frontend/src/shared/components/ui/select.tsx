@@ -83,14 +83,20 @@ SelectScrollDownButton.displayName =
 
 function countOptions(children: React.ReactNode): number {
   return React.Children.toArray(children).reduce<number>((count, child) => {
-    if (!React.isValidElement<{ children?: React.ReactNode }>(child)) return count;
-    return count + (child.type === SelectItem ? 1 : countOptions(child.props.children));
+    if (!React.isValidElement<{ children?: React.ReactNode }>(child))
+      return count;
+    return (
+      count +
+      (child.type === SelectItem ? 1 : countOptions(child.props.children))
+    );
   }, 0);
 }
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & { searchable?: boolean }
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
+    searchable?: boolean;
+  }
 >(({ className, children, position = "popper", searchable, ...props }, ref) => {
   const { t } = useTranslation();
   const [search, setSearch] = React.useState("");
@@ -112,29 +118,31 @@ const SelectContent = React.forwardRef<
           props.onCloseAutoFocus?.(event);
         }}
       >
-        {showSearch && <div
-          className="shrink-0 border-b p-2"
-          onKeyDown={(event) => {
-            if (event.key === "Escape" || event.key === "Tab") return;
-            event.stopPropagation();
-            if (event.key === "ArrowDown") {
-              event.preventDefault();
-              event.currentTarget.parentElement
-                ?.querySelector<HTMLElement>(
-                  '[role="option"]:not([data-disabled])',
-                )
-                ?.focus();
-            }
-          }}
-        >
-          <Input
-            aria-label={t("common.searchOptions")}
-            placeholder={t("common.searchOptions")}
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onPointerDown={(event) => event.stopPropagation()}
-          />
-        </div>}
+        {showSearch && (
+          <div
+            className="shrink-0 border-b p-2"
+            onKeyDown={(event) => {
+              if (event.key === "Escape" || event.key === "Tab") return;
+              event.stopPropagation();
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                event.currentTarget.parentElement
+                  ?.querySelector<HTMLElement>(
+                    '[role="option"]:not([data-disabled])',
+                  )
+                  ?.focus();
+              }
+            }}
+          >
+            <Input
+              aria-label={t("common.searchOptions")}
+              placeholder={t("common.searchOptions")}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onPointerDown={(event) => event.stopPropagation()}
+            />
+          </div>
+        )}
         <SelectSearchContext.Provider value={showSearch ? search : ""}>
           <SelectScrollUpButton />
           <SelectPrimitive.Viewport

@@ -1,6 +1,12 @@
 import { useCallback, useDeferredValue, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Eye, MessageCircle, Phone, Printer } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Eye,
+  MessageCircle,
+  Phone,
+  Printer,
+} from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -29,12 +35,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/shared/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-} from "@/shared/components/ui/dropdown-menu";
+
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { hasPermission, storedUser } from "@/features/auth/access";
@@ -78,7 +79,7 @@ export default function DepartmentOrdersPage() {
   const [department, setDepartment] = useState("all");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
-  const [visible, setVisible] = useState<string[]>([...columns]);
+  const visible: string[] = [...columns];
   const [departments, setDepartments] = useState<
     { id: string; name: string }[]
   >([]);
@@ -282,30 +283,7 @@ export default function DepartmentOrdersPage() {
               ))}
             </SelectContent>
           </Select>
-          <div className="ms-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">{t("buyHistory.columns")}</Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {columns.map((k) => (
-                  <DropdownMenuCheckboxItem
-                    key={k}
-                    checked={visible.includes(k)}
-                    disabled={visible.length === 1 && visible.includes(k)}
-                    onSelect={(e) => e.preventDefault()}
-                    onCheckedChange={(checked) =>
-                      setVisible((v) =>
-                        checked ? [...v, k] : v.filter((key) => key !== k),
-                      )
-                    }
-                  >
-                    {t(`departmentOrders.${k}`)}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <div className="ms-auto"></div>
         </div>
         <Table>
           <TableHeader>
@@ -360,6 +338,19 @@ export default function DepartmentOrdersPage() {
                     ))}
                   <TableCell>
                     <div className="flex justify-end gap-1.5">
+                      {canManage && row.status === "pending" && (
+                        <Button
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => {
+                            open(row, "details");
+                            setNextStatus("approved");
+                          }}
+                        >
+                          <ArrowRightLeft className="size-4" />
+                          {t("departmentOrders.startMovement")}
+                        </Button>
+                      )}
                       <Button
                         size="icon"
                         variant="outline"
@@ -508,7 +499,12 @@ export default function DepartmentOrdersPage() {
                   <TableBody autoPaginate={false}>
                     {selected.items.map((item, index) => (
                       <TableRow key={index}>
-                        <TableCell>{item.name}<p className="text-xs text-muted-foreground">{item.warehouseName}</p></TableCell>
+                        <TableCell>
+                          {item.name}
+                          <p className="text-xs text-muted-foreground">
+                            {item.warehouseName}
+                          </p>
+                        </TableCell>
                         <TableCell>{item.quantity}</TableCell>
                       </TableRow>
                     ))}
@@ -568,7 +564,12 @@ export default function DepartmentOrdersPage() {
                   />
                   {canManage && (
                     <Button disabled={busy}>
-                      {t("departmentOrders.save")}
+                      {t(
+                        selected.status === "pending" &&
+                          nextStatus === "approved"
+                          ? "departmentOrders.approveMovement"
+                          : "departmentOrders.save",
+                      )}
                     </Button>
                   )}
                 </form>

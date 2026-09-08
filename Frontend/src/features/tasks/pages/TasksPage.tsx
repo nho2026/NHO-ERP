@@ -396,7 +396,7 @@ export default function TasksPage() {
                       : "—"}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-end gap-1">
+                    <div className="flex justify-end gap-2">
                       <Button size="icon" variant="ghost" asChild>
                         <Link
                           to={`/tasks/${task.id}`}
@@ -408,7 +408,7 @@ export default function TasksPage() {
                       {isHr && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="icon" variant="ghost">
+                            <Button data-action="delete" size="icon" variant="ghost">
                               <Trash2 className="text-destructive" />
                             </Button>
                           </AlertDialogTrigger>

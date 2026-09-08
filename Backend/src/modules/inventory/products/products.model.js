@@ -1,6 +1,12 @@
 import { prisma } from "../../../shared/database/client.js";
 import { paginate } from "../shared/pagination.model.js";
 export const productsModel = {
+  imageReferences: async (imageUrl) => {
+    if (await prisma.inventoryProductImage.count({ where: { imageUrl } })) return true;
+    if (await prisma.inventoryPurchase.count({ where: { attachmentUrl: imageUrl } })) return true;
+    const orders = await prisma.inventoryOrder.findMany({ select: { items: true } });
+    return orders.some(({ items }) => Array.isArray(items) && items.some((item) => item.imageUrl === imageUrl));
+  },
   updateSpecial: (id, input) =>
     prisma.$transaction(async (tx) => {
       if (input.variants.length !== 1)

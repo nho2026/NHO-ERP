@@ -167,36 +167,38 @@ export default function FeedbackPage() {
                     </Select>
                   </TableCell>
                   <TableCell className="text-end">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="icon" variant="ghost">
-                          <Trash2 className="text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            {t("feedback.deleteTitle")}
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t("feedback.deleteDescription")}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>
-                            {t("common.cancel")}
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={async () => {
-                              await feedbackApi.remove(item.id);
-                              await load();
-                            }}
-                          >
-                            {t("common.delete")}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <div className="flex flex-wrap items-center gap-2 justify-end">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button data-action="delete" size="icon" variant="ghost">
+                            <Trash2 className="text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {t("feedback.deleteTitle")}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {t("feedback.deleteDescription")}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>
+                              {t("common.cancel")}
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                await feedbackApi.remove(item.id);
+                                await load();
+                              }}
+                            >
+                              {t("common.delete")}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

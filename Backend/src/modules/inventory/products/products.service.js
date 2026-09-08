@@ -1,3 +1,5 @@
+import { unlink } from "node:fs/promises";
+import path from "node:path";
 import { expiryDateSchema } from "./products.schema.js";
 import { specialPriceSchema } from "./products.schema.js";
 import { specialProductSchema } from "./products.schema.js";
@@ -24,6 +26,19 @@ const generateProductBarcode = async () => {
   });
 };
 export const productsService = {
+  removeImage: async ({ body }) => {
+    const imageUrl = body?.imageUrl;
+    if (typeof imageUrl !== "string" || !/^\/public\/product-images\/[a-f0-9-]{36}\.(png|jpg|jpeg|webp|gif)$/.test(imageUrl)) {
+      throw Object.assign(new Error("Invalid product image path."), { status: 400 });
+    }
+    if (await productsModel.imageReferences(imageUrl)) return { retained: true };
+    try {
+      await unlink(path.resolve(process.cwd(), "public", "product-images", path.basename(imageUrl)));
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    return { retained: false };
+  },
   updateExpiryDate: async ({ id, body }) => {
     const { expiryDate } = expiryDateSchema.parse(body);
     const product = await productsModel.findUnique({ where: { id } });
@@ -149,11 +164,12 @@ export const productsService = {
       );
     const images = input.images;
     delete input.images;
+    const previous = images ? await productsModel.findUnique({ where: { id }, include: { images: true } }) : null;
     if (images)
       await productsModel.deleteImages({
         where: { productId: id },
       });
-    return await productsModel.update({
+    const updated = await productsModel.update({
       where: { id: id },
       data: {
         ...input,
@@ -178,6 +194,12 @@ export const productsService = {
         images: { orderBy: { sortOrder: "asc" } },
       },
     });
+    for (const image of previous?.images ?? []) {
+      if (!images.some((item) => item.imageUrl === image.imageUrl)) {
+        await productsService.removeImage({ body: { imageUrl: image.imageUrl } });
+      }
+    }
+    return updated;
   },
   assignBarcode: async ({ body, id }) => {
     const { barcode } = barcodeAssignmentSchema.parse(body);

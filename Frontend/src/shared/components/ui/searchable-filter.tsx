@@ -61,23 +61,28 @@ export function SearchableFilter({
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           if (showSearch) input.current?.focus();
-          else list.current?.querySelector<HTMLButtonElement>("button")?.focus();
+          else
+            list.current?.querySelector<HTMLButtonElement>("button")?.focus();
         }}
       >
-        {showSearch && <Input
-          ref={input}
-          className="shrink-0"
-          aria-label={`${t("common.searchOptions")} ${label}`}
-          placeholder={t("common.searchOptions")}
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowDown") {
-              event.preventDefault();
-              list.current?.querySelector<HTMLButtonElement>("button")?.focus();
-            }
-          }}
-        />}
+        {showSearch && (
+          <Input
+            ref={input}
+            className="shrink-0"
+            aria-label={`${t("common.searchOptions")} ${label}`}
+            placeholder={t("common.searchOptions")}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                list.current
+                  ?.querySelector<HTMLButtonElement>("button")
+                  ?.focus();
+              }
+            }}
+          />
+        )}
         <ScrollArea className="min-h-0 max-h-60 [&_[data-radix-scroll-area-viewport]]:h-auto [&_[data-radix-scroll-area-viewport]]:max-h-[min(240px,calc(var(--radix-popover-content-available-height)-80px))]">
           <div
             ref={list}

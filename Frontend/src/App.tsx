@@ -1,3 +1,12 @@
+import { AlertSounds } from "@/shared/components/feedback/AlertSounds";
+import TodayPatientsPage from "@/features/healthcare/pages/TodayPatientsPage";
+import PatientProductsReportPage from "@/features/inventory/pages/PatientProductsReportPage";
+import ItemReductionPage from "@/features/inventory/pages/ItemReductionPage";
+import SurgeryBypassPage from "@/features/inventory/pages/SurgeryBypassPage";
+import IcuPage from "@/features/inventory/pages/IcuPage";
+import ThresholdPage from "@/features/inventory/pages/ThresholdPage";
+import DirectoryPage from "@/features/inventory/pages/DirectoryPage";
+import RetailersPage from "@/features/inventory/pages/RetailersPage";
 import ExpireSoonPage from "@/features/inventory/pages/ExpireSoonPage";
 import SpecialPricesPage from "@/features/inventory/pages/SpecialPricesPage";
 import StoragePage from "@/features/inventory/pages/StoragePage";
@@ -10,7 +19,6 @@ import BuyProductPage from "@/features/inventory/pages/BuyProductPage";
 import WarehouseDashboardPage from "@/features/inventory/pages/WarehouseDashboardPage";
 import { warehousePages } from "@/features/inventory/warehouse-pages";
 import WarehouseModulePage from "@/features/inventory/pages/WarehouseModulePage";
-import WarehouseStoragePage from "@/features/inventory/pages/WarehouseStoragePage";
 
 import DepartmentOrdersPage from "@/features/inventory/pages/DepartmentOrdersPage";
 import SettingsPage from "@/features/settings/SettingsPage";
@@ -169,10 +177,7 @@ export default function App() {
               <HealthcarePage resource="departments" />,
             )}
           />
-          <Route
-            path="/settings"
-            element={<SettingsPage />}
-          />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route
             path="/health-staff"
             element={secured(
@@ -206,11 +211,21 @@ export default function App() {
           />
           <Route
             path="/crm/referrals"
-            element={secured("employees.view", <CrmPage resource="referrals" />)}
+            element={secured(
+              "employees.view",
+              <CrmPage resource="referrals" />,
+            )}
           />
           <Route
             path="/crm/forms"
             element={secured("employees.view", <CrmFormsPage />)}
+          />
+          <Route
+            path="/crm/today-patients"
+            element={secured(
+              "healthcare.appointments.view",
+              <TodayPatientsPage />,
+            )}
           />
           <Route
             path="/crm/appointments"
@@ -321,19 +336,98 @@ export default function App() {
               <FinancePage resource="funding" />,
             )}
           />
-          <Route path="/warehouses/buy/product" element={secured("inventory.warehouses.view", <BuyProductPage />)} />
-          <Route path="/warehouses/buy/debts" element={secured("inventory.warehouses.view", <BuyDebtsPage />)} />
-          <Route path="/warehouses/buy/order" element={secured("inventory.warehouses.view", <OrderPage />)} />
-          <Route path="/warehouses/buy/order-history" element={secured("inventory.warehouses.view", <OrderHistoryPage />)} />
-          <Route path="/warehouses/buy/department-orders" element={secured("inventory.warehouses.view", <DepartmentOrdersPage />)} />
-          <Route path="/warehouses/product/special" element={secured("inventory.products.view", <AddSpecialProductPage />)} />
-          <Route path="/warehouses/product/transfer" element={secured("inventory.products.view", <TransferProductPage />)} />
-          <Route path="/warehouses/storage/special-price" element={secured("inventory.stock.view", <SpecialPricesPage />)} />
-          <Route path="/warehouses/storage/expire-soon" element={secured("inventory.stock.view", <ExpireSoonPage />)} />
-          <Route path="/warehouses/storage/threshold" element={secured("inventory.stock.view", <WarehouseStoragePage page="threshold" />)} />
-          <Route path="/warehouses" element={secured("inventory.warehouses.view", <WarehouseDashboardPage />)} />
+          <Route
+            path="/warehouses/buy/product"
+            element={secured("inventory.warehouses.view", <BuyProductPage />)}
+          />
+          <Route
+            path="/warehouses/buy/debts"
+            element={secured("inventory.warehouses.view", <BuyDebtsPage />)}
+          />
+          <Route
+            path="/warehouses/buy/order"
+            element={secured("inventory.warehouses.view", <OrderPage />)}
+          />
+          <Route
+            path="/warehouses/buy/order-history"
+            element={secured("inventory.warehouses.view", <OrderHistoryPage />)}
+          />
+          <Route
+            path="/warehouses/buy/department-orders"
+            element={secured(
+              "inventory.warehouses.view",
+              <DepartmentOrdersPage />,
+            )}
+          />
+          <Route
+            path="/warehouses/product/special"
+            element={secured(
+              "inventory.products.view",
+              <AddSpecialProductPage />,
+            )}
+          />
+          <Route
+            path="/warehouses/product/transfer"
+            element={secured(
+              "inventory.products.view",
+              <TransferProductPage />,
+            )}
+          />
+          <Route
+            path="/warehouses/storage/special-price"
+            element={secured("inventory.stock.view", <SpecialPricesPage />)}
+          />
+          <Route
+            path="/warehouses/storage/expire-soon"
+            element={secured("inventory.stock.view", <ExpireSoonPage />)}
+          />
+          <Route
+            path="/warehouses/storage/threshold"
+            element={secured("inventory.stock.view", <ThresholdPage />)}
+          />
+          <Route
+            path="/warehouses"
+            element={secured(
+              "inventory.warehouses.view",
+              <WarehouseDashboardPage />,
+            )}
+          />
           {warehousePages.map((page) => (
-            <Route key={page.path} path={page.path} element={secured("inventory.warehouses.view", <WarehouseModulePage page={page} />)} />
+            <Route
+              key={page.path}
+              path={page.path}
+              element={secured(
+                "inventory.warehouses.view",
+                page.path === "/warehouses/cases/surgery-bypass" ? (
+                  <SurgeryBypassPage />
+                ) : page.path === "/warehouses/cases/icu" ? (
+                  <IcuPage key="icu" />
+                ) : page.path === "/warehouses/cases/picu" ? (
+                  <IcuPage key="picu" unit="picu" />
+                ) : page.path === "/warehouses/cases/cardiac-surgery" ? (
+                  <IcuPage key="cardiac-surgery" unit="cardiac-surgery" />
+                ) : page.path === "/warehouses/cases/cardiology" ? (
+                  <IcuPage key="cardiology" unit="cardiology" />
+                ) : page.path === "/warehouses/cases/cardiac-sw" ? (
+                  <IcuPage key="cardiac-sw" unit="cardiac-sw" />
+                ) : page.path === "/warehouses/retailers" ? (
+                  <RetailersPage />
+                ) : page.path === "/warehouses/production-companies" ? (
+                  <DirectoryPage
+                    key="companies"
+                    resource="production-companies"
+                  />
+                ) : page.path === "/warehouses/customers" ? (
+                  <DirectoryPage key="customers" resource="customers" />
+                ) : page.section === "utilities" ? (
+                  <ItemReductionPage />
+                ) : page.path === "/warehouses/reports/products-per-patient" ? (
+                  <PatientProductsReportPage />
+                ) : (
+                  <WarehouseModulePage page={page} />
+                ),
+              )}
+            />
           ))}
           <Route
             path="/inventory/products"
@@ -369,17 +463,11 @@ export default function App() {
           />
           <Route
             path="/inventory/stock"
-            element={secured(
-              "inventory.stock.view",
-              <StoragePage />,
-            )}
+            element={secured("inventory.stock.view", <StoragePage />)}
           />
           <Route
             path="/inventory/movements"
-            element={secured(
-              "inventory.movements.view",
-              <InventoryPage resource="movements" />,
-            )}
+            element={<Navigate to="/inventory/stock" replace />}
           />
           <Route
             path="/pos/sales"
@@ -410,6 +498,7 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      <AlertSounds />
       <Toaster dir={direction} richColors position="top-center" closeButton />
     </DirectionProvider>
   );

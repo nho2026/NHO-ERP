@@ -1,8 +1,0 @@
-ALTER TABLE `inventory_InventoryProduct`
- ADD COLUMN `isSpecial` BOOLEAN NOT NULL DEFAULT false,
- ADD COLUMN `size` VARCHAR(191) NULL,
- ADD COLUMN `boxPrice` DOUBLE NOT NULL DEFAULT 0,
- ADD COLUMN `specialProfitRate` DOUBLE NOT NULL DEFAULT 0,
- ADD COLUMN `specialPrice` DOUBLE NOT NULL DEFAULT 0,
- ADD COLUMN `productType` VARCHAR(191) NOT NULL DEFAULT 'patient_use',
- ADD COLUMN `productionCompany` VARCHAR(191) NULL;

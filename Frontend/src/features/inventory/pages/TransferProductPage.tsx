@@ -337,20 +337,22 @@ export default function TransferProductPage() {
                           {product ? money(product.specialPrice) : "—"}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive"
-                            aria-label={t("buyProductForm.remove")}
-                            onClick={() =>
-                              setLines((items) =>
-                                items.filter((item) => item.id !== line.id),
-                              )
-                            }
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button data-action="delete"
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              aria-label={t("buyProductForm.remove")}
+                              onClick={() =>
+                                setLines((items) =>
+                                  items.filter((item) => item.id !== line.id),
+                                )
+                              }
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

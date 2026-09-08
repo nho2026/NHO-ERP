@@ -654,7 +654,7 @@ export default function HrAttendancePage() {
                           String(permission.toDate).slice(0, 10) &&
                           ` — ${String(permission.toDate).slice(0, 10)}`}
                         {canDeletePermission && (
-                          <button
+                          <button data-action="delete"
                             type="button"
                             aria-label={t("common.delete")}
                             onClick={() => setDeletingPermission(permission)}

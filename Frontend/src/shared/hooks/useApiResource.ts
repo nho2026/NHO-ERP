@@ -21,9 +21,14 @@ export function useApiResource<T>(loader: () => Promise<T>) {
     }
   }, [loader]);
   useEffect(() => {
-    setData(null);
-    void Promise.resolve().then(refresh);
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (!active) return;
+      setData(null);
+      return refresh();
+    });
     return () => {
+      active = false;
       requestId.current += 1;
     };
   }, [refresh]);

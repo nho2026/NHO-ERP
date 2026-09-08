@@ -24,40 +24,48 @@ export const stockService = {
     ].includes(input.movementType);
     const signed = incoming ? input.quantity : -input.quantity;
     const result = await stockModel.$transaction(async (tx) => {
-      const current = await tx.inventoryStock.findUnique({
-        where: {
-          productId_warehouseId: {
-            productId: input.productId,
-            warehouseId: input.warehouseId,
+      const key = {
+        productId: input.productId,
+        warehouseId: input.warehouseId,
+      };
+      let stock;
+      if (incoming) {
+        stock = await tx.inventoryStock.upsert({
+          where: { productId_warehouseId: key },
+          update: {
+            quantity: { increment: input.quantity },
+            ...(input.reorderLevel !== undefined && {
+              reorderLevel: input.reorderLevel,
+            }),
           },
-        },
-      });
-      if ((current?.quantity ?? 0) + signed < 0) {
-        const error = new Error("Insufficient stock for this movement.");
-        error.status = 409;
-        throw error;
+          create: {
+            ...key,
+            quantity: input.quantity,
+            reorderLevel: input.reorderLevel ?? 0,
+          },
+          include: { product: true, warehouse: true },
+        });
+      } else {
+        const deducted = await tx.inventoryStock.updateMany({
+          where: { ...key, quantity: { gte: input.quantity } },
+          data: {
+            quantity: { decrement: input.quantity },
+            ...(input.reorderLevel !== undefined && {
+              reorderLevel: input.reorderLevel,
+            }),
+          },
+        });
+        if (deducted.count !== 1) {
+          throw Object.assign(
+            new Error("Insufficient stock for this movement."),
+            { status: 409 },
+          );
+        }
+        stock = await tx.inventoryStock.findUnique({
+          where: { productId_warehouseId: key },
+          include: { product: true, warehouse: true },
+        });
       }
-      const stock = await tx.inventoryStock.upsert({
-        where: {
-          productId_warehouseId: {
-            productId: input.productId,
-            warehouseId: input.warehouseId,
-          },
-        },
-        update: {
-          quantity: { increment: signed },
-          ...(input.reorderLevel !== undefined && {
-            reorderLevel: input.reorderLevel,
-          }),
-        },
-        create: {
-          productId: input.productId,
-          warehouseId: input.warehouseId,
-          quantity: signed,
-          reorderLevel: input.reorderLevel ?? 0,
-        },
-        include: { product: true, warehouse: true },
-      });
       await tx.inventoryMovement.create({
         data: {
           productId: input.productId,

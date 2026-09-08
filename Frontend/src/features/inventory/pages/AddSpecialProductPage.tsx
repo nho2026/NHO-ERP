@@ -454,19 +454,21 @@ export default function AddSpecialProductPage() {
                   </TableCell>
                   <TableCell>{row.productionCompany || "—"}</TableCell>
                   <TableCell>
-                    {canManage && (
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        aria-label={`${t("specialProduct.edit")} ${row.name}`}
-                        onClick={() => {
-                          setEditing(row);
-                          setOpen(true);
-                        }}
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {canManage && (
+                        <Button data-action="edit"
+                          variant="outline"
+                          size="icon"
+                          aria-label={`${t("specialProduct.edit")} ${row.name}`}
+                          onClick={() => {
+                            setEditing(row);
+                            setOpen(true);
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

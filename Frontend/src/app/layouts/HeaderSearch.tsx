@@ -50,7 +50,12 @@ export function HeaderSearch({
         return;
       }
       setLoading(true);
-      const responses = await searchSystemRecords(term, menusRef.current, t, controller.signal);
+      const responses = await searchSystemRecords(
+        term,
+        menusRef.current,
+        t,
+        controller.signal,
+      );
       if (controller.signal.aborted) return;
       setRecords(
         responses.flatMap((response) =>

@@ -14,8 +14,8 @@ export const posModel = {
       }),
       prisma.posSale.count(),
     ]),
-  create: (input, cashierName) =>
-    prisma.$transaction(async (tx) => {
+  create: (input, cashierName, db = prisma) =>
+    db.$transaction(async (tx) => {
       const ids = [...new Set(input.items.map((item) => item.productId))];
       const products = await tx.inventoryProduct.findMany({
         where: { id: { in: ids }, status: "active" },
@@ -89,15 +89,16 @@ export const posModel = {
         include,
       });
       for (const item of input.items) {
-        await tx.inventoryStock.update({
+        const deducted = await tx.inventoryStock.updateMany({
           where: {
-            productId_warehouseId: {
-              productId: item.productId,
-              warehouseId: input.warehouseId,
-            },
+            productId: item.productId,
+            warehouseId: input.warehouseId,
+            quantity: { gte: item.quantity },
           },
           data: { quantity: { decrement: item.quantity } },
         });
+        if (deducted.count !== 1)
+          fail("Insufficient stock for this sale.", 409);
         await tx.inventoryMovement.create({
           data: {
             productId: item.productId,
@@ -111,13 +112,22 @@ export const posModel = {
       }
       return sale;
     }),
-  returnSale: (where) =>
-    prisma.$transaction(async (tx) => {
+  returnSale: (where, db = prisma) =>
+    db.$transaction(async (tx) => {
       const sale = await tx.posSale.findUniqueOrThrow({
         where,
         include: { items: true },
       });
       if (sale.status === "cancelled") fail("Sale is already cancelled.", 409);
+      const claimed = await tx.posSale.updateMany({
+        where: { id: sale.id, status: sale.status },
+        data: { status: "cancelled" },
+      });
+      if (claimed.count !== 1)
+        fail(
+          "Sale was already returned or changed. Refresh and try again.",
+          409,
+        );
       for (const item of sale.items) {
         await tx.inventoryStock.update({
           where: {

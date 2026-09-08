@@ -753,25 +753,31 @@ export default function HealthcarePage({
   );
   const options = (field: Field) =>
     field.type === "specialization"
-      ? (specializations.data ?? []).map((item) => [String(item.name), String(item.name)])
-      : field.type === "employee"
-      ? employees.data?.map((employee) => [
-          employee.id,
-          `${employee.employeeCode} — ${employee.firstName} ${employee.lastName}`,
+      ? (specializations.data ?? []).map((item) => [
+          String(item.name),
+          String(item.name),
         ])
-      : field.type === "department"
-        ? departments.data?.map((department) => [
-            department.id,
-            String(department.name),
+      : field.type === "employee"
+        ? employees.data?.map((employee) => [
+            employee.id,
+            `${employee.employeeCode} — ${employee.firstName} ${employee.lastName}`,
           ])
-        : field.type === "doctor"
-          ? staff.data
-              ?.filter((member) => member.staffType === "doctor")
-              .map((doctor) => [
-                doctor.id,
-                personName(nested(doctor, "employee")),
-              ])
-          : field.options?.map((value) => [value, value.replaceAll("_", " ")]);
+        : field.type === "department"
+          ? departments.data?.map((department) => [
+              department.id,
+              String(department.name),
+            ])
+          : field.type === "doctor"
+            ? staff.data
+                ?.filter((member) => member.staffType === "doctor")
+                .map((doctor) => [
+                  doctor.id,
+                  personName(nested(doctor, "employee")),
+                ])
+            : field.options?.map((value) => [
+                value,
+                value.replaceAll("_", " "),
+              ]);
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy(true);
@@ -815,7 +821,9 @@ export default function HealthcarePage({
       <div>
         <h1 className="text-2xl font-bold">{tr(config.title)}</h1>
         <p className="text-sm text-muted-foreground">
-          {t(`healthcareAdmin.descriptions.${resource}`, { defaultValue: config.description })}
+          {t(`healthcareAdmin.descriptions.${resource}`, {
+            defaultValue: config.description,
+          })}
         </p>
       </div>
       <Card>
@@ -916,35 +924,37 @@ export default function HealthcarePage({
                           </TableCell>
                         ))}
                         <TableCell className="whitespace-nowrap">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setError("");
-                              setEditing(row);
-                            }}
-                          >
-                            <Pencil className="size-4" />
-                          </Button>
-                          <DeleteConfirmationDialog
-                            description={t("healthcareAdmin.deleteConfirm")}
-                            onConfirm={async () => {
-                              try {
-                                await healthcareApi[resource].remove(row.id);
-                                await data.refresh();
-                              } catch (cause) {
-                                toast.error(apiErrorMessage(cause));
-                              }
-                            }}
-                          >
-                            <Button
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button data-action="edit"
                               variant="ghost"
                               size="icon"
-                              className="text-destructive"
+                              onClick={() => {
+                                setError("");
+                                setEditing(row);
+                              }}
                             >
-                              <Trash2 className="size-4" />
+                              <Pencil className="size-4" />
                             </Button>
-                          </DeleteConfirmationDialog>
+                            <DeleteConfirmationDialog
+                              description={t("healthcareAdmin.deleteConfirm")}
+                              onConfirm={async () => {
+                                try {
+                                  await healthcareApi[resource].remove(row.id);
+                                  await data.refresh();
+                                } catch (cause) {
+                                  toast.error(apiErrorMessage(cause));
+                                }
+                              }}
+                            >
+                              <Button data-action="delete"
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </DeleteConfirmationDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -981,7 +991,14 @@ export default function HealthcarePage({
                   ? new Date(String(initial)).toISOString().slice(0, 16)
                   : field.name === "scheduledAt" && appointmentDraftAt
                     ? appointmentDraftAt
-                    : String(initial ?? quickAppointment[field.name] ?? (field.name === "durationMinutes" ? settingsSnapshot()?.healthcare.appointmentMinutes ?? 30 : ""));
+                    : String(
+                        initial ??
+                          quickAppointment[field.name] ??
+                          (field.name === "durationMinutes"
+                            ? (settingsSnapshot()?.healthcare
+                                .appointmentMinutes ?? 30)
+                            : ""),
+                      );
               return (
                 <label
                   key={`${editing?.id ?? appointmentDraftAt ?? "new"}-${field.name}`}

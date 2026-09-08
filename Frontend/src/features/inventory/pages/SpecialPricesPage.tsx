@@ -20,12 +20,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/shared/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-} from "@/shared/components/ui/dropdown-menu";
+
 import {
   Table,
   TableHeader,
@@ -69,7 +64,7 @@ export default function SpecialPricesPage() {
   const [category, setCategory] = useState("all");
   const [rate, setRate] = useState("1550");
   const [page, setPage] = useState(1);
-  const [visible, setVisible] = useState<string[]>([...columns]);
+  const visible: string[] = [...columns];
   const [selected, setSelected] = useState<RecordItem | null>(null);
   const [price, setPrice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -233,31 +228,6 @@ export default function SpecialPricesPage() {
               </SelectContent>
             </Select>
           ))}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ms-auto">
-                {t("storageView.columns")}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {columns.map((key) => (
-                <DropdownMenuCheckboxItem
-                  key={key}
-                  checked={visible.includes(key)}
-                  disabled={visible.length === 1 && visible.includes(key)}
-                  onCheckedChange={(checked) =>
-                    setVisible((items) =>
-                      checked
-                        ? [...items, key]
-                        : items.filter((k) => k !== key),
-                    )
-                  }
-                >
-                  {t(`specialPrices.${key}`)}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
         <Table>
           <TableHeader>
@@ -302,20 +272,22 @@ export default function SpecialPricesPage() {
                       </TableCell>
                     ))}
                   <TableCell>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      disabled={!canEdit}
-                      aria-label={`${t("warehouseModule.editSpecialPrice")} ${p.name}`}
-                      onClick={() => {
-                        setSelected(p);
-                        setPrice(String(p.specialPrice));
-                        setError("");
-                        setSaved(false);
-                      }}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button data-action="edit"
+                        variant="outline"
+                        size="icon"
+                        disabled={!canEdit}
+                        aria-label={`${t("warehouseModule.editSpecialPrice")} ${p.name}`}
+                        onClick={() => {
+                          setSelected(p);
+                          setPrice(String(p.specialPrice));
+                          setError("");
+                          setSaved(false);
+                        }}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

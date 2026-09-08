@@ -132,14 +132,14 @@ export default function RolesPage() {
                 <p className="mt-2 min-h-10 text-sm text-muted-foreground">
                   {role.description || t("rolesAdmin.noDescription")}
                 </p>
-                <div className="mt-5 flex items-center gap-1 border-t pt-4">
+                <div className="mt-5 flex items-center gap-2 border-t pt-4">
                   <span className="me-auto text-xs text-muted-foreground">
                     {t("rolesAdmin.permissionsCount", {
                       count: role.permissions,
                     })}
                   </span>
                   {(canUpdate || canAssign) && (
-                    <Button
+                    <Button data-action="edit"
                       variant="ghost"
                       size="icon"
                       onClick={() => openEditor(role)}
@@ -155,12 +155,12 @@ export default function RolesPage() {
                         await roles.refresh();
                       }}
                     >
-                      <Button
+                      <Button data-action="delete"
                         variant="ghost"
                         size="icon"
                         className="text-destructive"
                       >
-                        <Trash2 />
+                        <Trash2  className="size-4 text-white" />
                       </Button>
                     </DeleteConfirmationDialog>
                   )}

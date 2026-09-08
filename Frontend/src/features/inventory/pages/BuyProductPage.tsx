@@ -1,4 +1,4 @@
-import { ScrollArea } from "@/shared/components/ui/scroll-area";
+import { PurchaseProductDialog } from "../components/purchase-product-dialog";
 import BuyHistoryPage from "./BuyHistoryPage";
 import {
   Dialog,
@@ -27,9 +27,8 @@ import {
   TableCell,
 } from "@/shared/components/ui/table";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ImagePlus, Plus, ShoppingCart, Trash2, X } from "lucide-react";
+import { ImagePlus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
@@ -41,9 +40,12 @@ type Line = {
   id: string;
   productId: string;
   warehouseId: string;
+  unit: string;
+  customUnit: string;
   quantity: string;
   price: string;
 };
+const productUnits = ["item", "box", "pack", "bottle", "piece", "set", "pair", "carton", "roll", "tube", "bag", "vial", "ampoule", "kg", "g", "l", "ml"];
 const today = () => {
   const date = new Date();
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -52,6 +54,8 @@ const newLine = (): Line => ({
   id: crypto.randomUUID(),
   productId: "",
   warehouseId: "",
+  unit: "item",
+  customUnit: "",
   quantity: "1",
   price: "0",
 });
@@ -97,6 +101,10 @@ function BuyProductForm({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
+  const [newProductLine, setNewProductLine] = useState<string | null>(null);
+  const [createdProducts, setCreatedProducts] = useState<import("../api/inventory.api").RecordItem[]>([]);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const purchaseProducts = [...(options.data?.products ?? []), ...createdProducts.filter((p) => !options.data?.products.some((existing) => existing.id === p.id))];
   const busy = useRef(false);
   const requestId = useRef(crypto.randomUUID());
   const uploadedUrl = useRef<string | null>(null);
@@ -184,6 +192,7 @@ function BuyProductForm({
         items: lines.map((line) => ({
           productId: line.productId,
           warehouseId: line.warehouseId,
+          unit: line.unit === "other" ? line.customUnit : line.unit,
           quantity: Number(line.quantity),
           price: Number(line.price),
         })),
@@ -201,39 +210,11 @@ function BuyProductForm({
     }
   };
   const selectClass =
-    "h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50";
+    "h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50";
   return (
-    <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-      <ScrollArea className="min-h-0 flex-1">
+    <form onSubmit={submit} className="flex min-h-0 flex-col overflow-hidden">
+      <div className="content-scrollbar min-h-0 overflow-y-auto overscroll-contain">
         <div className="space-y-4 px-6 pb-4">
-          <header className="flex flex-wrap items-center justify-between gap-4 border-b pb-5">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={saving}
-                onClick={() => {
-                  clear();
-                  setSuccess("");
-                }}
-              >
-                <X className="size-4" />
-                {t("buyProductForm.clear")}
-              </Button>
-
-              {canManage && (
-                <Button
-                  asChild
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  <Link to="/inventory/products">
-                    <Plus className="size-4" />
-                    {t("warehouseModule.addProduct")}
-                  </Link>
-                </Button>
-              )}
-            </div>
-          </header>
           {(error || options.error) && (
             <p
               role="alert"
@@ -254,23 +235,23 @@ function BuyProductForm({
             disabled={saving}
             className="grid min-w-0 gap-4 lg:grid-cols-2"
           >
-            <div className="min-w-0 space-y-5">
-              <Card className="rounded-2xl border bg-card p-5">
+            <div className="flex min-w-0 flex-col gap-5">
+              <Card className="flex flex-1 flex-col rounded-2xl border bg-card p-5">
                 <h2 className="mb-5 text-sm font-semibold">
                   {t("buyProductForm.invoiceDetails")}
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <Label className="space-y-1.5 text-xs font-medium">
+                  <Label className="flex flex-col gap-1.5 text-xs font-medium">
                     {t("buyProductForm.invoiceNumber")}
                     <Input
-                      className="mt-1.5"
+                      className="h-9"
                       required
                       maxLength={100}
                       value={invoiceNumber}
                       onChange={(e) => setInvoiceNumber(e.target.value)}
                     />
                   </Label>
-                  <Label className="space-y-1.5 text-xs font-medium">
+                  <Label className="flex flex-col gap-1.5 text-xs font-medium">
                     {t("buyProductForm.buyDate")}
                     <FormDatePicker
                       required
@@ -278,7 +259,7 @@ function BuyProductForm({
                       onValueChange={setBuyDate}
                     />
                   </Label>
-                  <Label className="space-y-1.5 text-xs font-medium">
+                  <Label className="flex flex-col gap-1.5 text-xs font-medium">
                     {t("buyProductForm.retailer")}
                     <CreatableSelect
                       required
@@ -290,24 +271,24 @@ function BuyProductForm({
                       options={retailers}
                     />
                   </Label>
-                  <Label className="space-y-1.5 text-xs font-medium">
+                  <Label className="flex flex-col gap-1.5 text-xs font-medium">
                     {t("buyProductForm.totalPrice")}
                     <Input
-                      className="mt-1.5 bg-muted/50 font-semibold"
+                      className="h-9 bg-muted/50 font-semibold"
                       readOnly
                       value={money(total)}
                     />
                   </Label>
-                  <Label className="space-y-1.5 text-xs font-medium">
+                  <Label className="flex flex-col gap-1.5 text-xs font-medium">
                     {t("buyProductForm.salesperson")}
                     <Input
-                      className="mt-1.5"
+                      className="h-9"
                       maxLength={150}
                       value={salesperson}
                       onChange={(e) => setSalesperson(e.target.value)}
                     />
                   </Label>
-                  <Label className="flex items-center gap-2 self-end rounded-lg border px-3 py-2.5 text-xs font-medium">
+                  <Label className="flex h-9 items-center gap-2 self-end rounded-lg border px-3 text-xs font-medium">
                     <Checkbox
                       disabled={saving}
                       checked={isDebt}
@@ -315,10 +296,10 @@ function BuyProductForm({
                     />
                     {t("buyProductForm.isDebt")}
                   </Label>
-                  <Label className="space-y-1.5 text-xs font-medium sm:col-span-3">
+                  <Label className="flex flex-col gap-1.5 text-xs font-medium sm:col-span-3">
                     {t("buyProductForm.note")}
                     <Input
-                      className="mt-1.5"
+                      className="h-9"
                       maxLength={5000}
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
@@ -326,148 +307,15 @@ function BuyProductForm({
                   </Label>
                 </div>
               </Card>
-              <Card className="rounded-2xl border bg-card p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold">
-                    {t("buyProductForm.items")}
-                  </h2>
-                  <span className="rounded-full bg-teal-500/10 px-2.5 py-1 text-xs font-semibold text-teal-600">
-                    {lines.length}
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {lines.map((line, index) => (
-                    <div
-                      key={line.id}
-                      className="rounded-xl border bg-muted/20 p-3"
-                    >
-                      <div className="mb-3 flex items-center justify-between">
-                        <span className="text-xs font-semibold text-muted-foreground">
-                          {t("buyProductForm.item")} {index + 1}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          disabled={lines.length === 1}
-                          aria-label={`${t("buyProductForm.remove")} ${index + 1}`}
-                          onClick={() =>
-                            setLines((value) =>
-                              value.filter((row) => row.id !== line.id),
-                            )
-                          }
-                        >
-                          <Trash2 className="size-4 text-destructive" />
-                        </Button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <Label className="space-y-1 text-xs">
-                          {t("warehouseModule.product")}
-                          <Select
-                            disabled={saving || options.isLoading}
-                            value={line.productId}
-                            onValueChange={(value) => {
-                              const product = options.data?.products.find(
-                                (p) => p.id === value,
-                              );
-                              changeLine(line.id, {
-                                productId: value,
-                                price: String(product?.costPrice ?? 0),
-                              });
-                            }}
-                            required
-                          >
-                            <SelectTrigger className={selectClass}>
-                              <SelectValue
-                                placeholder={t("buyProductForm.selectProduct")}
-                              />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {options.data?.products.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.name} · {p.sku}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </Label>
-                        <Label className="space-y-1 text-xs">
-                          {t("warehouseModule.storage")}
-                          <Select
-                            disabled={saving || options.isLoading}
-                            value={line.warehouseId}
-                            onValueChange={(value) =>
-                              changeLine(line.id, { warehouseId: value })
-                            }
-                            required
-                          >
-                            <SelectTrigger className={selectClass}>
-                              <SelectValue
-                                placeholder={t("buyProductForm.selectStorage")}
-                              />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {options.data?.warehouses.map((w) => (
-                                <SelectItem key={w.id} value={w.id}>
-                                  {w.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </Label>
-                        <Label className="space-y-1 text-xs">
-                          {t("buyProductForm.quantity")}
-                          <Input
-                            type="number"
-                            required
-                            min="0.001"
-                            max="1000000"
-                            step="0.001"
-                            value={line.quantity}
-                            onChange={(e) =>
-                              changeLine(line.id, { quantity: e.target.value })
-                            }
-                          />
-                        </Label>
-                        <Label className="space-y-1 text-xs">
-                          {t("buyProductForm.price")}
-                          <Input
-                            type="number"
-                            required
-                            min="0"
-                            max="100000000"
-                            step="0.01"
-                            value={line.price}
-                            onChange={(e) =>
-                              changeLine(line.id, { price: e.target.value })
-                            }
-                          />
-                        </Label>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Button
-                  type="button"
-                  className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
-                  disabled={lines.length >= 100 || options.isLoading}
-                  onClick={() => setLines((value) => [...value, newLine()])}
-                >
-                  <Plus className="size-4" />
-                  {t("buyProductForm.addItem")}
-                </Button>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {t("buyProductForm.unitHint")}
-                </p>
-              </Card>
+
               {!canBuy && (
                 <p className="text-sm text-muted-foreground">
                   {t("buyProductForm.noPermission")}
                 </p>
               )}
             </div>
-            <div className="min-w-0 space-y-5">
-              <Card className="rounded-2xl border bg-card p-5">
+            <div className="flex min-w-0 flex-col gap-5">
+              <Card className="flex flex-1 flex-col rounded-2xl border bg-card p-5">
                 <Label
                   className="block text-sm font-semibold"
                   htmlFor="purchase-attachment"
@@ -480,7 +328,7 @@ function BuyProductForm({
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
                   disabled={!canManage}
-                  className="mt-3 block w-full rounded-lg border p-2 text-xs file:me-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-2 file:text-foreground"
+                  className="hidden"
                   onChange={(e) => {
                     const selected = e.target.files?.[0] ?? null;
                     if (
@@ -514,18 +362,26 @@ function BuyProductForm({
                         type="button"
                         variant="ghost"
                         className="mt-3"
+                        data-action="delete"
+                        disabled={!canManage || saving}
                         onClick={() => {
                           setAttachment(null);
                           uploadedUrl.current = null;
                           if (fileInput.current) fileInput.current.value = "";
                         }}
                       >
-                        <X className="size-4" />
+                        <Trash2 className="size-4" />
                         {t("buyProductForm.remove")}
                       </Button>
                     </>
                   ) : (
-                    <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={!canManage || saving}
+                      onClick={() => fileInput.current?.click()}
+                      className="h-auto w-full flex-col gap-0 whitespace-normal p-4 hover:bg-primary/5"
+                    >
                       <span className="mb-4 rounded-2xl bg-teal-500/10 p-5 text-teal-600">
                         <ImagePlus className="size-12" />
                       </span>
@@ -535,14 +391,175 @@ function BuyProductForm({
                       <p className="mt-2 text-xs text-muted-foreground">
                         {t("buyProductForm.fileHint")}
                       </p>
-                    </>
+                    </Button>
                   )}
                 </div>
               </Card>
-              <Card className="overflow-hidden rounded-2xl border bg-card">
-                <h2 className="p-5 text-sm font-semibold">
-                  {t("buyProductForm.summary")}
-                </h2>
+
+            </div>
+              <Card className="rounded-2xl border bg-card p-5 lg:col-span-2">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-sm font-semibold">
+                    {t("buyProductForm.items")}
+                  </h2>
+                  <span className="rounded-full bg-teal-500/10 px-2.5 py-1 text-xs font-semibold text-teal-600">
+                    {lines.length}
+                  </span>
+                </div>
+                <div className="overflow-x-auto rounded-xl border">
+                  <Table className="min-w-[960px]">
+                    <TableHeader><TableRow>
+                      {canManage && <TableHead className="w-20 whitespace-nowrap">{t("buyProductForm.isNew")}</TableHead>}
+                      {["warehouseModule.product", "warehouseModule.storage", "inventory.fields.unit", "inventory.fields.quantity", "buyProductForm.price", "buyProductForm.totalPrice", "transferForm.actions"].map((key) => <TableHead key={key}>{t(key)}</TableHead>)}
+                    </TableRow></TableHeader>
+                    <TableBody autoPaginate={false}>
+                      {lines.map((line, index) => (
+                        <TableRow key={line.id}>
+                          {canManage && <TableCell className="align-middle">
+                            <Checkbox
+                              aria-label={`${t("buyProductForm.isNew")} ${index + 1}`}
+                              checked={newProductLine === line.id || createdProducts.some((product) => product.id === line.productId)}
+                              onCheckedChange={(checked) => {
+                                if (checked === true) setNewProductLine(line.id);
+                                else changeLine(line.id, { productId: "", price: "0", unit: "item", customUnit: "" });
+                              }}
+                            />
+                          </TableCell>}
+
+                        <TableCell className="align-middle"><Label className="flex flex-col gap-1 text-xs"><span className="sr-only">{t("warehouseModule.product")}</span>
+                          <Select
+                            disabled={saving || options.isLoading}
+                            value={line.productId}
+                            onValueChange={(value) => {
+                              const product = purchaseProducts.find(
+                                (p) => p.id === value,
+                              );
+                              changeLine(line.id, {
+                                productId: value,
+                                unit: productUnits.includes(String(product?.unit).toLowerCase()) ? String(product?.unit).toLowerCase() : "other",
+                                customUnit: String(product?.unit ?? ""),
+                                price: String(product?.costPrice ?? 0),
+                              });
+                            }}
+                            required
+                          >
+                            <SelectTrigger className={selectClass}>
+                              <SelectValue
+                                placeholder={t("buyProductForm.selectProduct")}
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {purchaseProducts.map((p) => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.name} · {p.sku}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Label></TableCell>
+                        <TableCell className="align-middle"><Label className="flex flex-col gap-1 text-xs"><span className="sr-only">{t("warehouseModule.storage")}</span>
+                          <Select
+                            disabled={saving || options.isLoading}
+                            value={line.warehouseId}
+                            onValueChange={(value) =>
+                              changeLine(line.id, { warehouseId: value })
+                            }
+                            required
+                          >
+                            <SelectTrigger className={selectClass}>
+                              <SelectValue
+                                placeholder={t("buyProductForm.selectStorage")}
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {options.data?.warehouses.map((w) => (
+                                <SelectItem key={w.id} value={w.id}>
+                                  {w.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Label></TableCell>
+                        <TableCell className="align-middle"><Label className="flex flex-col gap-1 text-xs"><span className="sr-only">{t("inventory.fields.unit")}</span>
+                          <Select value={line.unit} onValueChange={(unit) => changeLine(line.id, { unit })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {[...productUnits, "other"].map((unit) => <SelectItem key={unit} value={unit}>{t(`inventory.units.${unit}`)}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          {line.unit === "other" && <Input required value={line.customUnit} onChange={(event) => changeLine(line.id, { customUnit: event.target.value })} placeholder={t("inventory.units.other")} />}
+                        </Label></TableCell>
+                        <TableCell className="align-middle"><Label className="flex flex-col gap-1 text-xs"><span className="sr-only">{t("inventory.fields.quantity")}</span>
+                          <Input
+                            type="number"
+                            required
+                            min="0.001"
+                            max="1000000"
+                            step="0.001"
+                            value={line.quantity}
+                            onChange={(e) =>
+                              changeLine(line.id, { quantity: e.target.value })
+                            }
+                          />
+                        </Label></TableCell>
+                        <TableCell className="align-middle"><Label className="flex flex-col gap-1 text-xs"><span className="sr-only">{t("buyProductForm.price")}</span>
+                          <Input
+                            type="number"
+                            required
+                            min="0"
+                            max="100000000"
+                            step="0.01"
+                            value={line.price}
+                            onChange={(e) =>
+                              changeLine(line.id, { price: e.target.value })
+                            }
+                          />
+                        </Label></TableCell>
+
+<TableCell className="align-middle font-semibold tabular-nums">{money(lineTotal(line))}</TableCell>
+<TableCell className="align-middle">                        <Button data-action="delete"
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          disabled={lines.length === 1}
+                          aria-label={`${t("buyProductForm.remove")} ${index + 1}`}
+                          onClick={() =>
+                            setLines((value) =>
+                              value.filter((row) => row.id !== line.id),
+                            )
+                          }
+                        >
+                          <Trash2 className="size-4 text-destructive" />
+                        </Button></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <Button
+                  type="button"
+                  className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={lines.length >= 100 || options.isLoading}
+                  onClick={() => setLines((value) => [...value, newLine()])}
+                >
+                  <Plus className="size-4" />
+                  {t("buyProductForm.addItem")}
+                </Button>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {t("buyProductForm.unitHint")}
+                </p>
+              </Card>
+          </fieldset>
+        </div>
+      </div>
+      {newProductLine && <PurchaseProductDialog onClose={() => setNewProductLine(null)} onCreated={(product) => {
+        setCreatedProducts((items) => [...items, product]);
+        changeLine(newProductLine, { productId: product.id, unit: productUnits.includes(product.unit) ? product.unit : "other", customUnit: product.unit, price: String(product.costPrice) });
+        setNewProductLine(null);
+      }} />}
+      <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+        <DialogContent dir={i18n.dir()} className="max-h-[85dvh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader><DialogTitle>{t("buyProductForm.summary")}</DialogTitle></DialogHeader>
                 <div className="overflow-x-auto">
                   <Table className="w-full text-start text-xs">
                     <TableHeader className="border-y bg-muted/40 text-muted-foreground">
@@ -570,7 +587,7 @@ function BuyProductForm({
                           <TableRow key={line.id} className="border-b">
                             <TableCell className="px-4 py-3 font-medium">
                               {
-                                options.data?.products.find(
+                                purchaseProducts.find(
                                   (p) => p.id === line.productId,
                                 )?.name
                               }
@@ -581,7 +598,7 @@ function BuyProductForm({
                               )?.name ?? "—"}
                             </TableCell>
                             <TableCell className="px-4 py-3 tabular-nums">
-                              {line.quantity}
+                              {line.quantity} {line.unit === "other" ? line.customUnit : line.unit}
                             </TableCell>
                             <TableCell className="px-4 py-3 tabular-nums">
                               {money(Number(line.price))}
@@ -605,17 +622,17 @@ function BuyProductForm({
                     {money(total)}
                   </output>
                 </div>
-              </Card>
-            </div>
-          </fieldset>
-        </div>
-      </ScrollArea>
-      <div className="shrink-0 border-t bg-background px-6 py-4">
-        {" "}
+
+        </DialogContent>
+      </Dialog>
+      <div className="flex shrink-0 flex-wrap gap-3 border-t bg-background px-6 py-4">
+        <Button type="button" variant="outline" className="h-11" onClick={() => setSummaryOpen(true)}>
+          {t("buyProductForm.summary")}
+        </Button>
         <Button
           type="submit"
           disabled={saving || options.isLoading || !!options.error || !canBuy}
-          className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90"
+          className="h-11 flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
         >
           <ShoppingCart className="size-4" />
           {t(saving ? "buyProductForm.saving" : "warehouseModule.buy")}
@@ -666,7 +683,7 @@ export default function BuyProductPage() {
       >
         <DialogContent
           dir={i18n.dir()}
-          className="flex h-[90dvh] max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(96vw,1200px)]"
+          className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(96vw,1200px)]"
         >
           <DialogHeader className="shrink-0 px-6 py-5">
             <DialogTitle>{t("buyProductForm.newPurchase")}</DialogTitle>

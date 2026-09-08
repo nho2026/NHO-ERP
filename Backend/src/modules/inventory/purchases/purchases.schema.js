@@ -17,6 +17,7 @@ export const purchaseSchema = z.object({
       z.object({
         productId: z.string().min(1),
         warehouseId: z.string().min(1),
+        unit: z.string().trim().min(1).max(50).optional(),
         quantity: z.number().finite().positive().max(1000000),
         price: z
           .number()

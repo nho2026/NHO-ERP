@@ -1,3 +1,4 @@
+import { hospitalDate, todayWindow } from "./today.js";
 import { getSettings } from "../../settings/settings.service.js";
 import { appointmentsModel } from "./appointments.model.js";
 
@@ -29,6 +30,25 @@ const ensureDoctor = async (data) => {
 };
 
 export const appointmentsService = {
+  serve: id => appointmentsModel.serve(id),
+  profileCandidates: (id) => appointmentsModel.profileCandidates(id),
+  async today() {
+    const system = await getSettings("system");
+    const timezone = system.timezone || "Asia/Baghdad";
+    const { date, start, end } = todayWindow(new Date(), timezone);
+    const [consultations, surgeries] = await Promise.all([appointmentsModel.today(start, end), appointmentsModel.todaySurgeries(start, end)]);
+    const items = [
+      ...consultations.filter(item => hospitalDate(item.scheduledAt, timezone) === date),
+      ...surgeries.filter(item => item.status === "in_progress" || hospitalDate(item.scheduledAt, timezone) === date).map(item => ({
+        id: `surgery:${item.id}`, patientId: item.patientId,
+        patientName: `${item.patient.firstName} ${item.patient.lastName}`.trim(), patientPhone: item.patient.phone,
+        doctorId: item.doctorId, doctor: item.doctor, department: item.doctor?.department ?? null,
+        scheduledAt: item.scheduledAt, status: item.status, reason: item.surgery.name,
+        durationMinutes: item.surgery.durationMinutes, operatingRoom: item.operatingRoom,
+      })),
+    ].sort((a, b) => a.scheduledAt - b.scheduledAt);
+    return { date, timezone, items };
+  },
   list: (query) => appointmentsModel.list(query),
   async create(data) {
     const policy = await getSettings("healthcare");

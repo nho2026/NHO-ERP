@@ -19,12 +19,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/shared/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-} from "@/shared/components/ui/dropdown-menu";
+
 import {
   Table,
   TableHeader,
@@ -79,7 +74,7 @@ export default function StoragePage() {
   const [category, setCategory] = useState("all");
   const [page, setPage] = useState(1);
   const [ascending, setAscending] = useState(true);
-  const [visible, setVisible] = useState<Column[]>([...columns]);
+  const visible: Column[] = [...columns];
   const [selected, setSelected] = useState<RecordItem | null>(null);
   const [mode, setMode] = useState<"view" | "edit" | "remove">("view");
   const [busy, setBusy] = useState(false);
@@ -245,31 +240,6 @@ export default function StoragePage() {
               </SelectContent>
             </Select>
           ))}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ms-auto">
-                {t("storageView.columns")}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {columns.map((key) => (
-                <DropdownMenuCheckboxItem
-                  key={key}
-                  checked={visible.includes(key)}
-                  disabled={visible.length === 1 && visible.includes(key)}
-                  onCheckedChange={(checked) =>
-                    setVisible((keys) =>
-                      checked
-                        ? columns.filter((c) => c === key || keys.includes(c))
-                        : keys.filter((c) => c !== key),
-                    )
-                  }
-                >
-                  {t(`storageView.${key}`)}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
         <Table>
           <TableHeader>
@@ -320,20 +290,20 @@ export default function StoragePage() {
                       </Button>
                       {canManage && (
                         <>
-                          <Button
+                          <Button data-action="edit"
                             size="icon"
                             aria-label={t("storageView.edit")}
                             onClick={() => open(p, "edit")}
                           >
                             <Pencil className="size-4" />
                           </Button>
-                          <Button
+                          <Button data-action="delete"
                             variant="destructive"
                             size="icon"
                             aria-label={t("storageView.remove")}
                             onClick={() => open(p, "remove")}
                           >
-                            <Trash2 className="size-4" />
+                            <Trash2 className="size-4 text-white" />
                           </Button>
                         </>
                       )}
@@ -478,6 +448,7 @@ export default function StoragePage() {
                         />
                       </div>
                     ))}
+
                   </div>
                 )}
                 <DialogFooter>

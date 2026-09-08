@@ -373,31 +373,33 @@ export default function AccountingPage({
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditing(row);
-                            setDialog("account");
-                          }}
-                        >
-                          <Pencil />
-                        </Button>
-                        <DeleteConfirmationDialog
-                          description={t("accounting.deleteConfirm")}
-                          onConfirm={async () => {
-                            await accountingApi.accounts.remove(row.id);
-                            await accounts.refresh();
-                          }}
-                        >
-                          <Button
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button data-action="edit"
                             variant="ghost"
                             size="icon"
-                            className="text-destructive"
+                            onClick={() => {
+                              setEditing(row);
+                              setDialog("account");
+                            }}
                           >
-                            <Trash2 />
+                            <Pencil />
                           </Button>
-                        </DeleteConfirmationDialog>
+                          <DeleteConfirmationDialog
+                            description={t("accounting.deleteConfirm")}
+                            onConfirm={async () => {
+                              await accountingApi.accounts.remove(row.id);
+                              await accounts.refresh();
+                            }}
+                          >
+                            <Button data-action="delete"
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                            >
+                              <Trash2  className="size-4 text-white" />
+                            </Button>
+                          </DeleteConfirmationDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -429,34 +431,36 @@ export default function AccountingPage({
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {row.status === "draft" && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={async () => {
-                                  await accountingApi.journals.post(row.id);
-                                  await Promise.all([
-                                    journals.refresh(),
-                                    reports.refresh(),
-                                  ]);
-                                }}
-                              >
-                                <CheckCircle2 />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive"
-                                onClick={async () => {
-                                  await accountingApi.journals.remove(row.id);
-                                  await journals.refresh();
-                                }}
-                              >
-                                <Trash2 />
-                              </Button>
-                            </>
-                          )}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {row.status === "draft" && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={async () => {
+                                    await accountingApi.journals.post(row.id);
+                                    await Promise.all([
+                                      journals.refresh(),
+                                      reports.refresh(),
+                                    ]);
+                                  }}
+                                >
+                                  <CheckCircle2 />
+                                </Button>
+                                <Button data-action="delete"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive"
+                                  onClick={async () => {
+                                    await accountingApi.journals.remove(row.id);
+                                    await journals.refresh();
+                                  }}
+                                >
+                                  <Trash2  className="size-4 text-white" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -625,7 +629,7 @@ export default function AccountingPage({
                       )
                     }
                   />
-                  <Button
+                  <Button data-action="delete"
                     type="button"
                     variant="ghost"
                     size="icon"
@@ -634,7 +638,7 @@ export default function AccountingPage({
                       setLines((v) => v.filter((_, i) => i !== index))
                     }
                   >
-                    <Trash2 />
+                    <Trash2  className="size-4 text-white" />
                   </Button>
                 </div>
               ))}

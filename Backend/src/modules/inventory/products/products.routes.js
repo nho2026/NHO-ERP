@@ -13,6 +13,7 @@ router.post(
   upload.array("images", 8),
   productsController.uploadImages,
 );
+router.delete("/products/images", manage, productsController.removeImage);
 router.get("/products", viewForPos, productsController.list);
 router.get("/products/barcode/new", manage, productsController.newBarcode);
 router.post("/products", manage, productsController.create);

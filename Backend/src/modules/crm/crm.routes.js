@@ -1,3 +1,4 @@
+import prescriptionsRoutes from "./prescriptions/prescriptions.routes.js";
 import { Router } from "express";
 import { requireAuth } from "../../shared/middleware/auth.middleware.js";
 import { validate } from "../../shared/middleware/validation.middleware.js";
@@ -33,6 +34,7 @@ const validateResource =
     )(req, res, next);
 
 router.use(requireAuth);
+router.use("/prescriptions", prescriptionsRoutes);
 router.use("/leads", leadRoutes);
 router.use("/patients", patientRoutes);
 router.use("/referrals", referralRoutes);

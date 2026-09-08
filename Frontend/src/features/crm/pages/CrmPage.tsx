@@ -554,7 +554,18 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   const systemSettings = useSettings();
-  const config = {...configs[resource], fields: configs[resource].fields.map(field => field.name === "operatingRoom" ? {...field,type:"select" as const,options:systemSettings?.healthcare.operatingRooms ?? []} : field)},
+  const config = {
+      ...configs[resource],
+      fields: configs[resource].fields.map((field) =>
+        field.name === "operatingRoom"
+          ? {
+              ...field,
+              type: "select" as const,
+              options: systemSettings?.healthcare.operatingRooms ?? [],
+            }
+          : field,
+      ),
+    },
     user = storedUser(),
     canManage = hasPermission(user, "employees.manage");
   const [page, setPage] = useState(1);
@@ -1234,7 +1245,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                             <span className="text-[10px] text-muted-foreground">
                               {(file.size / 1024 / 1024).toFixed(1)} MB
                             </span>
-                            <Button
+                            <Button data-action="delete"
                               type="button"
                               size="icon"
                               variant="ghost"
@@ -2036,7 +2047,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                   ))}
                   {(canManage || resource === "referrals") && (
                     <TableCell>
-                      <div className="flex justify-end gap-1">
+                      <div className="flex justify-end gap-2">
                         {resource === "referrals" && (
                           <>
                             <Button
@@ -2048,7 +2059,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                               <Eye className="size-4 text-teal-600" />
                             </Button>
                             {canManage && (
-                              <Button
+                              <Button data-action="edit"
                                 size="icon"
                                 variant="ghost"
                                 title={t("crm.actions.editReferral")}
@@ -2084,7 +2095,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                                 <CalendarPlus className="size-4 text-primary" />
                               </Link>
                             </Button>
-                            <Button
+                            <Button data-action="edit"
                               size="icon"
                               variant="ghost"
                               title="Edit lead"
@@ -2123,7 +2134,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                               }
                             }}
                           >
-                            <Button size="icon" variant="ghost">
+                            <Button data-action="delete" size="icon" variant="ghost">
                               <Trash2 className="size-4 text-destructive" />
                             </Button>
                           </DeleteConfirmationDialog>

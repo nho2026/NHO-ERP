@@ -142,8 +142,8 @@ export default function CrmFormsPage() {
                 <Badge className="capitalize">{template.status}</Badge>
               </div>
               {canManage && (
-                <div className="mt-4 flex justify-end gap-1 border-t pt-3">
-                  <Button
+                <div className="mt-4 flex justify-end gap-2 border-t pt-3">
+                  <Button data-action="edit"
                     size="icon"
                     variant="ghost"
                     onClick={() => startEdit(template)}
@@ -157,7 +157,7 @@ export default function CrmFormsPage() {
                       await templates.refresh();
                     }}
                   >
-                    <Button size="icon" variant="ghost">
+                    <Button data-action="delete" size="icon" variant="ghost">
                       <Trash2 className="text-destructive" />
                     </Button>
                   </DeleteConfirmationDialog>

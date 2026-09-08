@@ -127,7 +127,7 @@ export default function ProfilePage() {
               @{user?.username} · {user?.role ?? t("profile.noRole")}
             </p>
           </div>
-          <Button
+          <Button data-action="edit"
             variant={editing ? "secondary" : "outline"}
             onClick={() => setEditing((value) => !value)}
           >

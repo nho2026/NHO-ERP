@@ -463,7 +463,7 @@ export default function FinancePage({ resource }: { resource: PageResource }) {
                 <TableHead className="text-end">{t("table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody autoPaginate={false}>
               <TableResourceState
                 isLoading={records.isLoading}
                 error={records.error}
@@ -485,33 +485,35 @@ export default function FinancePage({ resource }: { resource: PageResource }) {
                       </TableCell>
                     ))}
                     <TableCell className="text-end">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title={t("finance.edit")}
-                        onClick={() => {
-                          setError("");
-                          setEditing(row);
-                        }}
-                      >
-                        <Pencil />
-                      </Button>
-                      <DeleteConfirmationDialog
-                        description={t("finance.deleteConfirm")}
-                        onConfirm={async () => {
-                          await financeApi.remove(resource, row.id);
-                          await records.refresh();
-                        }}
-                      >
-                        <Button
+                      <div className="flex flex-wrap items-center gap-2 justify-end">
+                        <Button data-action="edit"
                           variant="ghost"
                           size="icon"
-                          title={t("finance.delete")}
-                          className="text-destructive"
+                          title={t("finance.edit")}
+                          onClick={() => {
+                            setError("");
+                            setEditing(row);
+                          }}
                         >
-                          <Trash2 />
+                          <Pencil />
                         </Button>
-                      </DeleteConfirmationDialog>
+                        <DeleteConfirmationDialog
+                          description={t("finance.deleteConfirm")}
+                          onConfirm={async () => {
+                            await financeApi.remove(resource, row.id);
+                            await records.refresh();
+                          }}
+                        >
+                          <Button data-action="delete"
+                            variant="ghost"
+                            size="icon"
+                            title={t("finance.delete")}
+                            className="text-destructive"
+                          >
+                            <Trash2  className="size-4 text-white" />
+                          </Button>
+                        </DeleteConfirmationDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -217,13 +217,13 @@ export default function DevicesPage() {
                   <RefreshCw />
                   {t("common.test")}
                 </Button>
-                <Button
+                <Button data-action="delete"
                   variant="ghost"
                   size="icon"
                   className="text-destructive"
                   onClick={() => setDeleting(d)}
                 >
-                  <Trash2 />
+                  <Trash2  className="size-4 text-white" />
                 </Button>
               </div>
             </CardContent>

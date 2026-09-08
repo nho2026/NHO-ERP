@@ -38,6 +38,8 @@ export const inventoryApi = {
     apiClient.delete(`/inventory/products/${id}/barcode`),
   adjust: (data: Record<string, unknown>) =>
     apiClient.post("/inventory/adjust", data),
+  removeImage: (imageUrl: string) =>
+    apiClient.delete("/inventory/products/images", { data: { imageUrl } }),
   uploadImages: (files: File[]) => {
     const body = new FormData();
     files.forEach((file) => body.append("images", file));

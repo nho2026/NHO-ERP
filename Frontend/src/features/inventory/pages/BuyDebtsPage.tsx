@@ -23,7 +23,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Columns3, Eye, PieChart, Printer } from "lucide-react";
+import { Eye, PieChart, Printer } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { hasPermission, storedUser } from "@/features/auth/access";
@@ -36,12 +36,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/shared/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-} from "@/shared/components/ui/dropdown-menu";
+
 import { productImageUrl } from "../api/inventory.api";
 type Debt = {
   id: string;
@@ -89,7 +84,7 @@ export default function BuyDebtsPage() {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [retailers, setRetailers] = useState<string[]>([]);
-  const [visible, setVisible] = useState<Column[]>([...columns]);
+  const visible: Column[] = [...columns];
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [selected, setSelected] = useState<Debt | null>(null);
   const [paying, setPaying] = useState<Debt | null>(null);
@@ -298,35 +293,7 @@ export default function BuyDebtsPage() {
           >
             <PieChart className="size-4" />
           </Button>
-          <div className="ms-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <Columns3 className="size-4" />
-                  {t("buyHistory.columns")}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {columns.map((key) => (
-                  <DropdownMenuCheckboxItem
-                    key={key}
-                    checked={visible.includes(key)}
-                    disabled={visible.length === 1 && visible.includes(key)}
-                    onSelect={(e) => e.preventDefault()}
-                    onCheckedChange={(checked) =>
-                      setVisible((items) =>
-                        checked
-                          ? [...items, key]
-                          : items.filter((k) => k !== key),
-                      )
-                    }
-                  >
-                    {label(key)}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <div className="ms-auto"></div>
         </div>
         <div className="overflow-x-auto">
           <Table className="w-full text-sm">

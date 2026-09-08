@@ -345,7 +345,7 @@ function OrderForm({
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button
+                          <Button data-action="edit"
                             type="button"
                             variant="outline"
                             size="icon"
@@ -358,7 +358,7 @@ function OrderForm({
                           >
                             <Pencil className="size-4" />
                           </Button>
-                          <Button
+                          <Button data-action="delete"
                             type="button"
                             variant="destructive"
                             size="icon"

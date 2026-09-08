@@ -72,10 +72,22 @@ export async function loadSettings() {
   current = response.data;
   const branding = current.organization;
   document.title = branding.name;
-  for (const icon of document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]')) icon.href = branding.logo || defaultLogo;
+  for (const icon of document.querySelectorAll<HTMLLinkElement>(
+    'link[rel="icon"], link[rel="apple-touch-icon"]',
+  ))
+    icon.href = branding.logo || defaultLogo;
   try {
-    localStorage.setItem("nho-branding", JSON.stringify({ name: branding.name, logo: branding.logo, loadingText: branding.loadingText || "" }));
-  } catch { /* Branding remains applied when browser storage is unavailable. */ }
+    localStorage.setItem(
+      "nho-branding",
+      JSON.stringify({
+        name: branding.name,
+        logo: branding.logo,
+        loadingText: branding.loadingText || "",
+      }),
+    );
+  } catch {
+    /* Branding remains applied when browser storage is unavailable. */
+  }
   if (!localStorage.getItem("nho-language"))
     void i18n.changeLanguage(current.system.language);
   for (const listener of listeners) listener();

@@ -81,17 +81,19 @@ export function SearchableSelect({
           dir={i18n.dir()}
           className="flex max-h-[min(320px,var(--radix-popover-content-available-height))] w-[var(--radix-popover-trigger-width)] flex-col overflow-hidden p-0"
         >
-          {showSearch && <div className="relative shrink-0 border-b p-2">
-            <Search className="absolute start-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              aria-label={searchPlaceholder ?? t("common.searchOptions")}
-              autoFocus
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={searchPlaceholder ?? t("common.searchOptions")}
-              className="border-0 ps-9 shadow-none focus-visible:ring-0"
-            />
-          </div>}
+          {showSearch && (
+            <div className="relative shrink-0 border-b p-2">
+              <Search className="absolute start-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                aria-label={searchPlaceholder ?? t("common.searchOptions")}
+                autoFocus
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={searchPlaceholder ?? t("common.searchOptions")}
+                className="border-0 ps-9 shadow-none focus-visible:ring-0"
+              />
+            </div>
+          )}
           <ScrollArea className="min-h-0 max-h-60 [&_[data-radix-scroll-area-viewport]]:h-auto [&_[data-radix-scroll-area-viewport]]:max-h-[min(240px,calc(var(--radix-popover-content-available-height)-80px))]">
             <div className="p-1">
               {filtered.length ? (

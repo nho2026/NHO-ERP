@@ -35,5 +35,15 @@ apiClient.interceptors.response.use(
     }
     return response;
   },
-  (error) => Promise.reject(error),
+  (error) => {
+    const method = error.config?.method?.toLowerCase();
+    if (
+      !axios.isCancel(error) &&
+      ["post", "put", "patch", "delete"].includes(method) &&
+      !/\/auth\/login(?:$|\?)/.test(error.config?.url ?? "")
+    ) {
+      toast.error(apiErrorMessage(error), { id: "api-action-error" });
+    }
+    return Promise.reject(error);
+  },
 );

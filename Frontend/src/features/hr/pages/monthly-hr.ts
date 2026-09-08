@@ -193,7 +193,8 @@ export const deviceAttendanceRecords = (
     const lateMinutes = checkIn
       ? Math.max(
           0,
-          Math.round((new Date(checkIn).getTime() - expectedCheckIn) / 60000) - (settingsSnapshot()?.hr.graceMinutes ?? 0),
+          Math.round((new Date(checkIn).getTime() - expectedCheckIn) / 60000) -
+            (settingsSnapshot()?.hr.graceMinutes ?? 0),
         )
       : expectedMinutes;
     const earlyLeaveMinutes = checkOut

@@ -8,6 +8,8 @@ datasource db {
 }
 
 model User {
+  prescriptions PatientPrescription[]
+  patientFormSubmissions PatientFormSubmission[]
   id                String               @id @default(cuid())
   username          String               @unique(map: "User_username_key")
   email             String               @unique(map: "User_email_key")
@@ -379,6 +381,7 @@ model TaskComment {
 }
 
 model Department {
+  inventoryOrders InventoryDepartmentOrder[]
   id              String           @id @default(cuid())
   code            String           @unique(map: "Department_code_key")
   name            String           @unique(map: "Department_name_key")
@@ -527,6 +530,8 @@ model CrmLeadStatusHistory {
 }
 
 model Patient {
+  prescriptions PatientPrescription[]
+  icuCases InventoryIcuCase[]
   id                  String                  @id @default(cuid())
   patientCode         String                  @unique(map: "Patient_patientCode_key")
   firstName           String
@@ -604,6 +609,8 @@ model PatientFormSubmission {
   formTemplateId String
   data           Json
   submittedById  String?
+  submittedBy User? @relation(fields: [submittedById], references: [id], onDelete: SetNull)
+  @@index([submittedById])
   patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade, map: "PatientFormSubmission_patientId_fkey")
   formTemplate   CrmFormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Restrict, map: "PatientFormSubmission_formTemplateId_fkey")
   createdAt      DateTime        @default(now())
@@ -1188,6 +1195,10 @@ model InventoryStock {
   warehouseId  String
   quantity     Float              @default(0)
   reorderLevel Float              @default(0)
+  anesthesiaMinimum Float @default(0)
+  scrubNurseMinimum Float @default(0)
+  perfusionMinimum Float @default(0)
+  cardiologyMinimum Float @default(0)
   product      InventoryProduct   @relation(fields: [productId], references: [id], onDelete: Cascade, map: "InventoryStock_productId_fkey")
   warehouse    InventoryWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade, map: "InventoryStock_warehouseId_fkey")
 
@@ -1197,6 +1208,7 @@ model InventoryStock {
 }
 
 model InventoryMovement {
+  @@index([movementType, occurredAt, id])
   id           String             @id @default(cuid())
   productId    String
   warehouseId  String
@@ -1340,6 +1352,8 @@ model InventoryOrder {
 }
 
 model InventoryDepartmentOrder {
+ department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+ @@index([departmentId, createdAt])
  id String @id @default(cuid())
  departmentId String
  departmentName String
@@ -1363,4 +1377,69 @@ model InventoryDepartmentOrderComment {
  order InventoryDepartmentOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
  @@index([orderId])
  @@map("inventory_InventoryDepartmentOrderComment")
+}
+
+model InventoryRetailer {
+  id String @id @default(cuid())
+  name String @unique @db.VarChar(191)
+  phone String @default("") @db.VarChar(50)
+  email String @default("") @db.VarChar(191)
+  note String? @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InventoryProductionCompany {
+ id String @id @default(cuid())
+ name String @unique @db.VarChar(191)
+ country String @db.VarChar(191)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
+
+model InventoryCustomer {
+ id String @id @default(cuid())
+ name String @db.VarChar(191)
+ phone String @default("") @db.VarChar(50)
+ email String @default("") @db.VarChar(191)
+ address String @default("") @db.VarChar(500)
+ note String? @db.Text
+ debtThreshold Decimal @default(0) @db.Decimal(14, 2)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
+
+model InventoryIcuCase {
+ @@index([unit, entry, id])
+ isBypass Boolean @default(false)
+ unit String @default("icu")
+ @@index([unit])
+ patientId String?
+ patient Patient? @relation(fields: [patientId], references: [id], onDelete: Restrict)
+ @@index([patientId])
+ id String @id @default(cuid())
+ patientName String @db.VarChar(191)
+ entry DateTime
+ exit DateTime?
+ items Json
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
+
+model PatientPrescription {
+ id String @id @default(cuid())
+ requestId String @unique
+ patientId String
+ prescriberId String
+ patientName String
+ patientCode String
+ prescriberName String
+ notes String @db.Text
+ items Json
+ createdAt DateTime @default(now())
+ patient Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
+ prescriber User @relation(fields: [prescriberId], references: [id], onDelete: Restrict)
+ @@index([patientId, createdAt])
+ @@index([prescriberId])
+ @@map("healthcare_PatientPrescription")
 }

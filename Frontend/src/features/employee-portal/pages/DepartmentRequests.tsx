@@ -316,7 +316,7 @@ export default function DepartmentRequests() {
                       }
                     />
                   </div>
-                  <Button
+                  <Button data-action="delete"
                     type="button"
                     size="icon"
                     variant="ghost"

@@ -1,6 +1,6 @@
 import { SearchableSelect } from "@/shared/components/ui/searchable-select";
 import { Label } from "@/shared/components/ui/label";
-import { useCallback, useDeferredValue, useEffect, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ChevronLeft,
@@ -144,7 +144,9 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
     resource === "stock" ? "inventory.adjust" : "inventory.manage",
   );
   const [page, setPage] = useState(1);
-  const [productSearch, setProductSearch] = useState(() => new URLSearchParams(window.location.search).get("search") ?? ""),
+  const [productSearch, setProductSearch] = useState(
+      () => new URLSearchParams(window.location.search).get("search") ?? "",
+    ),
     [categoryFilter, setCategoryFilter] = useState("all"),
     [statusFilter, setStatusFilter] = useState("all"),
     [skuFilter, setSkuFilter] = useState(""),
@@ -198,6 +200,8 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
   const [warehouses, setWarehouses] = useState<RecordItem[]>([]);
   const [editing, setEditing] = useState<RecordItem | null | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<RecordItem | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [productImages, setProductImages] = useState<
     { imageUrl: string; isMain: boolean }[]
   >([]);
@@ -605,31 +609,33 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
                     ))}
                     {cfg && canManage && (
                       <TableCell className="text-end">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setProductImages(
-                              row.images?.map((image: RecordItem) => ({
-                                imageUrl: image.imageUrl,
-                                isMain: image.isMain,
-                              })) ?? [],
-                            );
-                            setEditing(row);
-                          }}
-                          title={t("inventory.edit")}
-                        >
-                          <Pencil />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          title={t("inventory.delete")}
-                          onClick={() => setDeleteTarget(row)}
-                        >
-                          <Trash2 />
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2 justify-end">
+                          <Button data-action="edit"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setProductImages(
+                                row.images?.map((image: RecordItem) => ({
+                                  imageUrl: image.imageUrl,
+                                  isMain: image.isMain,
+                                })) ?? [],
+                              );
+                              setEditing(row);
+                            }}
+                            title={t("inventory.edit")}
+                          >
+                            <Pencil />
+                          </Button>
+                          <Button data-action="delete"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            title={t("inventory.delete")}
+                            onClick={() => setDeleteTarget(row)}
+                          >
+                            <Trash2  className="size-4 text-white" />
+                          </Button>
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>
@@ -706,7 +712,7 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
         open={editing !== undefined}
         onOpenChange={(o) => !o && setEditing(undefined)}
       >
-        <DialogContent className="max-h-[85dvh] overflow-y-auto">
+        <DialogContent className={`flex max-h-[90dvh] flex-col overflow-hidden ${resource === "products" ? "sm:max-w-4xl" : ""}`}>
           <DialogHeader>
             <DialogTitle>
               {t(
@@ -718,7 +724,8 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
               )}
             </DialogTitle>
           </DialogHeader>
-          <form className="grid gap-3 sm:grid-cols-2" onSubmit={submit}>
+          <form className="flex min-h-0 flex-col gap-4 overflow-hidden" onSubmit={submit}>
+            <div className={`content-scrollbar grid min-h-0 gap-4 overflow-y-auto overscroll-contain pe-3 pb-2 sm:grid-cols-2 ${resource === "products" ? "lg:grid-cols-3" : ""}`}>
             {resource === "stock" ? (
               <>
                 <Picker
@@ -794,6 +801,8 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
                         label={t("inventory.fields.brand")}
                         initial={editing?.[k] ? String(editing[k]) : undefined}
                       />
+                    ) : k === "unit" ? (
+                      <UnitPicker initial={String(editing?.[k] ?? "item")} />
                     ) : k === "status" ? (
                       <Picker
                         key={k}
@@ -856,20 +865,25 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
                   </div>
                 ))}
                 {resource === "products" && (
-                  <div className="space-y-2 sm:col-span-2">
+                  <div className="space-y-3 col-span-full">
                     <Label className="text-sm font-medium">
                       {t("inventory.fields.images")}
                     </Label>
                     <Input
+                      ref={imageInputRef}
+                      className="hidden"
+                      disabled={busy || productImages.length >= 8}
                       name="productImages"
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
                       multiple
                       onChange={async (event) => {
                         const files = Array.from(
                           event.target.files ?? [],
-                        ).slice(0, 8);
+                        ).slice(0, 8 - productImages.length);
+                        event.target.value = "";
                         if (!files.length) return;
+                        setUploadingImages(true);
                         setBusy(true);
                         try {
                           const uploaded =
@@ -886,39 +900,48 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
                         } catch (cause) {
                           setError(apiErrorMessage(cause));
                         } finally {
+                          setUploadingImages(false);
                           setBusy(false);
                         }
                       }}
                     />
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-4">
                       {productImages.map((image, index) => (
                         <div
                           key={image.imageUrl}
-                          className={`relative rounded-xl p-1 ${image.isMain ? "ring-2 ring-primary" : ""}`}
+                          className={`relative rounded-xl border bg-background p-2 ${image.isMain ? "ring-2 ring-primary" : ""}`}
                         >
                           <img
                             src={productImageUrl(image.imageUrl)}
                             alt=""
-                            className="size-20 rounded-xl border object-cover"
+                            className="aspect-square w-full rounded-lg object-contain"
                           />
                           <Button
                             type="button"
                             variant="destructive"
                             size="icon"
-                            className="absolute -inset-e-2 -top-2 size-6"
-                            onClick={() =>
-                              setProductImages((items) =>
-                                items.filter((_, i) => i !== index),
-                              )
-                            }
+                            className="absolute end-2 top-2 size-7 text-white hover:text-white [&_svg]:text-white"
+                            disabled={busy && !uploadingImages}
+                            aria-label={t("actionTooltip.delete")}
+                            onClick={async () => {
+                              try {
+                                await inventoryApi.removeImage(image.imageUrl);
+                                setProductImages((items) =>
+                                  items.filter((item) => item.imageUrl !== image.imageUrl).map((item, i, remaining) => ({ ...item, isMain: remaining.some((entry) => entry.isMain) ? item.isMain : i === 0 })),
+                                );
+                              } catch (cause) {
+                                setError(apiErrorMessage(cause));
+                              }
+                            }}
                           >
-                            ×
+                            <Trash2 className="size-4" />
                           </Button>
                           <Button
                             type="button"
                             variant={image.isMain ? "default" : "secondary"}
                             size="icon"
-                            className="absolute -bottom-2 -inset-s-2 size-7"
+                            className="absolute bottom-2 start-2 size-7"
+                            disabled={busy}
                             title={t("inventory.setMainImage")}
                             onClick={() =>
                               setProductImages((items) =>
@@ -935,6 +958,17 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
                           </Button>
                         </div>
                       ))}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        disabled={busy || productImages.length >= 8}
+                        onClick={() => imageInputRef.current?.click()}
+                        className="h-auto min-h-28 flex-col gap-2 whitespace-normal rounded-xl border-2 border-dashed border-primary/30 bg-background p-4 text-primary hover:bg-primary/5"
+                      >
+                        <Plus className="size-6" />
+                        <span>{t("inventory.fields.images")}</span>
+                        <span className="text-xs text-muted-foreground">{productImages.length} / 8</span>
+                      </Button>
                     </div>
                     <small className="text-muted-foreground">
                       {t("inventory.imageHelp")}
@@ -944,9 +978,10 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
               </>
             )}
             {error && (
-              <p className="text-sm text-destructive sm:col-span-2">{error}</p>
+              <p className="text-sm text-destructive col-span-full">{error}</p>
             )}
-            <Button disabled={busy} className="sm:col-span-2">
+            </div>
+            <Button disabled={busy} className="w-full shrink-0">
               {busy ? t("inventory.saving") : t("inventory.save")}
             </Button>
           </form>
@@ -1059,7 +1094,7 @@ function ProductGrid({
               )}
               {canManage && (
                 <div className="flex justify-end border-t pt-2">
-                  <Button
+                  <Button data-action="edit"
                     variant="ghost"
                     size="icon"
                     title={t("inventory.edit")}
@@ -1067,14 +1102,14 @@ function ProductGrid({
                   >
                     <Pencil />
                   </Button>
-                  <Button
+                  <Button data-action="delete"
                     variant="ghost"
                     size="icon"
                     className="text-destructive"
                     title={t("inventory.delete")}
                     onClick={() => void onDelete(row)}
                   >
-                    <Trash2 />
+                    <Trash2  className="size-4 text-white" />
                   </Button>
                 </div>
               )}
@@ -1104,5 +1139,26 @@ function Picker({
       placeholder={label}
       options={items.map((item) => ({ value: item.id, label: item.name }))}
     />
+  );
+}
+
+const productUnits = ["item", "box", "pack", "bottle", "piece", "set", "pair", "carton", "roll", "tube", "bag", "vial", "ampoule", "kg", "g", "l", "ml"];
+
+function UnitPicker({ initial }: { initial: string }) {
+  const { t } = useTranslation();
+  const normalized = initial.trim().toLowerCase();
+  const [unit, setUnit] = useState(productUnits.includes(normalized) ? normalized : "other");
+  return (
+    <div className="space-y-2">
+      <Select name={unit === "other" ? "unitSelection" : "unit"} value={unit} onValueChange={setUnit}>
+        <SelectTrigger id="inventory-field-unit"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {[...productUnits, "other"].map((value) => <SelectItem key={value} value={value}>{t(`inventory.units.${value}`)}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      {unit === "other" && (
+        <Input name="unit" required defaultValue={productUnits.includes(normalized) ? "" : initial} aria-label={t("inventory.units.other")} placeholder={t("inventory.units.other")} />
+      )}
+    </div>
   );
 }

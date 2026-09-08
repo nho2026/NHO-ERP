@@ -204,39 +204,41 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        title={t("billing.printInvoice")}
-                        onClick={() => printOne(x)}
-                      >
-                        <Printer />
-                      </Button>
-                      {x.status === "draft" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={async () => {
-                              await billingApi.invoices.status(x.id, "sent");
-                              await invoices.refresh();
-                            }}
-                          >
-                            {t("billing.send")}
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-destructive"
-                            onClick={async () => {
-                              await billingApi.invoices.remove(x.id);
-                              await invoices.refresh();
-                            }}
-                          >
-                            <Trash2 />
-                          </Button>
-                        </>
-                      )}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title={t("billing.printInvoice")}
+                          onClick={() => printOne(x)}
+                        >
+                          <Printer />
+                        </Button>
+                        {x.status === "draft" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                await billingApi.invoices.status(x.id, "sent");
+                                await invoices.refresh();
+                              }}
+                            >
+                              {t("billing.send")}
+                            </Button>
+                            <Button data-action="delete"
+                              size="icon"
+                              variant="ghost"
+                              className="text-destructive"
+                              onClick={async () => {
+                                await billingApi.invoices.remove(x.id);
+                                await invoices.refresh();
+                              }}
+                            >
+                              <Trash2  className="size-4 text-white" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -347,7 +349,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                           }
                         />
                       ))}
-                      <Button
+                      <Button data-action="delete"
                         type="button"
                         variant="ghost"
                         size="icon"
@@ -356,7 +358,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                           setItems((v) => v.filter((_, n) => n !== i))
                         }
                       >
-                        <Trash2 />
+                        <Trash2  className="size-4 text-white" />
                       </Button>
                     </div>
                   ))}

@@ -202,12 +202,12 @@ export default function BarcodeLabelsPage() {
                           }
                         }}
                       >
-                        <Button
+                        <Button data-action="delete"
                           variant="outline"
                           className="h-10 border-destructive/25 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                           disabled={deleting === product.id}
                         >
-                          <Trash2 />
+                          <Trash2  className="size-4 text-white" />
                           {t("inventory.barcode.delete")}
                         </Button>
                       </DeleteConfirmationDialog>

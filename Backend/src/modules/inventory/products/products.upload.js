@@ -1,12 +1,16 @@
 import multer from "multer";
 import path from "node:path";
-import { mkdirSync } from "node:fs";
+import { mkdir } from "node:fs";
 import { randomUUID } from "node:crypto";
 const imageDirectory = path.resolve(process.cwd(), "public", "product-images");
-mkdirSync(imageDirectory, { recursive: true });
 export const upload = multer({
   storage: multer.diskStorage({
-    destination: imageDirectory,
+    destination: (_req, _file, done) => {
+      // Recreate upload storage if it was removed after the server started.
+      mkdir(imageDirectory, { recursive: true }, (error) => {
+        done(error, imageDirectory);
+      });
+    },
     filename: (_req, file, done) =>
       done(
         null,

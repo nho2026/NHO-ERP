@@ -1,3 +1,5 @@
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/shared/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { HeaderSearch } from "./HeaderSearch";
 import { WorkspaceCard } from "./WorkspaceCard";
 import { Input } from "@/shared/components/ui/input";
@@ -178,6 +180,11 @@ const crmNavigation = [
   },
   { to: "/crm/forms", label: "navigation.crmForms", icon: FileText },
   {
+    to: "/crm/today-patients",
+    label: "todayPatients.title",
+    icon: CalendarClock,
+  },
+  {
     to: "/crm/appointments",
     label: "navigation.doctorAppointments",
     icon: CalendarPlus,
@@ -348,11 +355,6 @@ const warehouseGroups = [
 const inventoryNavigation = [
   { to: "/inventory/brands", label: "navigation.productBrands", icon: Tags },
   { to: "/inventory/barcodes", label: "navigation.barcodes", icon: Barcode },
-  {
-    to: "/inventory/movements",
-    label: "navigation.stockMovements",
-    icon: ArrowLeftRight,
-  },
 ];
 const posNavigation = [
   { to: "/pos/checkout", label: "navigation.newSale", icon: ShoppingCart },
@@ -364,27 +366,45 @@ const accessNavigation = [
   { to: "/system-logs", label: "navigation.systemLogs", icon: ScrollText },
 ];
 
-function LiveDateTime({ locale, banner = false }: { locale: string; banner?: boolean }) {
+function LiveDateTime({
+  locale,
+  banner = false,
+}: {
+  locale: string;
+  banner?: boolean;
+}) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30000);
     return () => window.clearInterval(timer);
   }, []);
-  if (banner) return (
-    <div className="flex items-center gap-4 rounded-2xl border border-white/15 bg-white/5 px-3 py-2 text-white">
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-teal-200/10 text-teal-100">
-        <Clock3 className="size-6 stroke-[1.5]" />
-      </span>
-      <div className="min-w-0 space-y-1">
-        <time dateTime={now.toISOString()} className="block text-2xl font-semibold leading-tight tabular-nums">
-          {new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(now)}
-        </time>
-        <span className="block text-xs leading-relaxed text-teal-100/80">
-          {new Intl.DateTimeFormat(locale, { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(now)}
+  if (banner)
+    return (
+      <div className="flex items-center gap-4 rounded-2xl border border-white/15 bg-white/5 px-3 py-2 text-white">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-teal-200/10 text-teal-100">
+          <Clock3 className="size-6 stroke-[1.5]" />
         </span>
+        <div className="min-w-0 space-y-1">
+          <time
+            dateTime={now.toISOString()}
+            className="block text-2xl font-semibold leading-tight tabular-nums"
+          >
+            {new Intl.DateTimeFormat(locale, {
+              hour: "2-digit",
+              minute: "2-digit",
+            }).format(now)}
+          </time>
+          <span className="block text-xs leading-relaxed text-teal-100/80">
+            {new Intl.DateTimeFormat(locale, {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            }).format(now)}
+          </span>
+        </div>
       </div>
-    </div>
-  );
+    );
   return (
     <div className="hidden h-10 items-center overflow-hidden rounded-xl border border-primary/15 bg-gradient-to-r from-primary/8 via-card to-card shadow-sm lg:flex">
       <time
@@ -504,6 +524,25 @@ export default function DashboardLayout() {
                   !notification.readAt && !previousIds.has(notification.id),
               )
               .forEach((notification) => {
+                toast.info(
+                  notification.title ??
+                    notification.warning?.title ??
+                    notification.meeting?.title ??
+                    notification.task?.title ??
+                    notificationLabel(notification.type, t),
+                  {
+                    id: `notification-${notification.id}`,
+                    description:
+                      notification.body ?? notification.warning?.message,
+                    action: {
+                      label: t("notificationCenter.openNotification"),
+                      onClick: () => {
+                        const route = notificationRoute(notification);
+                        if (route) navigate(route);
+                      },
+                    },
+                  },
+                );
                 if (settingsSnapshot()?.notifications.desktopAlerts !== false)
                   window.electronWindow?.showNotification({
                     title:
@@ -534,7 +573,7 @@ export default function DashboardLayout() {
       active = false;
       window.clearInterval(timer);
     };
-  }, [t]);
+  }, [t, navigate]);
   const openNotification = async (notification: NotificationItem) => {
     if (!notification.readAt) {
       setNotifications((items) =>
@@ -556,7 +595,11 @@ export default function DashboardLayout() {
     setUnreadCount(0);
     await notificationsApi.markAllRead().catch(() => undefined);
   };
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const logoutLock = useRef(false);
   const logout = async () => {
+    if (logoutLock.current) return;
+    logoutLock.current = true;
     setLoggingOut(true);
     try {
       await logoutUser();
@@ -564,6 +607,8 @@ export default function DashboardLayout() {
       sessionStorage.removeItem("nho-current-user");
       navigate("/login", { replace: true });
       setLoggingOut(false);
+      setLogoutConfirmOpen(false);
+      logoutLock.current = false;
     }
   };
   const toggle = () =>
@@ -601,6 +646,8 @@ export default function DashboardLayout() {
     const item = allItems.find(({ to }) => location.pathname === to);
     if (location.pathname === "/employee-portal")
       return t("employeePortal.title");
+    if (/^\/crm\/patients\/[^/]+$/.test(location.pathname))
+      return t("todayPatients.fullProfile");
     if (location.pathname === "/profile") return t("navigation.profile");
     if (location.pathname === "/settings") return t("navigation.settings");
     return item
@@ -645,6 +692,7 @@ export default function DashboardLayout() {
       "/crm/patients": "employees.view",
       "/crm/referrals": "employees.view",
       "/crm/forms": "employees.view",
+      "/crm/today-patients": "healthcare.appointments.view",
       "/crm/appointments": "healthcare.appointments.view",
       "/crm/surgery-appointments": "employees.view",
       "/crm/payments": "employees.view",
@@ -667,7 +715,6 @@ export default function DashboardLayout() {
       "/inventory/categories": "inventory.categories.view",
       "/inventory/warehouses": "inventory.warehouses.view",
       "/inventory/stock": "inventory.stock.view",
-      "/inventory/movements": "inventory.movements.view",
       "/pos/checkout": "pos.checkout.view",
       "/pos/sales": "pos.sales.view",
       "/users": "users.view",
@@ -730,7 +777,13 @@ export default function DashboardLayout() {
     { key: "tasks", icon: ListTodo, items: taskNavigation },
     { key: "pos", icon: Barcode, items: posNavigation },
     { key: "access", icon: ShieldCheck, items: accessNavigation },
-    { key: "settings", icon: Settings, items: [{ to: "/settings", label: "navigation.settings", icon: Settings }] },
+    {
+      key: "settings",
+      icon: Settings,
+      items: [
+        { to: "/settings", label: "navigation.settings", icon: Settings },
+      ],
+    },
     { key: "general", icon: LayoutDashboard, items: primaryNavigation },
     {
       key: "portal",
@@ -764,13 +817,41 @@ export default function DashboardLayout() {
   const activeTabPath = location.pathname;
   useEffect(() => {
     if (!panelMode || showPanel) return;
-    if (pendingTabPath.current && pendingTabPath.current !== activeTabPath) return;
+    if (pendingTabPath.current && pendingTabPath.current !== activeTabPath)
+      return;
     pendingTabPath.current = null;
     setPageTabs((tabs) => {
+      // Patient details share one workspace tab, even when the patient changes.
+      const isPatientProfile = (path: string) =>
+        /^\/crm\/patients\/[^/]+\/?$/.test(path);
+      if (isPatientProfile(activeTabPath)) {
+        const firstProfileIndex = tabs.findIndex((tab) =>
+          isPatientProfile(tab.to),
+        );
+        const current = tabs[firstProfileIndex];
+        const profileCount = tabs.filter((tab) =>
+          isPatientProfile(tab.to),
+        ).length;
+        if (
+          profileCount === 1 &&
+          current?.to === activeTabPath &&
+          current.title === pageTitle
+        )
+          return tabs;
+        const remaining = tabs.filter((tab) => !isPatientProfile(tab.to));
+        remaining.splice(
+          firstProfileIndex < 0 ? remaining.length : firstProfileIndex,
+          0,
+          { to: activeTabPath, title: pageTitle },
+        );
+        return remaining;
+      }
       const existing = tabs.find((tab) => tab.to === activeTabPath);
       if (existing?.title === pageTitle) return tabs;
       return existing
-        ? tabs.map((tab) => tab.to === activeTabPath ? { ...tab, title: pageTitle } : tab)
+        ? tabs.map((tab) =>
+            tab.to === activeTabPath ? { ...tab, title: pageTitle } : tab,
+          )
         : [...tabs, { to: activeTabPath, title: pageTitle }];
     });
   }, [panelMode, showPanel, activeTabPath, pageTitle]);
@@ -781,7 +862,11 @@ export default function DashboardLayout() {
     if (!showPanel && to === activeTabPath) {
       const next = remaining[Math.min(index, remaining.length - 1)];
       if (next) openPanelPage(next.to);
-      else { setShowPanel(true); setPanelGroup(null); setPanelSearch(""); }
+      else {
+        setShowPanel(true);
+        setPanelGroup(null);
+        setPanelSearch("");
+      }
     }
   };
   const panelTerm = panelSearch.trim().toLocaleLowerCase();
@@ -1475,7 +1560,7 @@ export default function DashboardLayout() {
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
                   disabled={loggingOut}
-                  onSelect={() => void logout()}
+                  onSelect={() => setLogoutConfirmOpen(true)}
                 >
                   <LogOut />
                   {loggingOut
@@ -1526,10 +1611,20 @@ export default function DashboardLayout() {
             </p>
           </div>
           <div className="ms-auto shrink-0 lg:absolute lg:start-1/2 lg:-translate-x-1/2 lg:rtl:translate-x-1/2">
-          <HeaderSearch
-            menus={Array.from(new Map(panelGroups.flatMap((group) => group.items).map((item) => [item.to, item])).values())}
-            onNavigate={(to) => { if (panelMode) openPanelPage(to); else navigate(to); setOpen(false); }}
-          />
+            <HeaderSearch
+              menus={Array.from(
+                new Map(
+                  panelGroups
+                    .flatMap((group) => group.items)
+                    .map((item) => [item.to, item]),
+                ).values(),
+              )}
+              onNavigate={(to) => {
+                if (panelMode) openPanelPage(to);
+                else navigate(to);
+                setOpen(false);
+              }}
+            />
           </div>
           <Select
             value={i18n.resolvedLanguage?.split("-")[0] ?? "en"}
@@ -1559,6 +1654,46 @@ export default function DashboardLayout() {
               <Moon className="size-4" />
             )}
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className="size-9 shrink-0 rounded-lg"
+                variant="outline"
+                size="icon"
+                aria-label={t("navigation.profile")}
+                title={t("navigation.profile")}
+              >
+                <UserRound className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="z-10000 w-56 rounded-xl p-2"
+            >
+              <DropdownMenuLabel className="font-normal">
+                <p className="truncate text-sm font-semibold">{user?.name}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  @{user?.username}
+                </p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => navigate("/profile")}>
+                <UserRound />
+                {t("navigation.profile")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                disabled={loggingOut}
+                onSelect={() => setLogoutConfirmOpen(true)}
+              >
+                <LogOut />
+                {loggingOut
+                  ? t("navigation.loggingOut")
+                  : t("navigation.logout")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -1635,31 +1770,51 @@ export default function DashboardLayout() {
           <WindowControls />
         </header>
         {panelMode && (
-          <nav aria-label={t("controlPanel.openPages")} className="flex min-w-0 shrink-0 items-end gap-1 overflow-x-auto overscroll-x-contain border-b border-border/60 bg-muted/70 px-3 pt-2 md:px-6">
+          <nav
+            aria-label={t("controlPanel.openPages")}
+            className="flex min-w-0 shrink-0 items-end gap-1 overflow-x-auto overscroll-x-contain border-b border-border/60 bg-muted/70 px-3 pt-2 md:px-6"
+          >
             <Button
               variant="ghost"
               aria-current={showPanel ? "page" : undefined}
               className={`h-10 shrink-0 rounded-b-none rounded-t-xl border border-b-0 px-4 shadow-none ${showPanel ? "border-border/60 bg-card text-primary" : "border-transparent text-muted-foreground"}`}
-              onClick={() => { setShowPanel(true); setPanelGroup(null); setPanelSearch(""); }}
+              onClick={() => {
+                setShowPanel(true);
+                setPanelGroup(null);
+                setPanelSearch("");
+              }}
             >
               <LayoutDashboard className="size-4" />
               {t("controlPanel.title")}
             </Button>
             {pageTabs.map((tab) => {
               const active = !showPanel && tab.to === activeTabPath;
-              const item = panelGroups.flatMap((group) => group.items).find((item) => item.to === tab.to.split("?")[0]);
+              const item = panelGroups
+                .flatMap((group) => group.items)
+                .find((item) => item.to === tab.to.split("?")[0]);
               const title = item ? t(item.label) : tab.title;
               return (
-                <div key={tab.to} className={`flex h-10 shrink-0 items-center rounded-t-xl border border-b-0 pe-1 ${active ? "border-border/60 bg-card text-primary" : "border-transparent text-muted-foreground hover:bg-card/60"}`}>
-                  <Button variant="ghost" aria-current={active ? "page" : undefined} title={title}
+                <div
+                  key={tab.to}
+                  className={`flex h-10 shrink-0 items-center rounded-t-xl border border-b-0 pe-1 ${active ? "border-border/60 bg-card text-primary" : "border-transparent text-muted-foreground hover:bg-card/60"}`}
+                >
+                  <Button
+                    variant="ghost"
+                    aria-current={active ? "page" : undefined}
+                    title={title}
                     className="h-full min-w-24 max-w-52 justify-start rounded-none px-3 shadow-none hover:bg-transparent"
-                    onClick={() => openPanelPage(tab.to)}>
+                    onClick={() => openPanelPage(tab.to)}
+                  >
                     <span className="truncate">{title}</span>
                   </Button>
-                  <Button variant="ghost" size="icon" className="size-8 shrink-0 rounded-full shadow-none"
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 shrink-0 rounded-full shadow-none"
                     aria-label={t("controlPanel.closePage", { name: title })}
                     title={t("controlPanel.closePage", { name: title })}
-                    onClick={() => closePageTab(tab.to)}>
+                    onClick={() => closePageTab(tab.to)}
+                  >
                     <X className="size-3" />
                   </Button>
                 </div>
@@ -1668,120 +1823,183 @@ export default function DashboardLayout() {
           </nav>
         )}
         <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <main className="content-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth">
-          <div className="min-h-full p-3 md:p-5 xl:p-6">
-            {panelMode && showPanel ? (
-              <div
-                className="mx-auto max-w-7xl space-y-6 py-3 md:py-6"
-                dir={i18n.dir()}
-              >
-                <div className="relative flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#063c3b] via-[#0b5753] to-[#0f766e] p-4 text-white shadow-lg shadow-primary/10 md:px-6 md:py-5">
-                  <div>
-                    <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-teal-100">
-                      {systemSettings?.organization.name || "NHO ERP"}
-                    </p>
-                    <h1 className="max-w-2xl break-words text-lg font-bold leading-relaxed sm:text-xl md:text-2xl">
-                      {t("controlPanel.welcome", { name: user?.name || "" })}
-                    </h1>
-                    <p className="mt-1 text-sm text-teal-100/85">
-                      {t("controlPanel.description")}
-                    </p>
-                  </div>
-                  <div className="w-full space-y-2 sm:w-72 lg:w-80">
-                    <LiveDateTime locale={i18n.resolvedLanguage ?? "en"} banner />
-                    <div className="relative">
-                      <Search className="pointer-events-none absolute start-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        className="h-10 rounded-lg border-white/20 bg-background ps-11 pe-11 text-sm font-normal text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:border-teal-300 focus-visible:ring-2 focus-visible:ring-teal-300/30"
-                        value={panelSearch}
-                        onChange={(event) => setPanelSearch(event.target.value)}
-                        placeholder={t("controlPanel.search")}
-                        aria-label={t("controlPanel.search")}
+          <main className="content-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth">
+            <div className="min-h-full p-3 md:p-5 xl:p-6">
+              {panelMode && showPanel ? (
+                <div
+                  className="mx-auto max-w-7xl space-y-6 py-3 md:py-6"
+                  dir={i18n.dir()}
+                >
+                  <div className="relative flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#063c3b] via-[#0b5753] to-[#0f766e] p-4 text-white shadow-lg shadow-primary/10 md:px-6 md:py-5">
+                    <div>
+                      <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-teal-100">
+                        {systemSettings?.organization.name || "NHO ERP"}
+                      </p>
+                      <h1 className="max-w-2xl break-words text-lg font-bold leading-relaxed sm:text-xl md:text-2xl">
+                        {t("controlPanel.welcome", { name: user?.name || "" })}
+                      </h1>
+                      <p className="mt-1 text-sm text-teal-100/85">
+                        {t("controlPanel.description")}
+                      </p>
+                    </div>
+                    <div className="w-full space-y-2 sm:w-72 lg:w-80">
+                      <LiveDateTime
+                        locale={i18n.resolvedLanguage ?? "en"}
+                        banner
                       />
-                      {panelSearch && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute end-2 top-1/2 size-8 -translate-y-1/2 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                          aria-label={t("controlPanel.clearSearch")}
-                          onClick={() => setPanelSearch("")}
-                        >
-                          <X className="size-4" />
-                        </Button>
-                      )}
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute start-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          className="h-10 rounded-lg border-white/20 bg-background ps-11 pe-11 text-sm font-normal text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:border-teal-300 focus-visible:ring-2 focus-visible:ring-teal-300/30"
+                          value={panelSearch}
+                          onChange={(event) =>
+                            setPanelSearch(event.target.value)
+                          }
+                          placeholder={t("controlPanel.search")}
+                          aria-label={t("controlPanel.search")}
+                        />
+                        {panelSearch && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute end-2 top-1/2 size-8 -translate-y-1/2 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                            aria-label={t("controlPanel.clearSearch")}
+                            onClick={() => setPanelSearch("")}
+                          >
+                            <X className="size-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">
+                      {panelGroup
+                        ? t(`controlPanel.${panelGroup}`)
+                        : t("controlPanel.workspaces")}
+                    </h2>
+                  </div>
+                  <div
+                    key={panelGroup ? `workspace:${panelGroup}` : "workspaces"}
+                    className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                  >
                     {panelGroup
-                      ? t(`controlPanel.${panelGroup}`)
-                      : t("controlPanel.workspaces")}
-                  </h2>
-
-                </div>
-                <div
-                  key={panelGroup ? `workspace:${panelGroup}` : "workspaces"}
-                  className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                >
-                  {panelGroup
-                    ? panelGroups.find((group) => group.key === panelGroup)?.items
-                        .filter((item) => t(item.label).toLocaleLowerCase().includes(panelTerm))
-                        .map((item) => (
+                      ? panelGroups
+                          .find((group) => group.key === panelGroup)
+                          ?.items.filter((item) =>
+                            t(item.label)
+                              .toLocaleLowerCase()
+                              .includes(panelTerm),
+                          )
+                          .map((item) => (
+                            <WorkspaceCard
+                              key={`page:${panelGroup}:${item.to}`}
+                              icon={item.icon}
+                              title={t(item.label)}
+                              description={t(
+                                `controlPanel.descriptions.${panelGroup}`,
+                              )}
+                              meta={t(`controlPanel.${panelGroup}`)}
+                              colorIndex={
+                                panelGroups
+                                  .find((group) => group.key === panelGroup)
+                                  ?.items.findIndex(
+                                    (entry) => entry.to === item.to,
+                                  ) ?? 0
+                              }
+                              onClick={() => openPanelPage(item.to)}
+                            />
+                          ))
+                      : visibleGroups.map((group) => (
                           <WorkspaceCard
-                            key={`page:${panelGroup}:${item.to}`}
-                            icon={item.icon}
-                            title={t(item.label)}
-                            description={t(`controlPanel.descriptions.${panelGroup}`)}
-                            meta={t(`controlPanel.${panelGroup}`)}
-                            colorIndex={panelGroups.find((group) => group.key === panelGroup)?.items.findIndex((entry) => entry.to === item.to) ?? 0}
-                            onClick={() => openPanelPage(item.to)}
+                            key={`workspace:${group.key}`}
+                            icon={group.icon}
+                            title={t(`controlPanel.${group.key}`)}
+                            description={t(
+                              `controlPanel.descriptions.${group.key}`,
+                            )}
+                            meta={t("controlPanel.pages", {
+                              count: group.items.length,
+                            })}
+                            colorIndex={panelGroups.findIndex(
+                              (entry) => entry.key === group.key,
+                            )}
+                            onClick={() => {
+                              setPanelGroup(group.key);
+                              if (group.key === "settings")
+                                openPanelPage(group.items[0].to);
+                            }}
                           />
-                        ))
-                    : visibleGroups.map((group) => (
-                        <WorkspaceCard
-                          key={`workspace:${group.key}`}
-                          icon={group.icon}
-                          title={t(`controlPanel.${group.key}`)}
-                          description={t(`controlPanel.descriptions.${group.key}`)}
-                          meta={t("controlPanel.pages", { count: group.items.length })}
-                          colorIndex={panelGroups.findIndex((entry) => entry.key === group.key)}
-                          onClick={() => {
-                            setPanelGroup(group.key);
-                            if (group.key === "settings") openPanelPage(group.items[0].to);
-                          }}
-                        />
-                      ))}
+                        ))}
+                  </div>
+                  {!panelGroup && !visibleGroups.length && (
+                    <p className="py-8 text-center text-muted-foreground">
+                      {t("resourceState.notFound")}
+                    </p>
+                  )}
                 </div>
-                {!panelGroup && !visibleGroups.length && (
-                  <p className="py-8 text-center text-muted-foreground">
-                    {t("resourceState.notFound")}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <>
-                <Button variant="outline" size="sm" className="mb-4" onClick={() => {
-                  if (panelMode) {
-                    const workspace = panelGroups.find((group) => group.items.some((item) => item.to === location.pathname))
-                      ?? panelGroups.find((group) => group.items.some((item) => location.pathname.startsWith(`${item.to}/`)));
-                    setPanelGroup(workspace?.key === "settings" ? null : workspace?.key ?? null);
-                    setPanelSearch("");
-                    setShowPanel(true);
-                  } else if (window.history.state?.idx > 0) navigate(-1);
-                  else navigate("/dashboard");
-                }}>
-                  <ArrowLeft className="size-4 rtl:rotate-180" />
-                  {t("controlPanel.goBack")}
-                </Button>
-                <Outlet key={location.pathname + location.search} />
-              </>
-            )}
-          </div>
-        </main>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mb-4"
+                    onClick={() => {
+                      if (
+                        /^\/crm\/patients\/[^/]+$/.test(location.pathname) &&
+                        location.state?.from === "/crm/today-patients"
+                      ) {
+                        navigate("/crm/today-patients");
+                        return;
+                      }
+                      if (panelMode) {
+                        const workspace =
+                          panelGroups.find((group) =>
+                            group.items.some(
+                              (item) => item.to === location.pathname,
+                            ),
+                          ) ??
+                          panelGroups.find((group) =>
+                            group.items.some((item) =>
+                              location.pathname.startsWith(`${item.to}/`),
+                            ),
+                          );
+                        setPanelGroup(
+                          workspace?.key === "settings"
+                            ? null
+                            : (workspace?.key ?? null),
+                        );
+                        setPanelSearch("");
+                        setShowPanel(true);
+                      } else if (window.history.state?.idx > 0) navigate(-1);
+                      else navigate("/dashboard");
+                    }}
+                  >
+                    <ArrowLeft className="size-4 rtl:rotate-180" />
+                    {t("controlPanel.goBack")}
+                  </Button>
+                  <Outlet key={location.pathname + location.search} />
+                </>
+              )}
+            </div>
+          </main>
         </div>
       </div>
+      <AlertDialog open={logoutConfirmOpen} onOpenChange={value => { if (!logoutLock.current) setLogoutConfirmOpen(value); }}>
+        <AlertDialogContent dir={i18n.dir()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("navigation.confirmLogout")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("navigation.confirmLogoutDescription")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loggingOut}>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 text-white hover:bg-red-700 hover:text-white" disabled={loggingOut} onClick={event => { event.preventDefault(); void logout(); }}>
+              {t(loggingOut ? "navigation.loggingOut" : "navigation.logout")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {open && !panelMode && (
         <button
           className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px] lg:hidden"
