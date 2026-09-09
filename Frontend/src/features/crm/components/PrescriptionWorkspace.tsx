@@ -1,3 +1,4 @@
+import { randomId } from "@/shared/lib/random-id";
 import prescriptionPrintStyles from "./prescription-print.css?inline";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -126,7 +127,7 @@ export default function PrescriptionWorkspace({
     lock.current = true;
     setBusy(true);
     setError("");
-    request.current ??= crypto.randomUUID();
+    request.current ??= randomId();
     try {
       await apiClient.post(`/crm/prescriptions/patient/${patientId}`, {
         requestId: request.current,

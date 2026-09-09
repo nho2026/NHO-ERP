@@ -9,7 +9,7 @@
     "prestart": "npm run db:generate",
     "start": "node src/server.js",
     "format": "prettier --write \"src/**/*.js\"",
-    "db:generate": "prisma generate --schema src/shared/database/prisma/schema.prisma && node scripts/reload-prisma-client.js",
+    "db:generate": "prisma generate --schema src/shared/database/prisma/schema.prisma",
     "db:push": "prisma db push --schema src/shared/database/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema src/shared/database/prisma/schema.prisma",
     "db:seed": "node src/shared/database/seed/seed.js",

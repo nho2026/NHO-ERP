@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { HikvisionClient } from "../hikvision/hikvision.client.js";
 import { eventsModel as m } from "./events.model.js";
 import { verifiedAttendanceEvent } from "./events.verification.js";
+import { peopleService } from "../people/people.service.js";
 
 export const eventsService = {
   list(q) {
@@ -21,19 +22,25 @@ export const eventsService = {
     });
   },
   async sync(input) {
+    // Use the attendance site's Baghdad calendar month, independent of the
+    // server timezone. Keep one cutoff for every device in this sync.
+    const to = new Date();
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Baghdad",
+      year: "numeric",
+      month: "2-digit",
+    }).formatToParts(to);
+    const year = parts.find((part) => part.type === "year").value;
+    const month = parts.find((part) => part.type === "month").value;
+    const from = new Date(`${year}-${month}-01T00:00:00+03:00`);
+    const peopleResult = await peopleService.sync(input.deviceId);
     const devices = await m.devices(input.deviceId);
     const results = await Promise.all(
       devices.map(async (d) => {
         let synced = 0;
         try {
-          // A terminal purge is allowed only after its complete history has
-          // been imported through a fixed cutoff. Date filters cannot be used
-          // here because they could leave older terminal events uncopied.
-          // This terminal firmware rejects the Unix epoch as an event-search
-          // boundary. Year 2000 predates the device's supported event data.
-          const from = "2000-01-01T00:00:00Z",
-            to = new Date(),
-            api = new HikvisionClient(d),
+          // Import this month's events without modifying the terminal.
+          const api = new HikvisionClient(d),
             searchID = crypto.randomUUID().replaceAll("-", ""),
             people = new Map(
               (await m.people(d.id)).map((person) => [
@@ -58,6 +65,8 @@ export const eventsService = {
               if (
                 !employeeNo ||
                 Number.isNaN(occurredAt.getTime()) ||
+                occurredAt < from ||
+                occurredAt > to ||
                 !attendance ||
                 (d.eventsClearedAt && occurredAt <= d.eventsClearedAt)
               )
@@ -79,22 +88,24 @@ export const eventsService = {
               if (result.created) synced++;
             }
             position += list.length;
-            if (
-              !list.length ||
-              position >=
-                Number(info.totalMatches ?? info.numOfMatches ?? position)
-            ) {
+            const more =
+              info.responseStatusStrg === "MORE" ||
+              position < Number(info.totalMatches ?? position);
+            if (!more) {
               complete = true;
               break;
             }
+            if (!list.length)
+              throw new Error(
+                "The terminal returned incomplete event search data.",
+              );
           }
           if (!complete)
             throw new Error(
-              "The terminal event history exceeded the safe sync limit; device events were not deleted.",
+              "The terminal event history exceeded the sync limit; some events may not have been imported.",
             );
-          await api.deleteEventsThrough(to);
           await m.status(d.id, { status: "online", lastSeenAt: new Date() });
-          return { deviceId: d.id, synced, deviceEventsDeletedThrough: to };
+          return { deviceId: d.id, synced };
         } catch (error) {
           await m.status(d.id, { status: "offline" }).catch(() => {});
           return {
@@ -110,17 +121,11 @@ export const eventsService = {
     );
     return {
       synced: results.reduce((total, result) => total + result.synced, 0),
-      deviceEventsDeletedThrough: results.flatMap((result) =>
-        result.deviceEventsDeletedThrough
-          ? [
-              {
-                deviceId: result.deviceId,
-                through: result.deviceEventsDeletedThrough,
-              },
-            ]
-          : [],
-      ),
-      errors: results.flatMap((result) => (result.error ? [result.error] : [])),
+      usersSynced: peopleResult.synced,
+      errors: [
+        ...peopleResult.errors,
+        ...results.flatMap((result) => (result.error ? [result.error] : [])),
+      ],
     };
   },
 };

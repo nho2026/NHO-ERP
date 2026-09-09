@@ -321,14 +321,51 @@ function EmployeeFilter({
 }
 export default function EventsPage() {
   const { t, i18n } = useTranslation();
-  const [filters, setFilters] = useState<Record<string, string>>({}),
-    [dateRange, setDateRange] = useState<DateRange>(),
+  const [initialRange] = useState(() => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Baghdad",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const value = (type: string) =>
+      parts.find((part) => part.type === type)!.value;
+    const month = `${value("year")}-${value("month")}`;
+    return { from: `${month}-01`, to: `${month}-${value("day")}` };
+  });
+  const [filters, setFilters] = useState<Record<string, string>>(initialRange),
+    [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
+      from: new Date(`${initialRange.from}T00:00:00`),
+      to: new Date(`${initialRange.to}T00:00:00`),
+    })),
     [syncing, setSyncing] = useState(false),
     [dateSort, setDateSort] = useState<"desc" | "asc">("desc");
+  const devices = useApiResource(
+    useCallback(() => attendanceApi.devices(), []),
+  );
+  const selectedDeviceId = filters.deviceId || devices.data?.[0]?.id || "";
+  const deviceFilters = useMemo(
+    () => ({ ...filters, deviceId: selectedDeviceId }),
+    [filters, selectedDeviceId],
+  );
   const events = useApiResource(
-      useCallback(() => attendanceApi.events(filters), [filters]),
+      useCallback(
+        () =>
+          selectedDeviceId
+            ? attendanceApi.events(deviceFilters)
+            : Promise.resolve([]),
+        [deviceFilters, selectedDeviceId],
+      ),
     ),
-    people = useApiResource(useCallback(() => attendanceApi.people(), []));
+    people = useApiResource(
+      useCallback(
+        () =>
+          selectedDeviceId
+            ? attendanceApi.people(selectedDeviceId)
+            : Promise.resolve([]),
+        [selectedDeviceId],
+      ),
+    );
   const visibleEvents = useMemo(() => {
     const from = filters.from
       ? new Date(`${filters.from}T00:00:00`).getTime()
@@ -390,6 +427,27 @@ export default function EventsPage() {
     <Card>
       <CardContent className="p-0">
         <div className="flex flex-wrap gap-2 border-b p-4">
+          <Select
+            value={selectedDeviceId}
+            disabled={syncing || !devices.data?.length}
+            onValueChange={(deviceId) =>
+              setFilters((value) => ({ ...value, deviceId, employeeNo: "" }))
+            }
+          >
+            <SelectTrigger
+              className="w-full sm:w-64"
+              aria-label={t("table.headers.device")}
+            >
+              <SelectValue placeholder={t("deviceUsers.chooseDevice")} />
+            </SelectTrigger>
+            <SelectContent>
+              {(devices.data ?? []).map((device) => (
+                <SelectItem key={device.id} value={device.id}>
+                  {device.name} ({device.ipAddress})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <EmployeeFilter
             options={currentEmployees(people.data ?? [])}
             value={filters.employeeNo ?? ""}
@@ -432,12 +490,12 @@ export default function EventsPage() {
           <Button
             variant="outline"
             className="ms-auto"
-            disabled={syncing}
+            disabled={syncing || !selectedDeviceId}
             onClick={async () => {
               setSyncing(true);
               try {
-                const result = await attendanceApi.sync(filters);
-                await events.refresh();
+                const result = await attendanceApi.sync(deviceFilters);
+                await Promise.all([events.refresh(), people.refresh()]);
                 if (result.errors.length)
                   toast.warning(t("attendanceFilters.syncPartial"), {
                     description: result.errors

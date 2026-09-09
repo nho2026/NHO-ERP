@@ -1,3 +1,4 @@
+import { randomId } from "@/shared/lib/random-id";
 import { storedUser } from "@/features/auth/access";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,7 +33,7 @@ import {
 } from "@/shared/components/ui/table";
 type Line = { id: string; stockId: string; quantity: string };
 const newLine = (): Line => ({
-  id: crypto.randomUUID(),
+  id: randomId(),
   stockId: "",
   quantity: "1",
 });

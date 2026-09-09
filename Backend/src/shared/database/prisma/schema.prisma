@@ -170,6 +170,8 @@ model Employee {
   hireDate              DateTime
   checkInTime           String                 @default("09:00")
   checkOutTime          String                 @default("17:00")
+  scheduleType          String                 @default("static")
+  workSchedule          Json?
   status                String                 @default("active")
   position              Position?              @relation(fields: [positionId], references: [id], onDelete: SetNull, map: "Employee_positionId_fkey")
   department            Department?            @relation("DepartmentEmployees", fields: [departmentId], references: [id], onDelete: SetNull, map: "Employee_departmentId_fkey")

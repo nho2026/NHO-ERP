@@ -1,3 +1,4 @@
+import { randomId } from "@/shared/lib/random-id";
 import { PurchaseProductDialog } from "../components/purchase-product-dialog";
 import BuyHistoryPage from "./BuyHistoryPage";
 import {
@@ -51,7 +52,7 @@ const today = () => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 };
 const newLine = (): Line => ({
-  id: crypto.randomUUID(),
+  id: randomId(),
   productId: "",
   warehouseId: "",
   unit: "item",
@@ -106,7 +107,7 @@ function BuyProductForm({
   const [summaryOpen, setSummaryOpen] = useState(false);
   const purchaseProducts = [...(options.data?.products ?? []), ...createdProducts.filter((p) => !options.data?.products.some((existing) => existing.id === p.id))];
   const busy = useRef(false);
-  const requestId = useRef(crypto.randomUUID());
+  const requestId = useRef(randomId());
   const uploadedUrl = useRef<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   useEffect(
@@ -146,7 +147,7 @@ function BuyProductForm({
     setAttachment(null);
     setError("");
     uploadedUrl.current = null;
-    requestId.current = crypto.randomUUID();
+    requestId.current = randomId();
     if (fileInput.current) fileInput.current.value = "";
   };
   const submit = async (event: React.FormEvent) => {

@@ -211,8 +211,9 @@ export class HikvisionClient {
         result.text.match(/<(?:subStatusCode|statusString)>([^<]+)</)?.[1] ??
         result.text.slice(0, 240) ??
         "Unknown device error";
+      const field = responseStatus?.errorMsg;
       const error = new Error(
-        `Hikvision device rejected the request (${result.status}): ${detail}`,
+        `Hikvision device rejected the request (${result.status}): ${detail}${field && field !== detail ? ` (${field})` : ""}`,
       );
       error.status = 502;
       error.deviceStatus = responseStatus?.subStatusCode;
@@ -295,11 +296,18 @@ export class HikvisionClient {
           },
         },
       );
-      const page = result.UserInfoSearch?.UserInfo ?? [];
+      const search = result.UserInfoSearch;
+      if (!search)
+        throw new Error("The terminal returned invalid user search data.");
+      const page = search.UserInfo ?? [];
       users.push(...page);
       position += page.length;
-      const total = Number(result.UserInfoSearch?.totalMatches ?? users.length);
-      if (!page.length || position >= total) break;
+      const more =
+        search.responseStatusStrg === "MORE" ||
+        position < Number(search.totalMatches ?? position);
+      if (!more) break;
+      if (!page.length)
+        throw new Error("The terminal returned incomplete user search data.");
     }
     return users;
   }
@@ -567,7 +575,8 @@ export class HikvisionClient {
         error.status = 400;
         throw error;
       }
-      return date.toISOString().replace(/\.\d{3}Z$/, "Z");
+      // The terminal requires a numeric timezone offset rather than UTC's Z.
+      return date.toISOString().replace(/\.\d{3}Z$/, "+00:00");
     };
     return this.readRequest(
       "POST",

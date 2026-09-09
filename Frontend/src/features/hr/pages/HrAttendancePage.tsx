@@ -57,6 +57,8 @@ import {
   employeeLabel,
   lostMinutes,
   monthValue,
+  scheduleForDay,
+  scheduledMinutes,
 } from "./monthly-hr";
 
 const time = (value: unknown) =>
@@ -586,8 +588,9 @@ export default function HrAttendancePage() {
                     }).format(new Date(year, monthNumber - 1))}
                     {" · "}
                     {tx("schedule", "Schedule")}:{" "}
-                    {String(selected?.checkInTime ?? "09:00")}–
-                    {String(selected?.checkOutTime ?? "17:00")}
+                    {selected?.scheduleType === "dynamic"
+                      ? t("employeeSchedule.dynamic")
+                      : `${String(selected?.checkInTime ?? "09:00")}–${String(selected?.checkOutTime ?? "17:00")}`}
                   </span>
                 </span>
               </DialogTitle>
@@ -654,7 +657,8 @@ export default function HrAttendancePage() {
                           String(permission.toDate).slice(0, 10) &&
                           ` — ${String(permission.toDate).slice(0, 10)}`}
                         {canDeletePermission && (
-                          <button data-action="delete"
+                          <button
+                            data-action="delete"
                             type="button"
                             aria-label={t("common.delete")}
                             onClick={() => setDeletingPermission(permission)}
@@ -682,6 +686,9 @@ export default function HrAttendancePage() {
                 <div key={`empty-${i}`} />
               ))}
               {days.map((day) => {
+                const schedule = selected
+                  ? scheduleForDay(selected, day.getDay())
+                  : null;
                 const dateKey = `${month}-${String(day.getDate()).padStart(2, "0")}`;
                 const row = recordsFor(selected?.id ?? "").find(
                   (x) => String(x.attendanceDate).slice(0, 10) === dateKey,
@@ -699,6 +706,17 @@ export default function HrAttendancePage() {
                     key={dateKey}
                     className={`min-h-26 rounded-xl border p-2.5 transition-colors ${row ? "border-primary/20 bg-card shadow-sm" : "border-transparent bg-muted/35"}`}
                   >
+                    <p className="mb-1 text-[10px] text-muted-foreground">
+                      {schedule
+                        ? selected?.scheduleType === "dynamic"
+                          ? t("employeeSchedule.hours", {
+                              count: scheduledMinutes(schedule) / 60,
+                            })
+                          : `${String(schedule.checkInTime)}–${String(schedule.checkOutTime)}`
+                        : t("employeeSchedule.dayOff", {
+                            defaultValue: "Day off",
+                          })}
+                    </p>
                     <div className="mb-1.5 flex items-center justify-between gap-1">
                       <span
                         className={`grid size-7 place-items-center rounded-lg text-sm font-bold ${row ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}

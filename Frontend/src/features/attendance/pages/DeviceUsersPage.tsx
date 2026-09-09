@@ -7,10 +7,12 @@ import {
   LoaderCircle,
   Pencil,
   Plus,
+  RefreshCw,
   ScanFace,
   Trash2,
 } from "lucide-react";
 import { attendanceApi, type Person } from "../api/attendance.api";
+import { toast } from "sonner";
 import { hrApi } from "@/features/hr/api/hr.api";
 import { DeleteConfirmationDialog } from "../components/DeleteConfirmationDialog";
 import { useApiResource } from "@/shared/hooks/useApiResource";
@@ -19,6 +21,12 @@ import { TableResourceState } from "@/shared/components/ui/table-resource-state"
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -45,11 +53,22 @@ import {
 type Credential = "card" | "fingerprint" | "face" | "pin";
 
 export default function DeviceUsersPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const devices = useApiResource(
     useCallback(() => attendanceApi.devices(), []),
   );
-  const people = useApiResource(useCallback(() => attendanceApi.people(), []));
+  const [deviceFilter, setDeviceFilter] = useState("");
+  const selectedDeviceId = deviceFilter || devices.data?.[0]?.id || "";
+  const people = useApiResource(
+    useCallback(
+      () =>
+        selectedDeviceId
+          ? attendanceApi.people(selectedDeviceId)
+          : Promise.resolve([]),
+      [selectedDeviceId],
+    ),
+  );
+  const [syncing, setSyncing] = useState(false);
   const [employeeFilter, setEmployeeFilter] = useState("all");
   const [employeeSearch, setEmployeeSearch] = useState("");
   const filteredPeople = useMemo(() => {
@@ -208,6 +227,60 @@ export default function DeviceUsersPage() {
     <Card>
       <CardContent className="p-0">
         <div className="flex flex-wrap items-center gap-3 border-b p-4">
+          <Select
+            value={selectedDeviceId}
+            disabled={syncing || !devices.data?.length}
+            onValueChange={(value) => {
+              setDeviceFilter(value);
+              setEmployeeFilter("all");
+              setEmployeeSearch("");
+            }}
+          >
+            <SelectTrigger
+              className="w-full sm:w-64"
+              aria-label={t("table.headers.device")}
+            >
+              <SelectValue placeholder={t("deviceUsers.chooseDevice")} />
+            </SelectTrigger>
+            <SelectContent>
+              {(devices.data ?? []).map((device) => (
+                <SelectItem key={device.id} value={device.id}>
+                  {device.name} ({device.ipAddress})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            disabled={syncing || !selectedDeviceId}
+            onClick={async () => {
+              setSyncing(true);
+              try {
+                const result = await attendanceApi.syncPeople(selectedDeviceId);
+                await people.refresh();
+                if (result.errors.length) {
+                  toast.warning(t("attendanceFilters.syncPartial"), {
+                    description: result.errors
+                      .map((error) => `${error.deviceName}: ${error.message}`)
+                      .join(" · "),
+                  });
+                } else {
+                  toast.success(
+                    t("deviceUsers.syncComplete", { count: result.synced }),
+                  );
+                }
+              } catch (error) {
+                toast.error(t("attendanceFilters.syncFailed"), {
+                  description: apiErrorMessage(error),
+                });
+              } finally {
+                setSyncing(false);
+              }
+            }}
+          >
+            <RefreshCw className={syncing ? "size-4 animate-spin" : "size-4"} />
+            {t("attendanceFilters.sync")}
+          </Button>
           <Input
             className="w-full sm:w-72"
             value={employeeSearch}
@@ -244,6 +317,7 @@ export default function DeviceUsersPage() {
               setError("");
               if (value) {
                 const selectedDevice =
+                  selectedDeviceId ||
                   deviceId ||
                   (devices.data?.length === 1 ? devices.data[0].id : "");
                 if (selectedDevice) {
@@ -256,7 +330,10 @@ export default function DeviceUsersPage() {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="ms-auto gap-2">
+              <Button
+                className="ms-auto gap-2"
+                disabled={!selectedDeviceId || people.isLoading}
+              >
                 <Plus className="size-4" />
                 {t("deviceUsers.add")}
               </Button>
@@ -268,6 +345,7 @@ export default function DeviceUsersPage() {
               <form className="space-y-3" onSubmit={submit}>
                 <Select
                   value={deviceId}
+                  disabled
                   onValueChange={(value) => {
                     setDeviceId(value);
                     setEmployeeNo(nextEmployeeNo(value));
@@ -403,46 +481,54 @@ export default function DeviceUsersPage() {
                           Icon: KeyRound,
                         },
                       ].map(({ method, active, Icon }) => (
-                        <div
-                          key={method}
-                          className="inline-flex items-center gap-2"
-                        >
-                          <Button
-                            title={t(
-                              `attendancePage.credentials.${method}.set`,
-                            )}
-                            variant={active ? "secondary" : "ghost"}
-                            size="icon"
-                            className="border-0 shadow-none"
-                            onClick={() => startCredential(p, method)}
-                          >
-                            <Icon className="size-4" />
-                          </Button>
-                          {active && (
-                            <Button data-action="delete"
-                              title={t("attendancePage.removeCredential", {
-                                credential: t(
-                                  `attendancePage.credentials.${method}.label`,
-                                ),
-                              })}
-                              variant="ghost"
+                        <DropdownMenu key={method} dir={i18n.dir()}>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              title={t(
+                                `attendancePage.credentials.${method}.label`,
+                              )}
+                              aria-label={`${p.name}: ${t(
+                                `attendancePage.credentials.${method}.label`,
+                              )} — ${t("table.actions")}`}
+                              variant={active ? "secondary" : "ghost"}
                               size="icon"
-                              className="size-9 text-destructive shadow-none hover:bg-destructive/10 hover:text-destructive"
-                              onClick={() => {
-                                setRemoveError("");
-                                setRemovingCredential({ person: p, method });
-                              }}
+                              className={`border-0 shadow-none ${active ? "bg-primary/25 text-primary hover:bg-primary/35 data-[state=open]:bg-primary/35" : ""}`}
                             >
-                              <Trash2 className="size-3.5" />
+                              <Icon className="size-4" />
                             </Button>
-                          )}
-                        </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            <DropdownMenuItem
+                              onSelect={() => startCredential(p, method)}
+                            >
+                              <Icon className="size-4" />
+                              {t(`attendancePage.credentials.${method}.set`)}
+                            </DropdownMenuItem>
+                            {active && (
+                              <DropdownMenuItem
+                                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                onSelect={() => {
+                                  setRemoveError("");
+                                  setRemovingCredential({ person: p, method });
+                                }}
+                              >
+                                <Trash2 className="size-3.5" />
+                                {t("attendancePage.removeCredential", {
+                                  credential: t(
+                                    `attendancePage.credentials.${method}.label`,
+                                  ),
+                                })}
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       ))}
                     </div>
                   </TableCell>
                   <TableCell className="text-end">
                     <div className="flex flex-wrap items-center gap-2 justify-end">
-                      <Button data-action="edit"
+                      <Button
+                        data-action="edit"
                         title={t("deviceUsers.edit")}
                         variant="ghost"
                         size="icon"
@@ -453,7 +539,8 @@ export default function DeviceUsersPage() {
                       >
                         <Pencil className="size-4" />
                       </Button>
-                      <Button data-action="delete"
+                      <Button
+                        data-action="delete"
                         variant="ghost"
                         size="icon"
                         className="text-destructive"

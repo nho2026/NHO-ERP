@@ -31,7 +31,7 @@ export const departmentOrderUpdate = z
   .object({
     status: departmentOrderStatus,
     reason: z.string().trim().max(5000).default(""),
-    price: z.number().finite().min(0).max(100000000).nullable(),
+    price: z.number().finite().min(0).max(100000000).nullable().optional(),
   })
   .refine(
     (input) => input.status !== "rejected" || !!input.reason,

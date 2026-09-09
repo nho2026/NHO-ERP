@@ -50,7 +50,12 @@ type Order = {
   price: string | null;
   reason: string;
   phone: string | null;
-  items: { name: string; quantity: number; warehouseName?: string }[];
+  items: {
+    name: string;
+    quantity: number;
+    warehouseName?: string;
+    sellingPrice?: string;
+  }[];
 };
 const columns = [
   "departmentName",
@@ -89,7 +94,6 @@ export default function DepartmentOrdersPage() {
   );
   const [nextStatus, setNextStatus] = useState("pending");
   const [reason, setReason] = useState("");
-  const [price, setPrice] = useState("");
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -162,7 +166,6 @@ export default function DepartmentOrdersPage() {
     setMode(nextMode);
     setNextStatus(row.status);
     setReason(row.reason || "");
-    setPrice(row.price ?? "");
     setComment("");
     setError("");
   };
@@ -199,7 +202,6 @@ export default function DepartmentOrdersPage() {
           {
             status: nextStatus,
             reason,
-            price: price === "" ? null : Number(price),
           },
         );
         setSelected(response.data);
@@ -494,6 +496,9 @@ export default function DepartmentOrdersPage() {
                     <TableRow>
                       <TableHead>{t("orderForm.product")}</TableHead>
                       <TableHead>{t("orderForm.quantity")}</TableHead>
+                      <TableHead>
+                        {t("inventory.fields.sellingPrice")}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody autoPaginate={false}>
@@ -506,6 +511,9 @@ export default function DepartmentOrdersPage() {
                           </p>
                         </TableCell>
                         <TableCell>{item.quantity}</TableCell>
+                        <TableCell>
+                          {money(item.sellingPrice ?? null)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -547,9 +555,8 @@ export default function DepartmentOrdersPage() {
                     min="0"
                     max="100000000"
                     step="0.01"
-                    disabled={busy || !canManage}
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
+                    readOnly
+                    value={selected.price ?? ""}
                   />
                   <Label htmlFor="department-reason">
                     {t("departmentOrders.reason")}

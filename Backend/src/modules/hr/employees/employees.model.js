@@ -39,6 +39,19 @@ const employeeData = (input, updating = false) => {
   };
 };
 
+const validateSchedule = (data) => {
+  if (data.scheduleType === "dynamic" && !data.workSchedule?.length)
+    throw Object.assign(
+      new Error("Select at least one working day for a dynamic schedule."),
+      { status: 422 },
+    );
+  if (data.checkInTime === data.checkOutTime && data.scheduleType !== "dynamic")
+    throw Object.assign(
+      new Error("Check-in and check-out must be different."),
+      { status: 422 },
+    );
+};
+
 const validateLeadership = async (id, input) => {
   if (!input.teamLeaderId) return;
   if (input.teamLeaderId === id)
@@ -77,7 +90,12 @@ export const employeeModel = {
     }),
   create: async (data) => {
     const settings = await getSettings("hr");
-    data = { ...data, checkInTime: data.checkInTime ?? settings.startTime, checkOutTime: data.checkOutTime ?? settings.endTime };
+    data = {
+      ...data,
+      checkInTime: data.checkInTime ?? settings.startTime,
+      checkOutTime: data.checkOutTime ?? settings.endTime,
+    };
+    validateSchedule(data);
     await validateLeadership(null, data);
     return prisma.employee.create({
       data: employeeData(data),
@@ -85,6 +103,8 @@ export const employeeModel = {
     });
   },
   update: async (id, data) => {
+    const current = await prisma.employee.findUniqueOrThrow({ where: { id } });
+    validateSchedule({ ...current, ...data });
     await validateLeadership(id, data);
     if (data.isTeamLeader === false) {
       const members = await prisma.employee.count({

@@ -1,3 +1,4 @@
+import { randomId } from "@/shared/lib/random-id";
 import OrderHistoryPage from "./OrderHistoryPage";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import {
@@ -47,7 +48,7 @@ type Line = {
   imageUrl: string;
 };
 const newLine = (): Line => ({
-  id: crypto.randomUUID(),
+  id: randomId(),
   isNew: false,
   productId: "",
   name: "",
@@ -92,7 +93,7 @@ function OrderForm({
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
-  const requestId = useRef(crypto.randomUUID());
+  const requestId = useRef(randomId());
   const canSubmit = hasPermission(storedUser(), "inventory.manage");
   const money = (v: number) =>
     new Intl.NumberFormat(i18n.language, {
@@ -396,7 +397,7 @@ function OrderForm({
                 setLines([]);
                 setSaved(false);
                 setError("");
-                requestId.current = crypto.randomUUID();
+                requestId.current = randomId();
               }}
             >
               {t("orderForm.another")}

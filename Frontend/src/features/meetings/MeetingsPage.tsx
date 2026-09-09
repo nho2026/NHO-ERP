@@ -1,3 +1,4 @@
+import { randomId } from "@/shared/lib/random-id";
 import {
   loadSettings,
   useSettings,
@@ -822,7 +823,7 @@ export default function MeetingsPage() {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024)
       return toast.error(t("liveMeetings.errors.fileSize"));
-    const id = crypto.randomUUID();
+    const id = randomId();
     const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = () => reject(reader.error);

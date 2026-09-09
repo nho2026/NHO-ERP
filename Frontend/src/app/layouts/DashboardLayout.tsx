@@ -899,7 +899,7 @@ export default function DashboardLayout() {
             className={`flex h-[87px] items-center gap-3 border-b border-primary/15 px-1 ${collapsed ? "lg:justify-center" : ""}`}
           >
             <span
-              className={`grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl border border-primary/15 bg-white shadow-[0_4px_14px_-8px_rgba(7,89,154,.65)] ${collapsed ? "lg:border-primary/20 lg:bg-primary lg:text-primary-foreground" : ""}`}
+              className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl border border-primary/20"
             >
               {collapsed ? (
                 <>

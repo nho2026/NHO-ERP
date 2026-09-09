@@ -19,7 +19,11 @@ export const inMonth = (value: unknown, month: string) =>
 export const lostMinutes = (record: HrRecord, permissions: HrRecord[] = []) => {
   const date = String(record.attendanceDate).slice(0, 10);
   const day = new Date(`${date}T12:00:00`).getDay();
-  if (settingsSnapshot()?.hr.weekends.includes(day)) return 0;
+  if (
+    record.isWorkingDay === false ||
+    (!record.hasWorkSchedule && settingsSnapshot()?.hr.weekends.includes(day))
+  )
+    return 0;
   const approved = permissions.filter(
     (permission) =>
       permission.employeeId === record.employeeId &&
@@ -33,17 +37,19 @@ export const lostMinutes = (record: HrRecord, permissions: HrRecord[] = []) => {
   let lost =
     record.status === "absent"
       ? Number(record.expectedMinutes ?? TARGET_MINUTES)
-      : record.source === "device"
-        ? Math.min(
-            Number(record.expectedMinutes ?? TARGET_MINUTES),
-            Number(record.lateMinutes ?? 0) +
-              Number(record.earlyLeaveMinutes ?? 0),
-          )
-        : Math.max(
-            0,
-            Number(record.expectedMinutes ?? TARGET_MINUTES) -
-              Number(record.workedMinutes ?? 0),
-          );
+      : record.flexibleSchedule
+        ? Number(record.missingMinutes ?? 0)
+        : record.source === "device"
+          ? Math.min(
+              Number(record.expectedMinutes ?? TARGET_MINUTES),
+              Number(record.lateMinutes ?? 0) +
+                Number(record.earlyLeaveMinutes ?? 0),
+            )
+          : Math.max(
+              0,
+              Number(record.expectedMinutes ?? TARGET_MINUTES) -
+                Number(record.workedMinutes ?? 0),
+            );
   const permitted = approved
     .filter((permission) => permission.permissionType === "hours")
     .reduce(
@@ -54,7 +60,38 @@ export const lostMinutes = (record: HrRecord, permissions: HrRecord[] = []) => {
   return lost;
 };
 
-export const scheduledMinutes = (employee: HrRecord) => {
+export const scheduleForDay = (employee: HrRecord, day: number) => {
+  if (!Array.isArray(employee.workSchedule)) return employee;
+  const entry = (
+    employee.workSchedule as {
+      day: number;
+      checkInTime: string;
+      checkOutTime: string;
+    }[]
+  ).find((item) => item.day === day);
+  if (!entry) return null;
+  return employee.scheduleType === "dynamic"
+    ? { ...employee, ...entry, workSchedule: undefined }
+    : employee;
+};
+
+export const scheduledMinutes = (employee: HrRecord): number => {
+  if (employee.scheduleType === "dynamic" && typeof employee.hours === "number")
+    return Math.round(employee.hours * 60);
+  if (
+    employee.scheduleType === "dynamic" &&
+    Array.isArray(employee.workSchedule) &&
+    employee.workSchedule.length
+  ) {
+    return (
+      employee.workSchedule.reduce(
+        (sum: number, day: Record<string, unknown>) =>
+          sum +
+          scheduledMinutes({ ...employee, ...day, workSchedule: undefined }),
+        0,
+      ) / employee.workSchedule.length
+    );
+  }
   const [startHour, startMinute] = String(employee.checkInTime ?? "09:00")
     .split(":")
     .map(Number);
@@ -162,7 +199,7 @@ export const deviceAttendanceRecords = (
     const checkOut = ordered
       .filter((event) => event.eventType === "check_out")
       .at(-1)?.occurredAt;
-    const workedMinutes =
+    let workedMinutes =
       checkIn && checkOut
         ? Math.max(
             0,
@@ -173,10 +210,25 @@ export const deviceAttendanceRecords = (
           )
         : 0;
     const employee = employeeById.get(employeeId);
-    const expectedMinutes = scheduledMinutes(
-      employee ?? ({ id: employeeId } as HrRecord),
-    );
+    if (employee?.scheduleType === "dynamic") {
+      let opened: number | null = null;
+      let elapsed = 0;
+      for (const event of ordered) {
+        const at = new Date(event.occurredAt).getTime();
+        if (event.eventType === "check_in" && opened === null) opened = at;
+        if (event.eventType === "check_out" && opened !== null) {
+          elapsed += Math.max(0, at - opened);
+          opened = null;
+        }
+      }
+      workedMinutes = Math.round(elapsed / 60000);
+    }
     const [recordYear, recordMonth, recordDay] = date.split("-").map(Number);
+    const daySchedule = scheduleForDay(
+      employee ?? ({ id: employeeId } as HrRecord),
+      new Date(recordYear, recordMonth - 1, recordDay).getDay(),
+    );
+    const expectedMinutes = daySchedule ? scheduledMinutes(daySchedule) : 0;
     const expectedAt = (value: unknown) => {
       const [hour, minute] = String(value).split(":").map(Number);
       return new Date(
@@ -187,22 +239,33 @@ export const deviceAttendanceRecords = (
         minute,
       ).getTime();
     };
-    const expectedCheckIn = expectedAt(employee?.checkInTime ?? "09:00");
-    let expectedCheckOut = expectedAt(employee?.checkOutTime ?? "17:00");
+    const expectedCheckIn = expectedAt(daySchedule?.checkInTime ?? "09:00");
+    let expectedCheckOut = expectedAt(daySchedule?.checkOutTime ?? "17:00");
     if (expectedCheckOut <= expectedCheckIn) expectedCheckOut += 86400000;
-    const lateMinutes = checkIn
-      ? Math.max(
-          0,
-          Math.round((new Date(checkIn).getTime() - expectedCheckIn) / 60000) -
-            (settingsSnapshot()?.hr.graceMinutes ?? 0),
-        )
-      : expectedMinutes;
-    const earlyLeaveMinutes = checkOut
-      ? Math.max(
-          0,
-          Math.round((expectedCheckOut - new Date(checkOut).getTime()) / 60000),
-        )
-      : expectedMinutes;
+    const flexible = employee?.scheduleType === "dynamic";
+    const lateMinutes =
+      !daySchedule || flexible
+        ? 0
+        : checkIn
+          ? Math.max(
+              0,
+              Math.round(
+                (new Date(checkIn).getTime() - expectedCheckIn) / 60000,
+              ) - (settingsSnapshot()?.hr.graceMinutes ?? 0),
+            )
+          : expectedMinutes;
+    const earlyLeaveMinutes = flexible
+      ? 0
+      : !daySchedule
+        ? 0
+        : checkOut
+          ? Math.max(
+              0,
+              Math.round(
+                (expectedCheckOut - new Date(checkOut).getTime()) / 60000,
+              ),
+            )
+          : expectedMinutes;
     return {
       id: `device:${employeeId}:${date}`,
       employeeId,
@@ -211,8 +274,15 @@ export const deviceAttendanceRecords = (
       checkOut: checkOut ?? null,
       workedMinutes,
       expectedMinutes,
+      hasWorkSchedule: Array.isArray(employee?.workSchedule),
+      isWorkingDay: !!daySchedule,
       lateMinutes,
       earlyLeaveMinutes,
+      flexibleSchedule: flexible,
+      missingMinutes:
+        flexible && checkIn && checkOut
+          ? Math.max(0, expectedMinutes - workedMinutes)
+          : 0,
       status: "present",
       source: "device",
     } satisfies HrRecord;

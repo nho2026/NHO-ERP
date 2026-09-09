@@ -5,12 +5,22 @@ import { peopleModel as model } from "./people.model.js";
 const fail = (m, s) => {
   throw Object.assign(new Error(m), { status: s });
 };
-const syncDevice = async (d) => {
+const syncDevice = async (d, errors) => {
   let count = 0;
   const api = new HikvisionClient(d);
   const users = await api.allUsers();
   const cards = new Map();
-  for (const card of await api.allCards()) {
+  let cardsAvailable = true;
+  const deviceCards = await api.allCards().catch((error) => {
+    cardsAvailable = false;
+    errors.push({
+      deviceId: d.id,
+      deviceName: d.name,
+      message: `Users imported without card updates: ${error.message}`,
+    });
+    return [];
+  });
+  for (const card of deviceCards) {
     const employeeNo = String(card.employeeNo ?? "");
     if (employeeNo && card.cardNo != null && !cards.has(employeeNo))
       cards.set(employeeNo, String(card.cardNo));
@@ -24,7 +34,7 @@ const syncDevice = async (d) => {
       // Never erase an explicit ERP employee link when the terminal number
       // does not happen to equal the ERP employee code.
       employeeId: matchedEmployeeId ?? undefined,
-      cardNo: cards.get(employeeNo) ?? null,
+      cardNo: cardsAvailable ? (cards.get(employeeNo) ?? null) : undefined,
       hasFingerprint:
         user.numOfFP == null ? undefined : Number(user.numOfFP) > 0,
       hasFace: user.numOfFace == null ? undefined : Number(user.numOfFace) > 0,
@@ -46,13 +56,6 @@ const admin = async (user, password) => {
 };
 export const peopleService = {
   async list(deviceId) {
-    for (const d of await model.devices(deviceId)) {
-      try {
-        await syncDevice(d);
-      } catch {
-        await model.deviceStatus(d.id, { status: "offline" }).catch(() => {});
-      }
-    }
     return model.findAll(deviceId);
   },
   async sync(deviceId) {
@@ -60,7 +63,7 @@ export const peopleService = {
     const errors = [];
     for (const d of await model.devices(deviceId)) {
       try {
-        synced += await syncDevice(d);
+        synced += await syncDevice(d, errors);
       } catch (error) {
         errors.push({
           deviceId: d.id,

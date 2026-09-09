@@ -1,3 +1,4 @@
+import { randomId } from "@/shared/lib/random-id";
 import { Card } from "@/shared/components/ui/card";
 import {
   Select,
@@ -382,7 +383,7 @@ export default function BuyDebtsPage() {
                               setAmount(balance(row).toFixed(2));
                               setNote("");
                               setError("");
-                              paymentId.current = crypto.randomUUID();
+                              paymentId.current = randomId();
                             }}
                           >
                             {t("buyDebts.pay")}

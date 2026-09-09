@@ -1,3 +1,4 @@
+import { randomId } from "@/shared/lib/random-id";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,7 @@ type Variant = {
   productionCompany: string;
 };
 const newVariant = (): Variant => ({
-  id: crypto.randomUUID(),
+  id: randomId(),
   code: "",
   barcode: "",
   productionCompany: "",

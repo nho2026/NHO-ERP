@@ -1,3 +1,4 @@
+import { randomId } from "@/shared/lib/random-id";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +39,7 @@ type Line = {
   quantity: string;
 };
 const emptyLine = (): Line => ({
-  id: crypto.randomUUID(),
+  id: randomId(),
   productId: "",
   fromWarehouseId: "",
   quantity: "",

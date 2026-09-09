@@ -43,6 +43,7 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import logo from "@/assets/icons/logo.png";
+import { EmployeeScheduleFields } from "../components/EmployeeScheduleFields";
 
 type Resource = keyof typeof hrApi;
 type Field = {
@@ -100,6 +101,7 @@ const configs: Record<
       ["leadership", "Team leader"],
       ["teamLeader", "Reports to"],
       ["hireDate", "Hire date"],
+      ["workSchedule", "Working days"],
       ["checkInTime", "Expected check-in"],
       ["checkOutTime", "Expected check-out"],
       ["status", "Status"],
@@ -327,6 +329,34 @@ const employeeName = (record: HrRecord) => {
   return employee ? `${employee.firstName} ${employee.lastName}` : "—";
 };
 function display(record: HrRecord, key: string): string | number {
+  if (key === "workSchedule" && Array.isArray(record.workSchedule)) {
+    return (record.workSchedule as { day: number }[])
+      .map(({ day }) =>
+        new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(
+          new Date(2026, 0, 4 + day),
+        ),
+      )
+      .join(", ");
+  }
+  if (
+    ["checkInTime", "checkOutTime"].includes(key) &&
+    record.scheduleType === "dynamic" &&
+    Array.isArray(record.workSchedule)
+  ) {
+    return (
+      record.workSchedule as {
+        day: number;
+        hours?: number;
+        checkInTime: string;
+        checkOutTime: string;
+      }[]
+    )
+      .map(
+        (day) =>
+          `${new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(new Date(2026, 0, 4 + day.day))}: ${day.hours != null ? `${day.hours} h` : key === "checkInTime" ? day.checkInTime : day.checkOutTime}`,
+      )
+      .join(" · ");
+  }
   if (key === "fullName") return `${record.firstName} ${record.lastName}`;
   if (key === "employee") return employeeName(record);
   if (key === "position")
@@ -461,7 +491,12 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                     s.id,
                     `${employeeName(s)} — ${s.baseSalary} ${s.currencyId}`,
                   ])
-                : field.options?.map((v) => [v, v]);
+                : field.options?.map((v) => [
+                    v,
+                    field.type === "boolean"
+                      ? v.charAt(0).toUpperCase() + v.slice(1)
+                      : v,
+                  ]);
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy(true);
@@ -483,6 +518,12 @@ export default function HrPage({ resource }: { resource?: Resource }) {
             : raw;
     }
     try {
+      if (tab === "employees") {
+        data.scheduleType = form.get("scheduleType");
+        data.workSchedule = JSON.parse(
+          String(form.get("workSchedule") ?? "[]"),
+        );
+      }
       if (editing) await hrApi[tab].update(editing.id, data);
       else await hrApi[tab].create(data);
       setEditing(undefined);
@@ -691,7 +732,8 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                                     <Gift className="size-4 text-amber-600" />
                                   </Button>
                                 )}
-                                <Button data-action="edit"
+                                <Button
+                                  data-action="edit"
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => {
@@ -712,7 +754,8 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                                     }
                                   }}
                                 >
-                                  <Button data-action="delete"
+                                  <Button
+                                    data-action="delete"
                                     variant="ghost"
                                     size="icon"
                                     className="text-destructive"
@@ -738,101 +781,130 @@ export default function HrPage({ resource }: { resource?: Resource }) {
           if (!open && !busy) setEditing(undefined);
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent
+          className={`flex max-h-[90dvh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 ${tab === "employees" ? "max-w-5xl" : "max-w-lg"}`}
+        >
+          <DialogHeader className="shrink-0 border-b px-6 py-5 pe-14">
             <DialogTitle>
               {editing ? t("hr.editRecord") : t("hr.addRecord")} ·{" "}
               {tr(configs[tab].title)}
             </DialogTitle>
           </DialogHeader>
-          <form className="grid gap-3 sm:grid-cols-2" onSubmit={submit}>
-            {configs[tab].fields.map((field) => {
-              const choices = options(field);
-              const initial = editing?.[field.name];
-              return (
-                <label
-                  key={`${editing?.id ?? "new"}-${field.name}`}
-                  className={`space-y-1 text-xs font-medium ${field.type === "textarea" || (tab === "adjustments" && field.name === "amount") ? "sm:col-span-2" : ""}`}
-                >
-                  <span>{tr(field.label)}</span>
-                  {choices ? (
-                    <Select
-                      name={field.name}
-                      defaultValue={
-                        initial != null
-                          ? String(initial)
-                          : field.required
-                            ? undefined
-                            : "__none__"
-                      }
-                      required={field.required}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue
-                          placeholder={t("hr.selectField", {
-                            field: tr(field.label),
-                          })}
-                        />
-                      </SelectTrigger>
-                      <SelectContent className="z-10000">
-                        {!field.required && (
-                          <SelectItem value="__none__">
-                            {t("hr.none")}
-                          </SelectItem>
+          <form
+            className="flex min-h-0 flex-col overflow-hidden"
+            onSubmit={submit}
+          >
+            <div
+              className={`grid min-h-0 gap-4 overflow-y-auto overscroll-contain p-6 sm:grid-cols-2 ${tab === "employees" ? "lg:grid-cols-3" : ""}`}
+            >
+              {configs[tab].fields.map((field) => {
+                if (
+                  tab === "employees" &&
+                  ["checkInTime", "checkOutTime"].includes(field.name)
+                )
+                  return null;
+                const choices = options(field);
+                const initial = editing?.[field.name];
+                return (
+                  <label
+                    key={`${editing?.id ?? "new"}-${field.name}`}
+                    className={`min-w-0 space-y-1 text-xs font-medium ${field.type === "textarea" || (tab === "adjustments" && field.name === "amount") ? "sm:col-span-2" : ""}`}
+                  >
+                    <span>{tr(field.label)}</span>
+                    {choices ? (
+                      <Select
+                        name={field.name}
+                        defaultValue={
+                          initial != null
+                            ? String(initial)
+                            : field.required
+                              ? undefined
+                              : "__none__"
+                        }
+                        required={field.required}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue
+                            placeholder={t("hr.selectField", {
+                              field: tr(field.label),
+                            })}
+                          />
+                        </SelectTrigger>
+                        <SelectContent className="z-10000">
+                          {!field.required && (
+                            <SelectItem value="__none__">
+                              {t("hr.none")}
+                            </SelectItem>
+                          )}
+                          {choices.map(([value, label]) => (
+                            <SelectItem
+                              key={String(value)}
+                              value={String(value)}
+                            >
+                              {field.options
+                                ? tr(String(label))
+                                : String(label)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : field.type === "textarea" ? (
+                      <textarea
+                        name={field.name}
+                        defaultValue={String(initial ?? "")}
+                        required={field.required}
+                        rows={4}
+                        className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      />
+                    ) : field.type === "date" ||
+                      field.type === "datetime-local" ? (
+                      <FormDatePicker
+                        name={field.name}
+                        initialValue={
+                          field.type === "date"
+                            ? dateValue(initial)
+                            : dateValue(initial, true)
+                        }
+                        includeTime={field.type === "datetime-local"}
+                        required={field.required}
+                      />
+                    ) : (
+                      <Input
+                        name={field.name}
+                        type={field.type ?? "text"}
+                        step={field.type === "number" ? "0.01" : undefined}
+                        min={field.type === "number" ? 0 : undefined}
+                        defaultValue={String(
+                          initial ??
+                            (field.name === "checkInTime"
+                              ? (settingsSnapshot()?.hr.startTime ?? "09:00")
+                              : field.name === "checkOutTime"
+                                ? (settingsSnapshot()?.hr.endTime ?? "17:00")
+                                : ""),
                         )}
-                        {choices.map(([value, label]) => (
-                          <SelectItem key={String(value)} value={String(value)}>
-                            {field.options ? tr(String(label)) : String(label)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : field.type === "textarea" ? (
-                    <textarea
-                      name={field.name}
-                      defaultValue={String(initial ?? "")}
-                      required={field.required}
-                      rows={4}
-                      className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                    />
-                  ) : field.type === "date" ||
-                    field.type === "datetime-local" ? (
-                    <FormDatePicker
-                      name={field.name}
-                      initialValue={
-                        field.type === "date"
-                          ? dateValue(initial)
-                          : dateValue(initial, true)
-                      }
-                      includeTime={field.type === "datetime-local"}
-                      required={field.required}
-                    />
-                  ) : (
-                    <Input
-                      name={field.name}
-                      type={field.type ?? "text"}
-                      step={field.type === "number" ? "0.01" : undefined}
-                      min={field.type === "number" ? 0 : undefined}
-                      defaultValue={String(
-                        initial ??
-                          (field.name === "checkInTime"
-                            ? (settingsSnapshot()?.hr.startTime ?? "09:00")
-                            : field.name === "checkOutTime"
-                              ? (settingsSnapshot()?.hr.endTime ?? "17:00")
-                              : ""),
-                      )}
-                      required={field.required}
-                    />
-                  )}
-                </label>
-              );
-            })}
-            {error && (
-              <p className="sm:col-span-2 text-sm text-destructive">{error}</p>
-            )}
-            <Button disabled={busy} className="sm:col-span-2">
-              {busy ? t("hr.saving") : t("hr.save")}
-            </Button>
+                        required={field.required}
+                      />
+                    )}
+                  </label>
+                );
+              })}
+              {tab === "employees" && (
+                <EmployeeScheduleFields
+                  key={editing?.id ?? "new"}
+                  employee={editing}
+                />
+              )}
+              {error && (
+                <p className="col-span-full text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+            </div>
+            <div className="flex shrink-0 justify-end border-t bg-background px-6 py-4">
+              <Button disabled={busy} className="w-full sm:w-auto sm:min-w-32">
+                {busy ? t("hr.saving") : t("hr.save")}
+              </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
