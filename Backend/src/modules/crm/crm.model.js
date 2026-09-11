@@ -1,3 +1,6 @@
+import { bookWithProgress } from "./patient/book-with-progress.js";
+import { createWithCode, withoutCode } from "../../shared/database/automatic-code.js";
+import { createPatient } from "./patient/patient-code.js";
 import { prisma } from "../../shared/database/client.js";
 
 const models = {
@@ -30,7 +33,7 @@ export const crmModel = {
     const [patients, doctors, surgeries, surgeryAppointments] =
       await Promise.all([
         prisma.patient.findMany({
-          where: { status: "active" },
+          where: { status: { not: "inactive" } },
           orderBy: { firstName: "asc" },
         }),
         prisma.healthStaff.findMany({
@@ -61,8 +64,11 @@ export const crmModel = {
       delegate(resource).count(),
     ]),
   create: (resource, data) =>
-    delegate(resource).create({ data, ...includeFor(resource) }),
-  update: (resource, id, data) =>
-    delegate(resource).update({ where: { id }, data, ...includeFor(resource) }),
+    resource === "surgery-appointments" ? bookWithProgress(prisma, data.patientId, "surgery_appointment", tx => tx.surgeryAppointment.create({ data, ...includeFor(resource) })) : resource === "patients" ? createPatient(prisma, data) : resource === "surgeries" ? createWithCode(prisma.surgery, { data }, "SUR") : delegate(resource).create({ data, ...includeFor(resource) }),
+  update: (resource, id, data) => {
+    const changes = resource === "surgeries" ? withoutCode(data) : { ...data };
+    if (resource === "patients") delete changes.patientCode;
+    return delegate(resource).update({ where: { id }, data: changes, ...includeFor(resource) });
+  },
   delete: (resource, id) => delegate(resource).delete({ where: { id } }),
 };

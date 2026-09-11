@@ -1,3 +1,4 @@
+import { createWithCode, withoutCode } from "../../../shared/database/automatic-code.js";
 import { defaults } from "../../settings/settings.schema.js";
 import { prisma } from "../../../shared/database/client.js";
 const invoiceInclude = {
@@ -11,9 +12,9 @@ export const billingModel = {
       include: { _count: { select: { invoices: true } } },
       orderBy: { name: "asc" },
     }),
-  createCustomer: (data) => prisma.billingCustomer.create({ data }),
+  createCustomer: (data) => createWithCode(prisma.billingCustomer, { data }, "CUS"),
   updateCustomer: (id, data) =>
-    prisma.billingCustomer.update({ where: { id }, data }),
+    prisma.billingCustomer.update({ where: { id }, data: withoutCode(data) }),
   deleteCustomer: (id) => prisma.billingCustomer.delete({ where: { id } }),
   listInvoices: (status) =>
     prisma.billingInvoice.findMany({

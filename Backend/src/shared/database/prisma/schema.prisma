@@ -383,6 +383,7 @@ model TaskComment {
 }
 
 model Department {
+  type String @default("office")
   inventoryOrders InventoryDepartmentOrder[]
   id              String           @id @default(cuid())
   code            String           @unique(map: "Department_code_key")
@@ -464,6 +465,7 @@ model CrmLead {
   code                String?                @unique(map: "CrmLead_code_key")
   name                String
   phone               String
+  whatsappPhone       String?                @unique(map: "CrmLead_whatsappPhone_key")
   secondaryPhone      String?
   age                 Int?
   dateOfBirth         DateTime?
@@ -497,12 +499,46 @@ model CrmLead {
   notifications       Notification[]
   statusHistory       CrmLeadStatusHistory[]
   attachments         CrmLeadAttachment[]
+  whatsappConversations CrmWhatsappConversation[]
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
 
   @@index([status, createdAt], map: "CrmLead_status_createdAt_idx")
   @@index([phone], map: "CrmLead_phone_idx")
   @@map("crm_CrmLead")
+}
+
+model CrmWhatsappConversation {
+  id            String               @id @default(cuid())
+  phone         String               @unique(map: "CrmWhatsappConversation_phone_key")
+  profileName   String?
+  leadId        String?
+  lead          CrmLead?             @relation(fields: [leadId], references: [id], onDelete: SetNull, map: "CrmWhatsappConversation_leadId_fkey")
+  messages      CrmWhatsappMessage[]
+  lastMessageAt DateTime             @default(now())
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([lastMessageAt], map: "CrmWhatsappConversation_lastMessageAt_idx")
+  @@index([leadId], map: "CrmWhatsappConversation_leadId_idx")
+  @@map("crm_WhatsappConversation")
+}
+
+model CrmWhatsappMessage {
+  id             String                  @id @default(cuid())
+  externalId     String?                 @unique(map: "CrmWhatsappMessage_externalId_key")
+  conversationId String
+  conversation   CrmWhatsappConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade, map: "CrmWhatsappMessage_conversationId_fkey")
+  direction      String
+  messageType    String                  @default("text")
+  body           String?                 @db.Text
+  status         String                  @default("received")
+  sentAt         DateTime                @default(now())
+  rawPayload     Json?
+  createdAt      DateTime                @default(now())
+
+  @@index([conversationId, sentAt], map: "CrmWhatsappMessage_conversationId_sentAt_idx")
+  @@map("crm_WhatsappMessage")
 }
 
 model CrmLeadAttachment {
@@ -1086,6 +1122,11 @@ model ProductBrand {
 }
 
 model InventoryProduct {
+  doseMgKgDay Float?
+  dosesPerDay Float?
+  concentrationMg Float?
+  concentrationMl Float?
+
   expiryDate DateTime? @db.Date
   isSpecial Boolean @default(false)
   size String?
@@ -1445,3 +1486,12 @@ model PatientPrescription {
  @@index([prescriberId])
  @@map("healthcare_PatientPrescription")
 }
+
+model LoginAttempt {
+  id String @id @db.VarChar(64)
+  attempts Int @default(0)
+  expiresAt DateTime @db.DateTime(3)
+  @@index([expiresAt], map: "auth_LoginAttempt_expiresAt_idx")
+  @@map("auth_LoginAttempt")
+}
+

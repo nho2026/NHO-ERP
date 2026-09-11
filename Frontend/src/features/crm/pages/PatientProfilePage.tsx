@@ -1,5 +1,4 @@
-import PrescriptionWorkspace from "../components/PrescriptionWorkspace";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
@@ -21,6 +20,7 @@ import {
   History,
   Pill,
 } from "lucide-react";
+import { apiErrorMessage } from "@/shared/api/client";
 import { toast } from "sonner";
 import {
   crmApi,
@@ -92,6 +92,8 @@ export default function PatientProfilePage({
   );
   const [showDetails, setShowDetails] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const profileSaveLock = useRef(false);
   const [isMarried, setIsMarried] = useState(false);
   const [hasDiabetes, setHasDiabetes] = useState(false);
   const [hasHypertension, setHasHypertension] = useState(false);
@@ -101,6 +103,16 @@ export default function PatientProfilePage({
   );
   const [formValues, setFormValues] = useState<Record<string, unknown>>({});
   const patient = profile.data;
+  useEffect(() => {
+    if (!patient || !canManage || new URLSearchParams(location.search).get("edit") !== "1") return;
+    setIsMarried(Boolean(patient.isMarried));
+    setHasDiabetes(Boolean(patient.hasDiabetes));
+    setHasHypertension(Boolean(patient.hasHypertension));
+    setEditing(true);
+    const query = new URLSearchParams(location.search);
+    query.delete("edit");
+    navigate({ pathname: location.pathname, search: query.toString() }, { replace: true, state: location.state });
+  }, [patient, canManage, location, navigate]);
   const lead = patient?.lead as CrmRecord | null | undefined;
   const appointments = (patient?.appointments ?? []) as CrmRecord[];
   const surgeries = (patient?.surgeryAppointments ?? []) as CrmRecord[];
@@ -154,9 +166,11 @@ export default function PatientProfilePage({
 
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canManage || profileSaveLock.current) return;
     const form = new FormData(event.currentTarget);
     const payload: Record<string, unknown> = Object.fromEntries(
       [
+        "dateOfBirth",
         "firstName",
         "lastName",
         "phone",
@@ -178,6 +192,8 @@ export default function PatientProfilePage({
       : 0;
     payload.hasDiabetes = hasDiabetes;
     payload.hasHypertension = hasHypertension;
+    profileSaveLock.current = true;
+    setSavingProfile(true);
     try {
       await crmApi.patients.update(id, payload);
       setEditing(false);
@@ -185,8 +201,11 @@ export default function PatientProfilePage({
       toast.success("Patient profile updated.");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Unable to update patient.",
+        apiErrorMessage(error),
       );
+    } finally {
+      profileSaveLock.current = false;
+      setSavingProfile(false);
     }
   };
   const submitClinicalForm = async (
@@ -324,7 +343,7 @@ export default function PatientProfilePage({
                   setEditing(true);
                 }}
               >
-                <Pencil /> Edit profile
+                <Pencil /> {t("patientActions.editProfile")}
               </Button>
             )}
           </div>
@@ -396,7 +415,7 @@ export default function PatientProfilePage({
         ))}
       </section>
 
-      <PrescriptionWorkspace key={id} patientId={id} canManage={canManage} />
+      <Button onClick={() => navigate(`/crm/patients/${id}/medications`)}><Pill className="size-4" />{t("prescription.viewMedications")}</Button>
       {compact && <Button variant="outline" onClick={() => setShowDetails(value => !value)}>{t(showDetails ? "todayPatients.hideDetails" : "todayPatients.showDetails")}</Button>}
       {(!compact || showDetails) && <>
 
@@ -506,7 +525,7 @@ export default function PatientProfilePage({
               <Pill className="size-4 text-emerald-600" />
               <h2 className="text-sm font-bold">{t("prescription.medications")}</h2>
             </div>
-            <div className="p-4"><Button variant="outline" onClick={() => document.getElementById("patient-medications")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{t("prescription.viewMedications")}</Button></div>
+            <div className="p-4"><Button variant="outline" onClick={() => navigate(`/crm/patients/${id}/medications`)}>{t("prescription.viewMedications")}</Button></div>
           </CardContent>
         </Card>
         <Card className="min-h-52">
@@ -738,10 +757,10 @@ export default function PatientProfilePage({
       </section>
 
       </>}
-      <Dialog open={editing} onOpenChange={setEditing}>
+      <Dialog open={editing && canManage} onOpenChange={value => { if (!profileSaveLock.current) setEditing(value); }}>
         <DialogContent className="flex max-h-[min(90vh,760px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
           <DialogHeader className="shrink-0 border-b px-6 py-5">
-            <DialogTitle>Edit patient profile</DialogTitle>
+            <DialogTitle>{t("patientActions.editProfile")}</DialogTitle>
           </DialogHeader>
           <form
             className="flex min-h-0 flex-1 flex-col overflow-hidden"
@@ -764,6 +783,9 @@ export default function PatientProfilePage({
                   />
                 </label>
               ))}
+              <Label className="grid gap-1.5 text-sm font-medium">{t("crm.fields.dateOfBirth")}
+                <FormDatePicker name="dateOfBirth" initialValue={patient.dateOfBirth ? String(patient.dateOfBirth).slice(0, 10) : ""} />
+              </Label>
               <label className="grid gap-1.5 text-sm font-medium">
                 Gender
                 <Select name="gender" defaultValue={text(patient.gender, "")}>
@@ -886,7 +908,8 @@ export default function PatientProfilePage({
               ))}
             </div>
             <div className="flex shrink-0 justify-end border-t bg-background px-6 py-4">
-              <Button type="submit">Save changes</Button>
+              <Button type="button" variant="outline" className="me-2" disabled={savingProfile} onClick={() => setEditing(false)}>{t("patientBooking.cancel")}</Button>
+              <Button type="submit" disabled={savingProfile}>{savingProfile ? t("patientBooking.saving") : t("patientActions.saveProfile")}</Button>
             </div>
           </form>
         </DialogContent>

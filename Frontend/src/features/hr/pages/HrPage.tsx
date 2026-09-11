@@ -61,7 +61,6 @@ const configs: Record<
     title: "Employees",
     fields: [
       { name: "userId", label: "System user", type: "systemUser" },
-      { name: "employeeCode", label: "Employee code", required: true },
       { name: "firstName", label: "First name", required: true },
       { name: "lastName", label: "Last name", required: true },
       { name: "departmentId", label: "Department", type: "department" },
@@ -460,7 +459,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
       : field.type === "department"
         ? departments.data?.map((department) => [
             department.id,
-            String(department.name),
+            `${department.name} — ${t(`healthcareAdmin.${department.type ?? "office"}`)}`,
           ])
         : field.type === "employee"
           ? (employees.data ?? [])

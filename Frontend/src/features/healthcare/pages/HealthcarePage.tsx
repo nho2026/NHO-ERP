@@ -90,18 +90,15 @@ const configs: Record<
   departments: {
     title: "Departments",
     description:
-      "Manage clinical departments, managers and assigned employees.",
+      "Manage hospital and office departments, managers and assigned employees.",
     fields: [
-      {
-        name: "code",
-        label: "Code",
-        required: true,
-      },
+
       {
         name: "name",
         label: "Department name",
         required: true,
       },
+      { name: "type", label: "Department type", type: "select", required: true, options: ["hospital", "office"] },
       {
         name: "description",
         label: "Description",
@@ -121,6 +118,7 @@ const configs: Record<
     columns: [
       ["code", "Code"],
       ["name", "Department"],
+      ["type", "Department type"],
       ["manager", "Manager"],
       ["employeeCount", "Employees"],
       ["staffCount", "Health staff"],
@@ -142,9 +140,10 @@ const configs: Record<
         label: "Department",
         type: "department",
       },
+      { name: "positionId", label: "Position", type: "position" },
       {
         name: "staffType",
-        label: "Staff type",
+        label: "Clinical role",
         type: "select",
         options: [
           "doctor",
@@ -712,6 +711,7 @@ export default function HealthcarePage({
   const employees = useApiResource(
     useCallback(() => hrApi.employees.list(), []),
   );
+  const positions = useApiResource(useCallback(() => hrApi.positions.list(), []));
   const departments = useApiResource(
     useCallback(() => healthcareApi.departments.list(), []),
   );
@@ -752,7 +752,9 @@ export default function HealthcarePage({
     [data.data, search],
   );
   const options = (field: Field) =>
-    field.type === "specialization"
+    field.type === "position"
+      ? (positions.data ?? []).filter(position => position.status === "active" || position.id === (editing?.employee as HealthcareRecord | undefined)?.positionId).map(position => [position.id, String(position.name)])
+      : field.type === "specialization"
       ? (specializations.data ?? []).map((item) => [
           String(item.name),
           String(item.name),
@@ -763,7 +765,7 @@ export default function HealthcarePage({
             `${employee.employeeCode} — ${employee.firstName} ${employee.lastName}`,
           ])
         : field.type === "department"
-          ? departments.data?.map((department) => [
+          ? departments.data?.filter(department => department.type === "hospital" || department.id === editing?.departmentId).map((department) => [
               department.id,
               String(department.name),
             ])
@@ -787,6 +789,7 @@ export default function HealthcarePage({
     for (const field of config.fields) {
       const rawValue = String(form.get(field.name) ?? "");
       const raw = rawValue === "__none__" ? "" : rawValue;
+      if (resource === "staff" && field.name === "positionId" && (positions.isLoading || positions.error || (!editing && !raw))) continue;
       if (!raw && !field.required) {
         payload[field.name] = null;
         continue;
@@ -913,7 +916,7 @@ export default function HealthcarePage({
                       <TableRow key={row.id}>
                         {config.columns.map(([key]) => (
                           <TableCell key={key}>
-                            {key === "status" ||
+                            {key === "type" || key === "status" ||
                             key === "publicBookingEnabled" ? (
                               <Badge variant="secondary">
                                 {tr(String(display(row, key)))}
@@ -982,10 +985,11 @@ export default function HealthcarePage({
               · {tr(config.title)}
             </DialogTitle>
           </DialogHeader>
+          {resource === "staff" && positions.error && <p role="alert" className="text-destructive">{positions.error}</p>}
           <form className="grid gap-3 sm:grid-cols-2" onSubmit={submit}>
             {config.fields.map((field) => {
               const choices = options(field);
-              const initial = editing?.[field.name];
+              const initial = field.name === "positionId" ? (editing?.employee as HealthcareRecord | undefined)?.positionId : editing?.[field.name];
               const initialValue =
                 field.type === "datetime-local" && initial
                   ? new Date(String(initial)).toISOString().slice(0, 16)
@@ -1008,6 +1012,7 @@ export default function HealthcarePage({
                   {choices ? (
                     <Select
                       name={field.name}
+                      disabled={field.type === "position" && (positions.isLoading || !!positions.error)}
                       defaultValue={initialValue || "__none__"}
                       required={field.required}
                     >

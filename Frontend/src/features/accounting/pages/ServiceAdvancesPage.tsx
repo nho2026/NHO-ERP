@@ -195,7 +195,7 @@ export default function ServiceAdvancesPage() {
             <Input
               name="patientName"
               defaultValue={editing?.patientName ?? ""}
-              placeholder={t("serviceAdvance.patient")}
+              placeholder={t("serviceAdvance.employeeName")}
               required
             />
             <Input

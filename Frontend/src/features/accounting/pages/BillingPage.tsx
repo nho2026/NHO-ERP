@@ -225,7 +225,8 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                             >
                               {t("billing.send")}
                             </Button>
-                            <Button data-action="delete"
+                            <Button
+                              data-action="delete"
                               size="icon"
                               variant="ghost"
                               className="text-destructive"
@@ -234,7 +235,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                                 await invoices.refresh();
                               }}
                             >
-                              <Trash2  className="size-4 text-white" />
+                              <Trash2 className="size-4 text-white" />
                             </Button>
                           </>
                         )}
@@ -271,7 +272,6 @@ export default function BillingPage({ resource }: { resource: Resource }) {
           <form className="space-y-4" onSubmit={submit}>
             {resource === "customers" && (
               <div className="grid gap-3 sm:grid-cols-2">
-                <Input name="code" placeholder={t("billing.code")} required />
                 <Input
                   name="name"
                   placeholder={t("billing.customer")}
@@ -349,7 +349,8 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                           }
                         />
                       ))}
-                      <Button data-action="delete"
+                      <Button
+                        data-action="delete"
                         type="button"
                         variant="ghost"
                         size="icon"
@@ -358,7 +359,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                           setItems((v) => v.filter((_, n) => n !== i))
                         }
                       >
-                        <Trash2  className="size-4 text-white" />
+                        <Trash2 className="size-4 text-white" />
                       </Button>
                     </div>
                   ))}

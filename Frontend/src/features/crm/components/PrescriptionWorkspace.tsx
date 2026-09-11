@@ -1,8 +1,11 @@
+import { Popover, PopoverTrigger, PopoverContent } from "@/shared/components/ui/popover";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/shared/components/ui/table";
+import DrugDoseCalculator, { type DrugProduct } from "./DrugDoseCalculator";
 import { randomId } from "@/shared/lib/random-id";
 import prescriptionPrintStyles from "./prescription-print.css?inline";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Printer, Trash2 } from "lucide-react";
+import { Calculator, Plus, Printer, Trash2 } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { Button } from "@/shared/components/ui/button";
@@ -16,6 +19,7 @@ import arabicFont from "@/assets/fonts/arabic.ttf";
 import kurdishFont from "@/assets/fonts/kurdish.ttf";
 import { escapeReportHtml as esc } from "@/features/inventory/components/patient-report";
 type Line = {
+  product?: DrugProduct;
   medicine: string;
   dosage: string;
   frequency: string;
@@ -72,7 +76,7 @@ export default function PrescriptionWorkspace({
       () =>
         apiClient
           .get<
-            { id: string; name: string; sku: string; size: string | null }[]
+            DrugProduct[]
           >("/crm/prescriptions/catalog")
           .then((r) => r.data),
       [],
@@ -131,7 +135,7 @@ export default function PrescriptionWorkspace({
     try {
       await apiClient.post(`/crm/prescriptions/patient/${patientId}`, {
         requestId: request.current,
-        items: lines,
+        items: lines.map(({ product: _product, ...line }) => line),
         notes,
       });
       setLines([]);
@@ -174,7 +178,7 @@ export default function PrescriptionWorkspace({
         </p>
       )}
       {canManage && editing && (
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(230px,1fr)_2fr]">
+        <div className="grid min-w-0 items-start gap-5">
           <div className="space-y-3">
             <Input
               value={search}
@@ -188,7 +192,7 @@ export default function PrescriptionWorkspace({
                 {catalog.error}
               </p>
             )}
-            <div className="grid max-h-96 gap-2 overflow-y-auto">
+            <div className="grid max-h-48 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {catalog.data
                 ?.filter((p) =>
                   `${p.name} ${p.sku}`
@@ -206,9 +210,7 @@ export default function PrescriptionWorkspace({
                       request.current = null;
                       setLines((rows) => [
                         ...rows,
-                        newLine(
-                          `${product.name}${product.size ? ` (${product.size})` : ""}`,
-                        ),
+                        { ...newLine(`${product.name}${product.size ? ` (${product.size})` : ""}`), product },
                       ]);
                     }}
                   >
@@ -223,7 +225,7 @@ export default function PrescriptionWorkspace({
                 ))}
             </div>
           </div>
-          <form onSubmit={save}>
+          <form onSubmit={save} className="min-w-0">
             <fieldset disabled={busy} className="space-y-4">
               <Button
                 type="button"
@@ -237,69 +239,69 @@ export default function PrescriptionWorkspace({
                 <Plus />
                 {tr("add")}
               </Button>
-              {lines.map((line, index) => (
-                <Card key={index} className="gap-3 p-4">
-                  <div className="flex items-center justify-between">
-                    <strong>{index + 1}</strong>
-                    <Button data-action="delete"
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={tr("remove")}
-                      onClick={() => {
-                        request.current = null;
-                        setLines((rows) => rows.filter((_, i) => i !== index));
-                      }}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {(
-                      [
-                        "medicine",
-                        "dosage",
-                        "frequency",
-                        "duration",
-                        "quantity",
-                      ] as const
-                    ).map((key) => (
-                      <div key={key} className="space-y-1">
-                        <Label htmlFor={`rx-${index}-${key}`}>{tr(key)}</Label>
-                        <Input
-                          id={`rx-${index}-${key}`}
-                          required
-                          type={key === "quantity" ? "number" : "text"}
-                          min={key === "quantity" ? 1 : undefined}
-                          max={key === "quantity" ? 100000 : undefined}
-                          step={key === "quantity" ? 1 : undefined}
-                          maxLength={200}
-                          value={line[key]}
-                          onChange={(e) =>
-                            change(index, {
-                              [key]:
-                                key === "quantity"
-                                  ? Number(e.target.value)
-                                  : e.target.value,
-                            })
-                          }
+              <Table className="w-full min-w-[900px] table-fixed" aria-label={tr("medications")}>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10 text-center">#</TableHead>
+                    {(["medicine", "dosage", "frequency", "duration", "quantity", "instructions"] as const).map(key => <TableHead key={key} className={key === "medicine" ? "w-[23%] text-start" : key === "quantity" ? "w-20 text-start" : "text-start"}>{tr(key)}</TableHead>)}
+                    <TableHead className="w-14 text-center"><span className="sr-only">{t("drugDose.title")}</span><Calculator aria-hidden="true" className="mx-auto size-4" /></TableHead>
+                    <TableHead className="w-14"><span className="sr-only">{tr("remove")}</span></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody autoPaginate={false}>
+                  {lines.map((line, index) => (
+                    <TableRow key={index} className="align-middle [&>td]:px-2 [&>td]:py-3">
+                      <TableCell className="text-center text-muted-foreground">{index + 1}</TableCell>
+                      {(["medicine", "dosage", "frequency", "duration", "quantity"] as const).map(key => (
+                        <TableCell key={key}>
+                          <Input
+                            className="h-9 min-w-0"
+                            placeholder={tr(key)}
+                            id={`rx-${index}-${key}`}
+                            aria-label={`${tr(key)} ${index + 1}`}
+                            required
+                            readOnly={key === "medicine" && !!line.product}
+                            type={key === "quantity" ? "number" : "text"}
+                            min={key === "quantity" ? 1 : undefined}
+                            max={key === "quantity" ? 100000 : undefined}
+                            step={key === "quantity" ? 1 : undefined}
+                            maxLength={200}
+                            value={line[key]}
+                            onChange={event => change(index, { [key]: key === "quantity" ? Number(event.target.value) : event.target.value })}
+                          />
+                        </TableCell>
+                      ))}
+                      <TableCell>
+                        <Textarea
+                          rows={1}
+                          className="h-9 min-h-9 resize-none overflow-y-auto py-2"
+                          placeholder={tr("instructions")}
+                          id={`rx-instructions-${index}`}
+                          aria-label={`${tr("instructions")} ${index + 1}`}
+                          maxLength={1000}
+                          value={line.instructions}
+                          onChange={event => change(index, { instructions: event.target.value })}
                         />
-                      </div>
-                    ))}
-                  </div>
-                  <Label htmlFor={`rx-instructions-${index}`}>
-                    {tr("instructions")}
-                  </Label>
-                  <Textarea
-                    id={`rx-instructions-${index}`}
-                    maxLength={1000}
-                    value={line.instructions}
-                    onChange={(e) =>
-                      change(index, { instructions: e.target.value })
-                    }
-                  />
-                </Card>
-              ))}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {line.product ? <Popover>
+                          <PopoverTrigger asChild><Button type="button" variant="outline" size="icon" className="size-9 border-primary/20 bg-primary/10 text-primary" aria-label={t("drugDose.title")} title={t("drugDose.title")}><Calculator className="size-4" /></Button></PopoverTrigger>
+                          <PopoverContent className="w-80 max-w-[90vw]" dir={i18n.dir()}>
+                            <p className="mb-2 font-semibold">{line.medicine}</p>
+                            <DrugDoseCalculator product={line.product} onApply={(dosage, frequency) => change(index, { dosage, frequency })} />
+                          </PopoverContent>
+                        </Popover> : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell>
+                        <Button data-action="delete" type="button" variant="ghost" size="icon" aria-label={`${tr("remove")} ${index + 1}`} onClick={() => {
+                          request.current = null;
+                          setLines(rows => rows.filter((_, i) => i !== index));
+                        }}><Trash2 className="size-4" /></Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
               <Label htmlFor="rx-notes">{tr("notes")}</Label>
               <Textarea
                 id="rx-notes"

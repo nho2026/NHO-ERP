@@ -18,7 +18,7 @@ export const formFieldSchema = z.object({
 });
 
 export const formTemplateSchema = z.object({
-  code: z.string().trim().min(1).max(50),
+  code: z.string().optional(),
   name: z.string().trim().min(2).max(191),
   description: z.string().trim().nullable().optional(),
   category: z.enum(["clinical", "examination", "assessment", "consent"]),

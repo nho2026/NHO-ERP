@@ -33,6 +33,7 @@ const endpoints: Record<string, string> = {
   "/departments": "/healthcare/departments",
   "/health-staff": "/healthcare/staff",
   "/crm/leads": "/crm/leads",
+  "/crm/whatsapp": "/crm/whatsapp",
   "/crm/patients": "/crm/patients",
   "/crm/referrals": "/crm/referrals",
   "/crm/today-patients": "/crm/today-patients",

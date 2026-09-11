@@ -13,6 +13,7 @@
     "db:push": "prisma db push --schema src/shared/database/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema src/shared/database/prisma/schema.prisma",
     "db:seed": "node src/shared/database/seed/seed.js",
+    "db:seed-departments": "node scripts/seed-departments.js",
     "db:seed-crm": "node scripts/seed-crm.js",
     "db:seed-access": "node scripts/seed-access-control.js",
     "db:seed-products": "node scripts/import-products.js",

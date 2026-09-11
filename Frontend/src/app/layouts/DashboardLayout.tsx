@@ -1,5 +1,6 @@
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/shared/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { MeetingSessionHost } from "@/features/meetings/MeetingSessionHost";
 import { HeaderSearch } from "./HeaderSearch";
 import { WorkspaceCard } from "./WorkspaceCard";
 import { Input } from "@/shared/components/ui/input";
@@ -66,6 +67,7 @@ import {
   Goal,
   ScrollText,
   FileText,
+  MessageCircle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import logo from "@/assets/icons/logo.png";
@@ -166,6 +168,7 @@ const healthcareNavigation = [
   { to: "/feedback", label: "feedback.title", icon: Star },
 ];
 const crmNavigation = [
+  { to: "/crm/whatsapp", label: "navigation.crmWhatsapp", icon: MessageCircle },
   { to: "/crm/leads", label: "navigation.crmLeads", icon: ContactRound },
   {
     to: "/crm/leads/progress",
@@ -688,6 +691,7 @@ export default function DashboardLayout() {
       "/appointments": "healthcare.appointments.view",
       "/feedback": "healthcare.feedback.view",
       "/crm/leads": "employees.view",
+      "/crm/whatsapp": "employees.view",
       "/crm/leads/progress": "employees.view",
       "/crm/patients": "employees.view",
       "/crm/referrals": "employees.view",
@@ -889,6 +893,9 @@ export default function DashboardLayout() {
     return () =>
       window.removeEventListener("nho-navigation-mode-changed", update);
   }, []);
+  if (location.pathname === "/crm/today-patients" && new URLSearchParams(location.search).get("tv") === "1") {
+    return <main className="min-h-svh w-full bg-muted/45 p-4 sm:p-6"><Outlet key={location.pathname + location.search} /></main>;
+  }
   return (
     <div className="h-svh w-full overflow-hidden bg-muted/45">
       {!panelMode && (
@@ -899,23 +906,13 @@ export default function DashboardLayout() {
             className={`flex h-[87px] items-center gap-3 border-b border-primary/15 px-1 ${collapsed ? "lg:justify-center" : ""}`}
           >
             <span
-              className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl border border-primary/20"
+              className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/10"
             >
-              {collapsed ? (
-                <>
-                  <img
-                    className="size-8 object-contain"
-                    src={systemSettings?.organization.logo || logo}
-                    alt={systemSettings?.organization.name || "NHO"}
-                  />
-                </>
-              ) : (
-                <img
-                  className="size-8 object-contain"
-                  src={systemSettings?.organization.logo || logo}
-                  alt={systemSettings?.organization.name || "NHO"}
-                />
-              )}
+              <img
+                className="block size-full object-contain"
+                src={systemSettings?.organization.logo || logo}
+                alt={systemSettings?.organization.name || "NHO"}
+              />
             </span>
             <div className={`min-w-0 flex-1 ${collapsed ? "lg:hidden" : ""}`}>
               <strong className="block truncate text-[12px] font-bold leading-4 tracking-wide">
@@ -1982,6 +1979,13 @@ export default function DashboardLayout() {
                   <Outlet key={location.pathname + location.search} />
                 </>
               )}
+              <MeetingSessionHost
+                visible={location.pathname.replace(/\/$/, "") === "/meetings" && !(panelMode && showPanel)}
+                onReturn={() => {
+                  setShowPanel(false);
+                  navigate("/meetings");
+                }}
+              />
             </div>
           </main>
         </div>

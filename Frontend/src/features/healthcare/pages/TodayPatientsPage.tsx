@@ -1,3 +1,5 @@
+import { useSearchParams } from "react-router-dom";
+import { Monitor, ArrowLeft } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -75,6 +77,13 @@ const doctorName = (item: Appointment) =>
     : "—";
 export default function TodayPatientsPage() {
   const { t, i18n } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tvMode = searchParams.get("tv") === "1";
+  const toggleTv = () => {
+    const next = new URLSearchParams(searchParams);
+    if (tvMode) next.delete("tv"); else next.set("tv", "1");
+    setSearchParams(next);
+  };
   const tr = (key: string) => t(`todayPatients.${key}`);
   const resource = useApiResource(
     useCallback(
@@ -199,6 +208,7 @@ export default function TodayPatientsPage() {
     ) : null;
   return (
     <div dir={i18n.dir()} className="space-y-5">
+      <Button variant="outline" onClick={toggleTv}>{tvMode ? <ArrowLeft className="size-4 rtl:rotate-180" /> : <Monitor className="size-4" />}{t(tvMode ? "patientTv.back" : "patientTv.open")}</Button>
       <div className="flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-primary/10 bg-card p-5 sm:p-6">
         <div className="flex items-center gap-4">
           <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary sm:size-14">
@@ -332,7 +342,7 @@ export default function TodayPatientsPage() {
           </div>
         </Card>
       )}
-      {shownProfileId && canViewProfile && (
+      {!tvMode && shownProfileId && canViewProfile && (
         <div className="space-y-4">
           <PatientProfilePage
             compact
@@ -404,7 +414,7 @@ export default function TodayPatientsPage() {
               ))}
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody autoPaginate={!tvMode}>
             {resource.isLoading && !resource.data ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">

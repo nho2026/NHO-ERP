@@ -1,6 +1,6 @@
 import { z } from "zod";
 export const customerSchema = z.object({
-  code: z.string().trim().min(1),
+  code: z.string().optional(),
   name: z.string().trim().min(2),
   phone: z.string().trim().nullable().optional(),
   email: z.union([z.string().email(), z.literal(""), z.null()]).optional(),

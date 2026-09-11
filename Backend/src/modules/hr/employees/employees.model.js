@@ -1,3 +1,4 @@
+import { createWithCode, withoutCode } from "../../../shared/database/automatic-code.js";
 import { getSettings } from "../../settings/settings.service.js";
 import { prisma } from "../../../shared/database/client.js";
 const recordInclude = {
@@ -97,10 +98,10 @@ export const employeeModel = {
     };
     validateSchedule(data);
     await validateLeadership(null, data);
-    return prisma.employee.create({
+    return createWithCode(prisma.employee, {
       data: employeeData(data),
       include: recordInclude,
-    });
+    }, "EMP", "employeeCode");
   },
   update: async (id, data) => {
     const current = await prisma.employee.findUniqueOrThrow({ where: { id } });
@@ -120,7 +121,7 @@ export const employeeModel = {
     }
     return prisma.employee.update({
       where: { id },
-      data: employeeData(data, true),
+      data: employeeData(withoutCode(data, "employeeCode"), true),
       include: recordInclude,
     });
   },

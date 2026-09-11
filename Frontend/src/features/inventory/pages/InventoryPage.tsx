@@ -101,7 +101,7 @@ const configs = {
     columns: ["name", "description", "status"],
   },
   warehouses: {
-    fields: ["code", "name", "location", "status"],
+    fields: ["name", "location", "status"],
     columns: ["code", "name", "location", "status"],
   },
   products: {
@@ -864,6 +864,13 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
                     )}
                   </div>
                 ))}
+                {resource === "products" && <div className="col-span-full grid gap-3 sm:grid-cols-2">
+                  <p className="col-span-full font-semibold">{t("drugDose.title")}</p>
+                  {(["doseMgKgDay", "dosesPerDay", "concentrationMg", "concentrationMl"] as const).map(field => <div key={field} className="space-y-1">
+                    <Label htmlFor={`drug-${field}`}>{t(`drugDose.${field}`)}</Label>
+                    <Input id={`drug-${field}`} name={field} type="number" min="0.000001" step={field === "dosesPerDay" ? "1" : "any"} max={field === "dosesPerDay" ? 24 : undefined} defaultValue={editing?.[field] ?? ""} />
+                  </div>)}
+                </div>}
                 {resource === "products" && (
                   <div className="space-y-3 col-span-full">
                     <Label className="text-sm font-medium">

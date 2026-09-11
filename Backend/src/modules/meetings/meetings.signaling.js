@@ -17,6 +17,7 @@ export function attachMeetingSignaling(
   production = false,
 ) {
   const io = new Server(httpServer, {
+    path: "/api/socket.io",
     cors: {
       origin(origin, callback) {
         if (!production || !origin || allowedOrigins.includes(origin))

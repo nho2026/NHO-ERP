@@ -37,3 +37,5 @@ export const bookingSchema = appointmentSchema
         "Appointment must be in the future.",
       ),
   });
+
+export const appointmentCreateSchema = appointmentSchema.extend({ patientId: z.string().min(1).optional() });

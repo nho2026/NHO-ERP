@@ -13,7 +13,7 @@ export const statusSchema = z.object({
   status: z.enum(["pending", "approved", "rejected"]),
 });
 export const serviceSchema = z.object({
-  code: z.string().trim().min(1).max(30),
+  code: z.string().optional(),
   name: z.string().trim().min(2).max(160),
   description: z.string().trim().max(5000).nullable().optional(),
   price: z.coerce.number().min(0).nullable().optional(),

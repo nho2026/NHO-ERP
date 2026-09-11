@@ -3798,13 +3798,13 @@ VALUES (
         'nho112233',
         NULL,
         'offline',
-        '2026-09-08 23:11:11.103',
+        '2026-09-10 16:10:07.532',
         '2026-08-26 17:41:22.898',
         22,
         '09:00',
         '17:00',
         '2026-08-25 14:36:56.589',
-        '2026-09-08 23:11:11.271'
+        '2026-09-10 16:10:07.606'
     );
 /*!40000 ALTER TABLE `attendance_AttendanceDevice` ENABLE KEYS */
 ;
@@ -4005,6 +4005,78 @@ VALUES (
         'fingerprint',
         '1582',
         '2026-09-08 20:27:21.833'
+    ),
+    (
+        'cmtu5hx4j000ngs9gk9etut0a',
+        'cmt8rqkjx0000gsu4r6quy0fp',
+        'cmtiu5lbn005cgs458jjx3tyy',
+        '59',
+        'Sonya Nadir',
+        'check_in',
+        '2026-09-09 11:48:49.000',
+        'fingerprint',
+        '1626',
+        '2026-09-09 13:45:17.299'
+    ),
+    (
+        'cmtu5hx4q000pgs9g9c5k0iiw',
+        'cmt8rqkjx0000gsu4r6quy0fp',
+        'cmt8rs0yd0002gsu4jslf34ma',
+        '2',
+        'Qasem Najm',
+        'check_out',
+        '2026-09-09 12:20:25.000',
+        'fingerprint',
+        '1629',
+        '2026-09-09 13:45:17.307'
+    ),
+    (
+        'cmtu5hx4x000rgs9gzgzs0e69',
+        'cmt8rqkjx0000gsu4r6quy0fp',
+        'cmtsvqhfa000jgskbx931qqy8',
+        '62',
+        'Bery NHO',
+        'check_out',
+        '2026-09-09 13:21:51.000',
+        'fingerprint',
+        '1638',
+        '2026-09-09 13:45:17.313'
+    ),
+    (
+        'cmtu5hx53000tgs9g0un3y2yu',
+        'cmt8rqkjx0000gsu4r6quy0fp',
+        'cmtitz3wg003ags45119xsfb1',
+        '57',
+        'Nahri Sadiq',
+        'check_out',
+        '2026-09-09 13:24:14.000',
+        'fingerprint',
+        '1641',
+        '2026-09-09 13:45:17.319'
+    ),
+    (
+        'cmtu5hx5a000vgs9gdxzhhn52',
+        'cmt8rqkjx0000gsu4r6quy0fp',
+        'cmtiu6r54006egs458pmri3fd',
+        '60',
+        'Soma nadir saeed',
+        'check_out',
+        '2026-09-09 13:24:26.000',
+        'fingerprint',
+        '1645',
+        '2026-09-09 13:45:17.326'
+    ),
+    (
+        'cmtu5hx5g000xgs9g18klbbno',
+        'cmt8rqkjx0000gsu4r6quy0fp',
+        'cmtiu454k004ggs45u0y6ew5i',
+        '58',
+        'Ashna Arshad',
+        'check_out',
+        '2026-09-09 13:26:03.000',
+        'fingerprint',
+        '1648',
+        '2026-09-09 13:45:17.332'
     );
 /*!40000 ALTER TABLE `attendance_AttendanceEvent` ENABLE KEYS */
 ;
@@ -4060,7 +4132,7 @@ VALUES (
         0,
         1,
         '2026-08-25 14:38:04.501',
-        '2026-09-08 21:23:35.779'
+        '2026-09-09 13:45:26.277'
     ),
     (
         'cmt8ukijy0009gsm8ocufyk7g',
@@ -4073,7 +4145,7 @@ VALUES (
         0,
         1,
         '2026-08-25 15:56:12.911',
-        '2026-09-08 21:23:35.788'
+        '2026-09-09 13:45:26.286'
     ),
     (
         'cmtejs336002ggsq61dwfijjf',
@@ -4086,7 +4158,7 @@ VALUES (
         0,
         1,
         '2026-08-29 15:40:47.395',
-        '2026-09-08 21:23:35.794'
+        '2026-09-09 13:45:26.292'
     ),
     (
         'cmtitz3wg003ags45119xsfb1',
@@ -4099,7 +4171,7 @@ VALUES (
         0,
         1,
         '2026-09-01 15:37:15.904',
-        '2026-09-08 21:23:35.801'
+        '2026-09-09 13:45:26.299'
     ),
     (
         'cmtiu454k004ggs45u0y6ew5i',
@@ -4112,7 +4184,7 @@ VALUES (
         0,
         1,
         '2026-09-01 15:41:10.772',
-        '2026-09-08 21:23:35.807'
+        '2026-09-09 13:45:26.305'
     ),
     (
         'cmtiu5lbn005cgs458jjx3tyy',
@@ -4125,7 +4197,7 @@ VALUES (
         0,
         1,
         '2026-09-01 15:42:18.420',
-        '2026-09-08 21:23:35.814'
+        '2026-09-09 13:45:26.312'
     ),
     (
         'cmtiu6r54006egs458pmri3fd',
@@ -4138,7 +4210,7 @@ VALUES (
         0,
         1,
         '2026-09-01 15:43:12.617',
-        '2026-09-08 21:23:35.821'
+        '2026-09-09 13:45:26.320'
     ),
     (
         'cmtiu8hml007mgs45lcn216us',
@@ -4151,7 +4223,7 @@ VALUES (
         0,
         1,
         '2026-09-01 15:44:33.597',
-        '2026-09-08 21:23:35.827'
+        '2026-09-09 13:45:26.327'
     ),
     (
         'cmtpy68tc000jgsvf4msx1zvk',
@@ -4164,7 +4236,7 @@ VALUES (
         1,
         0,
         '2026-09-06 15:09:10.560',
-        '2026-09-08 21:23:35.835'
+        '2026-09-09 13:45:26.333'
     ),
     (
         'cmtsvqhfa000jgskbx931qqy8',
@@ -4177,7 +4249,7 @@ VALUES (
         0,
         0,
         '2026-09-08 16:24:14.518',
-        '2026-09-08 21:23:35.842'
+        '2026-09-09 13:45:26.340'
     );
 /*!40000 ALTER TABLE `attendance_AttendancePerson` ENABLE KEYS */
 ;
@@ -5249,6 +5321,22 @@ VALUES (
         'admin',
         '2026-08-31 21:55:57.670',
         '2026-08-31 21:55:57.670'
+    ),
+    (
+        'cmtu6mn8r000bgsvktk8i6fld',
+        'Abdulla Hadi Himdad',
+        '009647504038033',
+        'daryacts@gmail.com',
+        'cmths2977004ugssliwve3gup',
+        'cmt8rjfvq001ggsuzrupsrxku',
+        '2026-09-09 06:00:00.000',
+        15,
+        'Chest pain',
+        'patient has chest pain and three vessel disease',
+        'confirmed',
+        'admin',
+        '2026-09-09 14:16:57.387',
+        '2026-09-09 14:16:57.387'
     );
 /*!40000 ALTER TABLE `crm_Appointment` ENABLE KEYS */
 ;
@@ -6923,7 +7011,7 @@ INSERT INTO
 VALUES (
         'cmths2977004ugssliwve3gup',
         'cmths296q004qgsslesug1lk2',
-        NULL,
+        'cmt8rjfvq001ggsuzrupsrxku',
         'doctor',
         'Diagnostic imaging',
         'SEED-LIC-04',
@@ -6931,7 +7019,7 @@ VALUES (
         1,
         'active',
         '2026-08-31 21:55:57.332',
-        '2026-08-31 21:55:57.332'
+        '2026-09-09 14:16:53.789'
     );
 /*!40000 ALTER TABLE `healthcare_HealthStaff` ENABLE KEYS */
 ;
@@ -7267,6 +7355,29 @@ VALUES (
         'active',
         '2026-09-06 19:13:56.218',
         '2026-09-06 19:13:56.218',
+        0,
+        0,
+        0,
+        NULL,
+        0,
+        NULL
+    ),
+    (
+        'cmtu6r7ub000dgsvkenae7nn5',
+        'P21',
+        'Abdulla',
+        'Himdad Ali',
+        '009647504038033',
+        'daryacts@gmail.com',
+        '2026-09-09 00:00:00.000',
+        'male',
+        'Kasnazan',
+        'O+',
+        'Allergy to penicilin',
+        'Active hypertension nad diabetic',
+        'active',
+        '2026-09-09 14:20:30.708',
+        '2026-09-09 14:20:30.708',
         0,
         0,
         0,
@@ -7982,11 +8093,11 @@ VALUES (
         'cmths8fwy0005gstldzu8vdrh',
         '2026-11-05 09:00:00.000',
         'OR-3',
-        'in_progress',
+        'completed',
         'SEED: Pre-operation assessment 3',
         NULL,
         '2026-08-31 22:00:45.977',
-        '2026-09-04 18:04:42.608'
+        '2026-09-09 14:08:10.322'
     ),
     (
         'seed-crm-surgery-appointment-004',
@@ -8508,6 +8619,8 @@ CREATE TABLE `hr_Employees` (
     `checkOutTime` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '17:00',
     `isTeamLeader` tinyint(1) NOT NULL DEFAULT '0',
     `teamLeaderId` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `scheduleType` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'static',
+    `workSchedule` json DEFAULT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `Employee_employeeCode_key` (`employeeCode`),
     UNIQUE KEY `Employee_userId_key` (`userId`),
@@ -8546,6 +8659,8 @@ VALUES (
         '09:00',
         '16:00',
         0,
+        NULL,
+        'static',
         NULL
     ),
     (
@@ -8563,6 +8678,8 @@ VALUES (
         '17:00',
         '22:00',
         0,
+        NULL,
+        'static',
         NULL
     ),
     (
@@ -8580,6 +8697,8 @@ VALUES (
         '09:00',
         '16:00',
         0,
+        NULL,
+        'static',
         NULL
     ),
     (
@@ -8588,15 +8707,17 @@ VALUES (
         NULL,
         'Darya',
         'Nadir',
-        'cmt8rjfvj001fgsuz5r0t0a49',
+        'cmt8rjfvq001ggsuzrupsrxku',
         'cmths2964004mgssl9u0agpue',
         '2022-05-05 00:00:00.000',
         'active',
         '2026-08-31 21:55:57.315',
-        '2026-09-05 17:47:54.873',
+        '2026-09-09 14:16:53.798',
         '09:00',
         '16:00',
         0,
+        NULL,
+        'static',
         NULL
     ),
     (
@@ -8614,6 +8735,8 @@ VALUES (
         '09:00',
         '16:00',
         0,
+        NULL,
+        'static',
         NULL
     ),
     (
@@ -8631,6 +8754,8 @@ VALUES (
         '09:00',
         '16:00',
         0,
+        NULL,
+        'static',
         NULL
     ),
     (
@@ -8648,6 +8773,8 @@ VALUES (
         '09:00',
         '16:00',
         0,
+        NULL,
+        'static',
         NULL
     ),
     (
@@ -8665,6 +8792,8 @@ VALUES (
         '09:00',
         '16:00',
         0,
+        NULL,
+        'static',
         NULL
     ),
     (
@@ -8682,6 +8811,8 @@ VALUES (
         '09:00',
         '16:00',
         0,
+        NULL,
+        'static',
         NULL
     ),
     (
@@ -8699,6 +8830,8 @@ VALUES (
         '09:00',
         '16:00',
         0,
+        NULL,
+        'static',
         NULL
     );
 /*!40000 ALTER TABLE `hr_Employees` ENABLE KEYS */
@@ -18592,6 +18725,321 @@ VALUES (
         231,
         '2026-09-08 22:55:00.530',
         '{\"loginMethod\": \"pin\"}'
+    ),
+    (
+        'cmttaa75o0000gs1ilmop6fbk',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/settings/backups',
+        'settings',
+        'create',
+        201,
+        '127.0.0.1',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) NHOERP/0.0.0 Chrome/138.0.7204.251 Electron/37.10.3 Safari/537.36',
+        251,
+        '2026-09-08 23:11:28.956',
+        '{}'
+    ),
+    (
+        'cmtu4tll90000gs9g08fblgh8',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/auth/login',
+        'auth',
+        'login',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        251,
+        '2026-09-09 13:26:22.605',
+        '{\"loginMethod\": \"pin\"}'
+    ),
+    (
+        'cmtu55yg50001gs9g2fdtuhqr',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/auth/login',
+        'auth',
+        'login',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) NHOERP/0.0.0 Chrome/138.0.7204.251 Electron/37.10.3 Safari/537.36',
+        224,
+        '2026-09-09 13:35:59.141',
+        '{\"loginMethod\": \"pin\"}'
+    ),
+    (
+        'cmtu5hx5s000ygs9g2jqnimq6',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/attendance/events/sync',
+        'attendance',
+        'create',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        760,
+        '2026-09-09 13:45:17.344',
+        '{\"to\": \"2026-09-09\", \"from\": \"2026-09-01\", \"deviceId\": \"cmt8rqkjx0000gsu4r6quy0fp\", \"recordId\": \"sync\"}'
+    ),
+    (
+        'cmtu5i1xv001jgs9gkz5mv8id',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/attendance/events/sync',
+        'attendance',
+        'create',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        765,
+        '2026-09-09 13:45:23.539',
+        '{\"to\": \"2026-09-09\", \"from\": \"2026-09-01\", \"deviceId\": \"cmt8rqkjx0000gsu4r6quy0fp\", \"recordId\": \"sync\"}'
+    ),
+    (
+        'cmtu5i4do0024gs9gtknndd0z',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/attendance/events/sync',
+        'attendance',
+        'create',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        861,
+        '2026-09-09 13:45:26.700',
+        '{\"to\": \"2026-09-09\", \"from\": \"2026-09-01\", \"deviceId\": \"cmt8rqkjx0000gsu4r6quy0fp\", \"recordId\": \"sync\"}'
+    ),
+    (
+        'cmtu5ik9k0025gs9gg8zx2ma0',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/attendance/devices/cmt8rqkjx0000gsu4r6quy0fp/test',
+        'attendance',
+        'create',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        54,
+        '2026-09-09 13:45:47.288',
+        '{\"recordId\": \"test\"}'
+    ),
+    (
+        'cmtu5ilub0026gs9gkdl6wg46',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/attendance/devices/cmt8rqkjx0000gsu4r6quy0fp/test',
+        'attendance',
+        'create',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        131,
+        '2026-09-09 13:45:49.331',
+        '{\"recordId\": \"test\"}'
+    ),
+    (
+        'cmtu5k3ls0000gsvk7epx3aiy',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/auth/login',
+        'auth',
+        'login',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) NHOERP/0.0.0 Chrome/138.0.7204.251 Electron/37.10.3 Safari/537.36',
+        236,
+        '2026-09-09 13:46:59.009',
+        '{\"loginMethod\": \"pin\"}'
+    ),
+    (
+        'cmtu5oh9y0001gsvkleulupes',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'PUT',
+        '/api/settings/organization',
+        'settings',
+        'update',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        15,
+        '2026-09-09 13:50:23.350',
+        '{\"logo\": \"\", \"name\": \"NHO\", \"email\": \"\", \"phone\": \"\", \"address\": \"\", \"branches\": [], \"loadingText\": \"Welcome to NHO\"}'
+    ),
+    (
+        'cmtu6bcka0002gsvk13pfd7fu',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'PATCH',
+        '/api/crm/appointments/surgery%3Aseed-crm-surgery-appointment-003/served',
+        'crm',
+        'update',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        14,
+        '2026-09-09 14:08:10.331',
+        '{\"recordId\": \"served\"}'
+    ),
+    (
+        'cmtu6gp330003gsvk7ewm3441',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/auth/login',
+        'auth',
+        'login',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        225,
+        '2026-09-09 14:12:19.840',
+        '{\"loginMethod\": \"pin\"}'
+    ),
+    (
+        'cmtu6l5780004gsvk9o76588k',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/crm/appointments',
+        'crm',
+        'create',
+        400,
+        '127.0.0.1',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        8,
+        '2026-09-09 14:15:47.348',
+        '{\"notes\": \"patient has chest pain and three vessel disease\", \"reason\": \"Chest pain\", \"status\": \"confirmed\", \"doctorId\": \"cmths2977004ugssliwve3gup\", \"patientName\": \"Abdulla Hadi Himdad\", \"scheduledAt\": \"2026-09-09T06:00:00.000Z\", \"departmentId\": \"cmt8rjfvq001ggsuzrupsrxku\", \"patientEmail\": \"daryacts@gmail.com\", \"patientPhone\": \"009647504038033\", \"durationMinutes\": 15}'
+    ),
+    (
+        'cmtu6l88g0005gsvk33bt41ye',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/crm/appointments',
+        'crm',
+        'create',
+        400,
+        '127.0.0.1',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        6,
+        '2026-09-09 14:15:51.280',
+        '{\"notes\": \"patient has chest pain and three vessel disease\", \"reason\": \"Chest pain\", \"status\": \"confirmed\", \"doctorId\": \"cmths2977004ugssliwve3gup\", \"patientName\": \"Abdulla Hadi Himdad\", \"scheduledAt\": \"2026-09-09T06:00:00.000Z\", \"departmentId\": \"cmt8rjfvq001ggsuzrupsrxku\", \"patientEmail\": \"daryacts@gmail.com\", \"patientPhone\": \"009647504038033\", \"durationMinutes\": 15}'
+    ),
+    (
+        'cmtu6lasg0006gsvkyhzjfyzn',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/crm/appointments',
+        'crm',
+        'create',
+        400,
+        '127.0.0.1',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        8,
+        '2026-09-09 14:15:54.592',
+        '{\"notes\": \"patient has chest pain and three vessel disease\", \"reason\": \"Chest pain\", \"status\": \"confirmed\", \"doctorId\": \"cmths2977004ugssliwve3gup\", \"patientName\": \"Abdulla Hadi Himdad\", \"scheduledAt\": \"2026-09-09T06:00:00.000Z\", \"departmentId\": \"cmt8rjfvj001fgsuz5r0t0a49\", \"patientEmail\": \"daryacts@gmail.com\", \"patientPhone\": \"009647504038033\", \"durationMinutes\": 15}'
+    ),
+    (
+        'cmtu6lblz0007gsvkykyjci4k',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/crm/appointments',
+        'crm',
+        'create',
+        400,
+        '127.0.0.1',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        6,
+        '2026-09-09 14:15:55.656',
+        '{\"notes\": \"patient has chest pain and three vessel disease\", \"reason\": \"Chest pain\", \"status\": \"confirmed\", \"doctorId\": \"cmths2977004ugssliwve3gup\", \"patientName\": \"Abdulla Hadi Himdad\", \"scheduledAt\": \"2026-09-09T06:00:00.000Z\", \"departmentId\": \"cmt8rjfvj001fgsuz5r0t0a49\", \"patientEmail\": \"daryacts@gmail.com\", \"patientPhone\": \"009647504038033\", \"durationMinutes\": 15}'
+    ),
+    (
+        'cmtu6lki50008gsvkqpun7tzn',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/crm/appointments',
+        'crm',
+        'create',
+        400,
+        '127.0.0.1',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        7,
+        '2026-09-09 14:16:07.181',
+        '{\"notes\": \"patient has chest pain and three vessel disease\", \"reason\": \"Chest pain\", \"status\": \"confirmed\", \"doctorId\": \"cmths2977004ugssliwve3gup\", \"patientName\": \"Abdulla Hadi Himdad\", \"scheduledAt\": \"2026-09-09T06:00:00.000Z\", \"departmentId\": \"cmt8rjfvq001ggsuzrupsrxku\", \"patientEmail\": \"daryacts@gmail.com\", \"patientPhone\": \"009647504038033\", \"durationMinutes\": 15}'
+    ),
+    (
+        'cmtu6mkha0009gsvkr0jza5jk',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'PATCH',
+        '/api/healthcare/staff/cmths2977004ugssliwve3gup',
+        'healthcare',
+        'update',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        23,
+        '2026-09-09 14:16:53.806',
+        '{\"status\": \"active\", \"recordId\": \"cmths2977004ugssliwve3gup\", \"biography\": \"SEED: Health professional 04\", \"staffType\": \"doctor\", \"employeeId\": \"cmths296q004qgsslesug1lk2\", \"departmentId\": \"cmt8rjfvq001ggsuzrupsrxku\", \"licenseNumber\": \"SEED-LIC-04\", \"specialization\": \"Diagnostic imaging\", \"publicBookingEnabled\": true}'
+    ),
+    (
+        'cmtu6mn8y000cgsvkhud9ihhr',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/crm/appointments',
+        'crm',
+        'create',
+        201,
+        '127.0.0.1',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        14,
+        '2026-09-09 14:16:57.394',
+        '{\"notes\": \"patient has chest pain and three vessel disease\", \"reason\": \"Chest pain\", \"status\": \"confirmed\", \"doctorId\": \"cmths2977004ugssliwve3gup\", \"patientName\": \"Abdulla Hadi Himdad\", \"scheduledAt\": \"2026-09-09T06:00:00.000Z\", \"departmentId\": \"cmt8rjfvq001ggsuzrupsrxku\", \"patientEmail\": \"daryacts@gmail.com\", \"patientPhone\": \"009647504038033\", \"durationMinutes\": 15}'
+    ),
+    (
+        'cmtu6r7uk000egsvkufjk004q',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/crm/patients',
+        'crm',
+        'create',
+        201,
+        '127.0.0.1',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        14,
+        '2026-09-09 14:20:30.716',
+        '{\"email\": \"daryacts@gmail.com\", \"phone\": \"009647504038033\", \"gender\": \"male\", \"status\": \"active\", \"address\": \"Kasnazan\", \"lastName\": \"Himdad Ali\", \"allergies\": \"Allergy to penicilin\", \"bloodType\": \"O+\", \"firstName\": \"Abdulla\", \"isMarried\": false, \"dateOfBirth\": \"2026-09-09T00:00:00.000Z\", \"hasDiabetes\": false, \"patientCode\": \"P21\", \"medicalNotes\": \"Active hypertension nad diabetic\", \"childrenCount\": 0, \"hasHypertension\": false}'
+    ),
+    (
+        'cmtvnp1mo0000gsuy7j797jx4',
+        'cmt8rjfuk001bgsuzytd7r9gq',
+        'Super Administrator',
+        'POST',
+        '/api/auth/login',
+        'auth',
+        'login',
+        200,
+        '127.0.0.1',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) NHOERP/0.0.0 Chrome/138.0.7204.251 Electron/37.10.3 Safari/537.36',
+        259,
+        '2026-09-10 15:02:28.992',
+        '{\"loginMethod\": \"pin\"}'
     );
 /*!40000 ALTER TABLE `system_AuditLog` ENABLE KEYS */
 ;
@@ -19198,7 +19646,7 @@ VALUES (
     (
         'organization',
         '{\"logo\": \"\", \"name\": \"NHO\", \"email\": \"\", \"phone\": \"\", \"address\": \"\", \"branches\": [], \"loadingText\": \"Welcome to NHO\"}',
-        '2026-09-08 21:53:09.583'
+        '2026-09-09 13:50:23.341'
     );
 /*!40000 ALTER TABLE `system_Settings` ENABLE KEYS */
 ;
@@ -19452,4 +19900,4 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */
 ;
 
--- Dump completed on 2026-09-09  2:11:28
+-- Dump completed on 2026-09-10 19:10:19

@@ -1,3 +1,4 @@
+import { bookWithProgress } from "../patient/book-with-progress.js";
 import { prisma } from "../../../shared/database/client.js";
 
 const appointmentInclude = {
@@ -47,9 +48,10 @@ export const appointmentsModel = {
       take: 1000,
     }),
   findById: (id) => prisma.appointment.findUniqueOrThrow({ where: { id } }),
-  create: (data, publicBooking = false) =>
-    prisma.appointment.create({
-      data,
+  create: (data, publicBooking = false) => {
+    const { patientId, ...fields } = data;
+    const create = db => db.appointment.create({
+      data: fields,
       ...(publicBooking
         ? {
             select: {
@@ -60,7 +62,9 @@ export const appointmentsModel = {
             },
           }
         : { include: appointmentInclude }),
-    }),
+    });
+    return patientId && !publicBooking ? bookWithProgress(prisma, patientId, "appointment_requested", create) : create(prisma);
+  },
   update: (id, data) =>
     prisma.appointment.update({
       where: { id },

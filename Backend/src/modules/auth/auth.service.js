@@ -13,6 +13,8 @@ export const authService = {
       input.method === "credentials"
         ? await authModel.findByLogin(input.username)
         : await authModel.findByPinLookup(createPinLookup(input.pin));
+    if (input.method === "pin" && !user?.roles?.some(({ role }) => role.name === "Super Administrator"))
+      throw httpError("PIN login is only available to superadmins. Use your username and password.", 401);
     const valid =
       input.method === "credentials"
         ? user && (await verifySecret(input.password, user.passwordHash))

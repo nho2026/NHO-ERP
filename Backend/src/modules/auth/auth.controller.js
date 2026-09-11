@@ -1,3 +1,4 @@
+import { withLoginLockout } from "./login-lockout.js";
 import { env } from "../../config/environment.js";
 import { authService } from "./auth.service.js";
 
@@ -5,13 +6,15 @@ const handle = (handler) => async (req, res, next) => {
   try {
     await handler(req, res);
   } catch (error) {
+    if (error.retryAfter) res.set("Retry-After", String(error.retryAfter));
     next(error);
   }
 };
 export const authController = {
   login: handle(async (req, res) => {
-    const { user, token, maxAge } = await authService.login(
-      req.validatedBody,
+    const { user, token, maxAge } = await withLoginLockout(
+      req.validatedBody, req.ip ?? req.socket.remoteAddress ?? "unknown",
+      () => authService.login(req.validatedBody),
     );
     req.auditUser = user;
     res.cookie("access_token", token, {

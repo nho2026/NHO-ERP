@@ -43,7 +43,13 @@ const newVariant = (): Variant => ({
   barcode: "",
   productionCompany: "",
 });
+const drugFields = ["doseMgKgDay", "dosesPerDay", "concentrationMg", "concentrationMl"] as const;
 type SpecialProduct = {
+  doseMgKgDay?: number | null;
+  dosesPerDay?: number | null;
+  concentrationMg?: number | null;
+  concentrationMl?: number | null;
+
   id: string;
   name: string;
   categoryId: string;
@@ -76,6 +82,7 @@ function SpecialProductForm({
       [],
     ),
   );
+  const [drug, setDrug] = useState(() => Object.fromEntries(drugFields.map(field => [field, String(product?.[field] ?? "")])));
   const [name, setName] = useState(product?.name ?? "");
   const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
   const [size, setSize] = useState(product?.size ?? "");
@@ -136,6 +143,7 @@ function SpecialProductForm({
         specialProfitRate: Number(profit),
         specialPrice: Number(specialPrice),
         productType,
+        ...Object.fromEntries(drugFields.map(field => [field, drug[field] === "" ? null : Number(drug[field])])),
         variants: variants.map(({ code, barcode, productionCompany }) => ({
           code,
           barcode,
@@ -159,6 +167,13 @@ function SpecialProductForm({
   const row = variants[0];
   return (
     <form onSubmit={submit} className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <p className="col-span-full font-semibold">{t("drugDose.title")}</p>
+        {drugFields.map(field => <div key={field} className="space-y-1">
+          <Label htmlFor={`drug-${field}`}>{t(`drugDose.${field}`)}</Label>
+          <Input id={`drug-${field}`} type="number" min="0.000001" step={field === "dosesPerDay" ? 1 : "any"} max={field === "dosesPerDay" ? 24 : undefined} disabled={busy} value={drug[field]} onChange={event => setDrug(current => ({ ...current, [field]: event.target.value }))} />
+        </div>)}
+      </div>
       {(error || categories.error) && (
         <p role="alert" className="text-sm text-destructive">
           {error || categories.error}

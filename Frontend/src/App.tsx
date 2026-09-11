@@ -52,13 +52,14 @@ import EmployeePortalPage from "@/features/employee-portal/pages/EmployeePortalP
 import HrWarningsPage from "@/features/hr/pages/HrWarningsPage";
 import HrAttendancePage from "@/features/hr/pages/HrAttendancePage";
 import PayrollPage from "@/features/hr/pages/PayrollPage";
-import MeetingsPage from "@/features/meetings/MeetingsPage";
 import TargetsPage from "@/features/targets/pages/TargetsPage";
 import CrmPage from "@/features/crm/pages/CrmPage";
+import PatientPrescriptionsPage from "@/features/crm/pages/PatientPrescriptionsPage";
 import PatientProfilePage from "@/features/crm/pages/PatientProfilePage";
 import CrmFormsPage from "@/features/crm/pages/CrmFormsPage";
 import LeadProgressPage from "@/features/crm/pages/LeadProgressPage";
 import LeadDetailPage from "@/features/crm/pages/LeadDetailPage";
+import WhatsappPage from "@/features/crm/pages/WhatsappPage";
 import SystemLogsPage from "@/features/system-logs/pages/SystemLogsPage";
 import { Toaster } from "sonner";
 import { DirectionProvider } from "@radix-ui/react-direction";
@@ -102,7 +103,7 @@ export default function App() {
           />
           <Route
             path="/meetings"
-            element={secured(undefined, <MeetingsPage />)}
+            element={secured(undefined, null)}
           />
           <Route
             path="/targets"
@@ -194,6 +195,10 @@ export default function App() {
             element={secured("employees.view", <CrmPage resource="leads" />)}
           />
           <Route
+            path="/crm/whatsapp"
+            element={secured("employees.view", <WhatsappPage />)}
+          />
+          <Route
             path="/crm/leads/progress"
             element={secured("employees.view", <LeadProgressPage />)}
           />
@@ -204,6 +209,10 @@ export default function App() {
           <Route
             path="/crm/patients"
             element={secured("employees.view", <CrmPage resource="patients" />)}
+          />
+          <Route
+            path="/crm/patients/:id/medications"
+            element={secured("employees.view", <PatientPrescriptionsPage />)}
           />
           <Route
             path="/crm/patients/:id"

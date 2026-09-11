@@ -341,7 +341,7 @@ export async function seedBusinessModules(count = 10) {
       patientNames[index % patientNames.length].split(" ");
     crmPatients.push(
       await prisma.patient.upsert({
-        where: { patientCode: `PAT-${String(index + 1).padStart(4, "0")}` },
+        where: { patientCode: `PAT-${index + 1}` },
         update: {
           firstName,
           lastName,
@@ -349,7 +349,7 @@ export async function seedBusinessModules(count = 10) {
           status: "active",
         },
         create: {
-          patientCode: `PAT-${String(index + 1).padStart(4, "0")}`,
+          patientCode: `PAT-${index + 1}`,
           firstName,
           lastName,
           phone: `075050${String(index + 1).padStart(5, "0")}`,

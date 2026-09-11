@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
@@ -39,7 +39,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
-import logo from "../../../assets/icons/logo.png";
+import defaultLogo from "../../../assets/icons/logo.png";
+import { apiClient } from "@/shared/api/client";
 import { useLogin } from "../hooks/useLogin";
 import type { LoginMethod } from "../types/auth.types";
 import { isCashier } from "../access";
@@ -48,6 +49,19 @@ import { WindowControls } from "@/shared/components/WindowControls";
 function LoginPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [logo, setLogo] = useState(defaultLogo);
+  useEffect(() => {
+    const controller = new AbortController();
+    void apiClient
+      .get<{ logo: string }>("/settings/logo", { signal: controller.signal })
+      .then(({ data }) => {
+        if (!controller.signal.aborted) setLogo(data.logo || defaultLogo);
+      })
+      .catch(() => {
+        // Keep the bundled logo available if the server cannot be reached.
+      });
+    return () => controller.abort();
+  }, []);
   const [method, setMethod] = useState<LoginMethod>("credentials");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);

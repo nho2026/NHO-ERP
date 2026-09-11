@@ -1,3 +1,4 @@
+import { createWithCode, withoutCode } from "../../../shared/database/automatic-code.js";
 import { prisma } from "../../../shared/database/client.js";
 
 const templateInclude = { _count: { select: { submissions: true } } };
@@ -15,11 +16,11 @@ export const formsModel = {
     }),
   template: (id) => prisma.crmFormTemplate.findUniqueOrThrow({ where: { id } }),
   createTemplate: (data) =>
-    prisma.crmFormTemplate.create({ data, include: templateInclude }),
+    createWithCode(prisma.crmFormTemplate, { data, include: templateInclude }, "FRM"),
   updateTemplate: (id, data) =>
     prisma.crmFormTemplate.update({
       where: { id },
-      data,
+      data: withoutCode(data),
       include: templateInclude,
     }),
   removeTemplate: (id) => prisma.crmFormTemplate.delete({ where: { id } }),

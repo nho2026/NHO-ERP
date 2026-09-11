@@ -10,7 +10,7 @@ export const patientFilterSchema = z.object({
   bloodType: z
     .enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
     .optional(),
-  status: z.enum(["active", "inactive"]).optional(),
+  status: z.enum(["new", "contacted", "qualified", "appointment_requested", "surgery_appointment", "converted", "direct_surgery_converted", "active", "inactive"]).optional(),
   isMarried: booleanFilter.optional(),
   hasDiabetes: booleanFilter.optional(),
   hasHypertension: booleanFilter.optional(),

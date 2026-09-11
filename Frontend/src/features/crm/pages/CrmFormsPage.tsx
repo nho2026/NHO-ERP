@@ -73,7 +73,6 @@ export default function CrmFormsPage() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const payload = {
-      code: String(form.get("code")),
       name: String(form.get("name")),
       description: String(form.get("description")) || null,
       category: String(form.get("category")),
@@ -176,10 +175,6 @@ export default function CrmFormsPage() {
           </DialogHeader>
           <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
             <div className="grid gap-4 overflow-y-auto p-6 sm:grid-cols-2">
-              <Label className="grid gap-2">
-                Code
-                <Input name="code" required defaultValue={editing?.code} />
-              </Label>
               <Label className="grid gap-2">
                 Form name
                 <Input name="name" required defaultValue={editing?.name} />

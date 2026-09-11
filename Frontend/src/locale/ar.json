@@ -1,4 +1,10 @@
 {
+  "patientTv": {"open": "عرض التلفاز", "back": "رجوع"},
+  "whatsappInbox": {"title": "صندوق وارد واتساب", "subtitle": "تتحول جهات الاتصال الواردة تلقائياً إلى عملاء محتملين برموز في نظام إدارة علاقات العملاء.", "configured": "تم إعداد Cloud API", "configurationRequired": "الإعداد مطلوب", "refresh": "تحديث الوارد", "configurationError": "تعذر تحميل إعدادات واتساب: {{error}}", "conversationsError": "تعذر تحميل محادثات واتساب: {{error}}", "setup": "أضف {{variables}} إلى Backend/.env، ثم سجّل {{webhook}} في Meta.", "search": "ابحث بالاسم أو الهاتف أو رمز العميل المحتمل", "newConversation": "محادثة جديدة", "loading": "جارٍ تحميل المحادثات…", "loadFailed": "تعذر تحميل المحادثات. راجع الخطأ أعلاه وأعد المحاولة.", "noMatches": "لا توجد محادثات تطابق بحثك.", "empty": "لم تصل رسائل واتساب بعد. تظهر المحادثات الجديدة عند استلام رسالة.", "lead": "العميل المحتمل {{code}}", "compose": "اكتب رسالة واتساب", "send": "إرسال", "selectConversation": "اختر محادثة لعرض الرسائل.", "sentSuccess": "تم إرسال رسالة واتساب.", "employeeName": "اسم الموظف", "sent": "تم الإرسال", "delivered": "تم التسليم", "read": "تمت القراءة", "failed": "فشل", "received": "تم الاستلام", "pending": "قيد الانتظار", "text": "نص", "image": "صورة", "audio": "صوت", "video": "فيديو", "document": "مستند", "sticker": "ملصق", "location": "الموقع", "contacts": "جهات الاتصال", "unknown": "رسالة"},
+  "patientBooking": {"departmentId": "القسم", "doctorId": "الطبيب", "surgeryId": "العملية", "scheduledAt": "التاريخ والوقت", "operatingRoom": "غرفة العمليات", "durationMinutes": "المدة (دقائق)", "notes": "ملاحظات (اختياري)", "description": "اختر الطبيب وحدد موعد زيارة المريض.", "loading": "جارٍ التحميل…", "selectDepartment": "اختر القسم", "departmentFirst": "اختر القسم أولاً", "selectDoctor": "اختر الطبيب", "selectSurgery": "اختر العملية", "selectRoom": "اختر غرفة العمليات", "notesPlaceholder": "سبب الزيارة أو تعليمات إضافية", "cancel": "إلغاء", "saving": "جارٍ الحفظ…", "save": "حفظ الموعد", "noDepartments": "لا توجد أقسام مستشفى نشطة متاحة.", "noDoctors": "لا يوجد أطباء متاحون لهذا الاختيار."},
+  "patientProgress": {"new": "تمت الاستشارة", "contacted": "متابعة", "qualified": "جاهز", "appointment_requested": "موعد العيادة الخارجية", "surgery_appointment": "موعد العملية", "converted": "تم التحويل من العيادة", "direct_surgery_converted": "تم التحويل المباشر للعملية", "inactive": "غير نشط"},
+  "patientActions": {"editProfile": "تعديل الملف", "saveProfile": "حفظ التغييرات", "appointment": "حجز موعد", "updateError": "تعذر تحديث حالة المريض."},
+  "drugDose": {"title": "حساب جرعة الدواء", "doseMgKgDay": "الجرعة (ملغ/كغ/يوم)", "dosesPerDay": "عدد الجرعات يومياً", "concentrationMg": "التركيز: كمية الدواء (ملغ)", "concentrationMl": "التركيز: الحجم (مل)", "weight": "الوزن (كغ)", "missing": "أدخل الجرعة وعدد الجرعات والتركيز في المخزون لحساب جرعة هذا المنتج.", "apply": "تطبيق الجرعة المحسوبة", "review": "راجع جرعة المنتج ووزن المريض قبل التطبيق."},
   "language": {
     "label": "اللغة",
     "english": "الإنجليزية",
@@ -24,7 +30,7 @@
     "welcome": "مرحباً بعودتك",
     "subtitle": "أدخل بياناتك للوصول إلى حسابك.",
     "usernameTab": "اسم المستخدم",
-    "pinTab": "الرمز السري",
+    "pinTab": "رمز المدير العام",
     "username": "اسم المستخدم أو البريد الإلكتروني",
     "usernamePlaceholder": "أدخل اسم المستخدم",
     "password": "كلمة المرور",
@@ -36,7 +42,7 @@
     "signIn": "تسجيل الدخول إلى مساحة العمل",
     "signingIn": "جارٍ تسجيل الدخول…",
     "pinTitle": "أدخل رمز الدخول",
-    "pinDescription": "استخدم الرمز المكون من 6 أرقام والمخصص لحسابك.",
+    "pinDescription": "الدخول بالرمز متاح للمديرين العامين فقط. يستخدم الآخرون اسم المستخدم وكلمة المرور.",
     "pinLegend": "رمز سري من ستة أرقام",
     "pinDigit": "الرقم {{number}} من الرمز",
     "continue": "متابعة آمنة",
@@ -133,6 +139,7 @@
     "permissions": "الصلاحيات",
     "targets": "الأهداف",
     "crmLeads": "العملاء المحتملون",
+    "crmWhatsapp": "واتساب",
     "crmPatients": "المرضى",
     "crmReferrals": "الإحالات",
     "leadProgressOverview": "نظرة عامة على تقدم العملاء المحتملين",
@@ -499,6 +506,7 @@
     "unknown": "غير معروف"
   },
   "serviceAdvance": {
+    "employeeName": "اسم الموظف",
     "title": "سلف خدمات المستشفى",
     "description": "إدارة دفعات المرضى المستلمة قبل إصدار فواتير خدمات المستشفى.",
     "add": "إضافة سلفة خدمة",
@@ -919,7 +927,10 @@
       "referredAt": "تاريخ الإحالة"
     }
   },
-  "healthcareAdmin": {
+  "healthcareAdmin": {"position": "المنصب","clinicalRole": "الدور السريري",
+    "departmentType": "نوع القسم",
+    "hospital": "مستشفى",
+    "office": "مكتب",
     "descriptions": {
       "departments": "إدارة الأقسام الطبية ومديريها والموظفين المعينين فيها.",
       "staff": "إنشاء ملفات طبية من موظفي الموارد البشرية الحاليين.",
@@ -1551,7 +1562,8 @@
       "microphoneMissing": "لم يتم العثور على ميكروفون. وصّله وتحقق من جهاز الإدخال.",
       "microphoneBusy": "الميكروفون غير متاح أو مستخدم من تطبيق آخر. أغلق تطبيقات الصوت الأخرى وأعد المحاولة.",
       "microphoneOpen": "تعذر فتح الميكروفون.{{detail}}",
-      "screenSecure": "تتطلب مشاركة الشاشة Electron أو localhost أو اتصال HTTPS.",
+      "screenSecure": "تتطلب مشاركة الشاشة اتصالًا آمنًا. افتح الموقع باستخدام HTTPS وشهادة موثوقة.",
+      "screenUnsupported": "هذا المتصفح لا يدعم مشاركة شاشتك، ولا يكفي HTTPS لتفعيلها. شارك من متصفح مدعوم على الكمبيوتر أو من تطبيق سطح المكتب؛ يمكنك متابعة شاشات الآخرين من هاتفك.",
       "screenDenied": "تم رفض إذن مشاركة الشاشة أو إلغاء الاختيار.",
       "screenStart": "تعذر بدء مشاركة الشاشة.",
       "chatReconnecting": "تتم إعادة اتصال الدردشة. انتظر قليلًا ثم حاول مجددًا.",

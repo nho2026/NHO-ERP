@@ -1,3 +1,5 @@
+import PatientAppointmentDialog from "../components/PatientAppointmentDialog";
+const patientStages = ["new", "contacted", "qualified", "appointment_requested", "surgery_appointment", "converted", "direct_surgery_converted"];
 import { useSettings } from "@/features/settings/settings";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -290,7 +292,6 @@ const configs: Record<
     title: "Patients",
     description: "Central patient records and medical contact information.",
     fields: [
-      { name: "patientCode", label: "Patient code", required: true },
       { name: "firstName", label: "First name", required: true },
       { name: "lastName", label: "Last name", required: true },
       { name: "phone", label: "Phone", required: true },
@@ -315,7 +316,7 @@ const configs: Record<
         name: "status",
         label: "Status",
         type: "select",
-        options: ["active", "inactive"],
+        options: patientStages,
         required: true,
       },
     ],
@@ -382,7 +383,6 @@ const configs: Record<
     title: "Surgeries",
     description: "Maintain the surgery and procedure catalog.",
     fields: [
-      { name: "code", label: "Code", required: true },
       { name: "name", label: "Surgery name", required: true },
       { name: "description", label: "Description", type: "textarea" },
       {
@@ -551,7 +551,9 @@ const patientAge = (dateOfBirth: unknown) => {
   return String(age);
 };
 export default function CrmPage({ resource }: { resource: CrmResource }) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [patientBooking, setPatientBooking] = useState<{ patient: CrmRecord; surgery: boolean } | null>(null);
+  const [appointmentPatientId, setAppointmentPatientId] = useState("");
   const { t } = useTranslation();
   const systemSettings = useSettings();
   const config = {
@@ -645,6 +647,18 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       setOpen(true);
     }
   }, [data.data?.items, resource, searchParams]);
+  useEffect(() => {
+    const patientId = searchParams.get("patientId");
+    if (resource !== "surgery-appointments" || !patientId) return;
+    setAppointmentPatientId(patientId);
+    setEditingRecord(null);
+    setOpen(true);
+    setSearchParams({}, { replace: true });
+  }, [resource, searchParams, setSearchParams]);
+  const patientProgressLabel = (status: unknown) => t(`patientProgress.${status === "active" ? "new" : String(status)}`, { defaultValue: String(status) });
+  const openPatientAppointment = (patient: CrmRecord, status: string) => {
+    if (status === "appointment_requested" || status === "surgery_appointment") setPatientBooking({ patient, surgery: status === "surgery_appointment" });
+  };
   const rows = useMemo(
     () =>
       (data.data?.items ?? []).filter((x) =>
@@ -671,13 +685,17 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       payload[field.name] = raw || null;
       if (field.type === "number" && raw) payload[field.name] = Number(raw);
     }
+    const requestedStatus = payload.status;
+    if (resource === "patients" && ["appointment_requested", "surgery_appointment"].includes(String(requestedStatus))) payload.status = editingRecord?.status ?? "new";
     try {
       const saved = editingRecord
         ? await crmApi[resource].update(editingRecord.id, payload)
         : await crmApi[resource].create(payload);
       if (resource === "leads" && leadFiles.length)
         await leadAttachmentApi.upload(saved.id, leadFiles);
+      if (resource === "patients") openPatientAppointment(saved, String(requestedStatus));
       setOpen(false);
+      setAppointmentPatientId("");
       setEditingRecord(null);
       setLeadFiles([]);
       await Promise.all([data.refresh(), lookups.refresh()]);
@@ -733,6 +751,28 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       </span>
     );
   };
+  const [patientStatusBusy, setPatientStatusBusy] = useState<string | null>(null);
+  const patientStatusControl = (patient: CrmRecord) => <Select
+    value={String(patient.status === "active" ? "new" : patient.status)} disabled={patientStatusBusy !== null}
+    onValueChange={async status => {
+      if (patientStatusBusy !== null || status === patient.status) return;
+      if (["appointment_requested", "surgery_appointment"].includes(status)) { openPatientAppointment(patient, status); return; }
+      setPatientStatusBusy(patient.id);
+      try {
+        await crmApi.patients.update(patient.id, { status });
+        await Promise.all([data.refresh(), lookups.refresh()]);
+      } catch { toast.error(t("patientActions.updateError")); }
+      finally { setPatientStatusBusy(null); }
+    }}>
+    <SelectTrigger className="h-9 w-full min-w-0 [&>span]:truncate" aria-label={`${t("crm.fields.status")} ${patient.firstName} ${patient.lastName}`}><SelectValue /></SelectTrigger>
+    <SelectContent>{[...patientStages, ...(patient.status === "inactive" ? ["inactive"] : [])].map(status => <SelectItem key={status} value={status}>{patientProgressLabel(status)}</SelectItem>)}</SelectContent>
+  </Select>;
+  const patientEditAction = (patient: CrmRecord) => <Button asChild variant="outline" size="icon" className="size-9 shrink-0 border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" data-action="edit" title={t("patientActions.editProfile")} aria-label={t("patientActions.editProfile")}>
+    <Link to={`/crm/patients/${patient.id}?edit=1`}><Pencil className="size-4" /></Link>
+  </Button>;
+  const patientAppointmentAction = (patient: CrmRecord) => <Button type="button" variant="outline" size="icon" className="size-9 shrink-0 border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" title={t("patientActions.appointment")} aria-label={t("patientActions.appointment")} onClick={() => openPatientAppointment(patient, "appointment_requested")}>
+    <CalendarPlus className="size-4" />
+  </Button>;
   const updateLeadStatus = async (row: CrmRecord, status: string) => {
     try {
       await crmApi.leads.update(row.id, { status });
@@ -997,12 +1037,13 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
             })}
           </p>
         </div>
+        {canManage && patientBooking && <PatientAppointmentDialog patient={patientBooking.patient} surgery={patientBooking.surgery} onClose={() => setPatientBooking(null)} onSaved={() => { void data.refresh(); void lookups.refresh(); }} />}
         {canManage && (
           <Dialog
             open={open}
             onOpenChange={(nextOpen) => {
               setOpen(nextOpen);
-              if (!nextOpen) setEditingRecord(null);
+              if (!nextOpen) { setEditingRecord(null); setAppointmentPatientId(""); }
             }}
           >
             <DialogTrigger asChild>
@@ -1018,7 +1059,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
               </Button>
             </DialogTrigger>
             <DialogContent
-              className={`max-h-[90vh] overflow-hidden p-0 ${resource === "leads" ? "flex h-[88vh] flex-col sm:max-w-5xl" : "sm:max-w-2xl"}`}
+              className={`flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 ${resource === "leads" ? "h-[88dvh] sm:max-w-5xl" : "sm:max-w-2xl"}`}
             >
               <DialogHeader className="shrink-0 border-b px-6 py-4">
                 <DialogTitle>
@@ -1029,9 +1070,10 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
               </DialogHeader>
               <form
                 key={editingRecord?.id ?? surgeryDraftAt ?? "create"}
-                className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6 pt-4 [scrollbar-gutter:stable] grid gap-4 ${resource === "leads" ? "md:grid-cols-3" : "sm:grid-cols-2"}`}
+                className="flex min-h-0 flex-1 flex-col overflow-hidden"
                 onSubmit={submit}
               >
+                <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6 pt-4 [scrollbar-gutter:stable] grid gap-4 ${resource === "leads" ? "md:grid-cols-3" : "sm:grid-cols-2"}`}>
                 {config.fields
                   .filter(
                     (field) =>
@@ -1117,7 +1159,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                                 )
                                 .map((x) => (
                                   <SelectItem key={x} value={x}>
-                                    {t(`crm.values.${x}`, {
+                                    {resource === "patients" && field.name === "status" ? patientProgressLabel(x) : t(`crm.values.${x}`, {
                                       defaultValue: x.replaceAll("_", " "),
                                     })}
                                   </SelectItem>
@@ -1142,7 +1184,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                             name={field.name}
                             required={field.required}
                             defaultValue={String(
-                              editingRecord?.[field.name] ?? "",
+                              editingRecord?.[field.name] ?? appointmentPatientId,
                             )}
                             placeholder={t("crm.actions.selectPatient")}
                             searchPlaceholder={t("crm.actions.searchPatients")}
@@ -1265,14 +1307,15 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                     )}
                   </div>
                 )}
+                </div>
+                <div className="shrink-0 border-t bg-background px-6 py-4">
                 <Button
-                  className={
-                    resource === "leads" ? "md:col-span-3" : "sm:col-span-2"
-                  }
+                  className="w-full"
                   type="submit"
                 >
                   {editingRecord ? "Save changes" : "Save"}
                 </Button>
+                </div>
               </form>
             </DialogContent>
           </Dialog>
@@ -1620,10 +1663,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                   allLabel={t("crm.values.all")}
                   label="Status"
                   value={draftPatientFilters.status}
-                  options={[
-                    ["active", "Active"],
-                    ["inactive", "Inactive"],
-                  ]}
+                  options={[...patientStages, "active", "inactive"].map(status => [status, patientProgressLabel(status)])}
                   onChange={(status) =>
                     setDraftPatientFilters((current) => ({
                       ...current,
@@ -1816,7 +1856,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
               >
                 <Link
                   to={`/crm/patients/${patient.id}`}
-                  className="block h-full"
+                  className="block"
                 >
                   <div className="bg-gradient-to-br from-primary/10 via-teal-500/5 to-transparent p-4 pb-3">
                     <div className="flex items-start gap-3">
@@ -1836,7 +1876,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                         variant="outline"
                         className={`shrink-0 capitalize ${statusClass(patient.status)}`}
                       >
-                        {String(patient.status)}
+                        {patientProgressLabel(patient.status)}
                       </Badge>
                     </div>
                   </div>
@@ -1916,6 +1956,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                     </div>
                   </CardContent>
                 </Link>
+                {canManage && <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 border-t p-3">{patientStatusControl(patient)}{patientEditAction(patient)}{patientAppointmentAction(patient)}</div>}
               </Card>
             ))}
           </div>
@@ -2033,12 +2074,14 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                         >
                           {show(row, key)}
                         </Link>
+                      ) : key === "status" && resource === "patients" && canManage ? (
+                        patientStatusControl(row)
                       ) : key === "status" ? (
                         <Badge
                           variant="outline"
                           className={`capitalize ${statusClass(row.status)}`}
                         >
-                          {show(row, key)}
+                          {resource === "patients" ? patientProgressLabel(row.status) : show(row, key)}
                         </Badge>
                       ) : (
                         show(row, key)
@@ -2073,6 +2116,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                             )}
                           </>
                         )}
+                        {resource === "patients" && canManage && <>{patientEditAction(row)}{patientAppointmentAction(row)}</>}
                         {resource === "leads" && (
                           <>
                             <Button

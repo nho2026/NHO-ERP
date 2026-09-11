@@ -9,6 +9,7 @@ export const userService = {
     return (await userModel.findAll()).map(presentUser);
   },
   async create({ roleIds, pin, password, ...data }) {
+    if (pin && !(await userModel.hasSuperadminRole(roleIds))) throw forbidden("Only superadmins can have a login PIN.");
     return presentUser(
       await userModel.create({
         ...data,
@@ -20,12 +21,17 @@ export const userService = {
     );
   },
   async update(id, { roleIds, pin, password, ...data }) {
+    const superadmin = roleIds
+      ? await userModel.hasSuperadminRole(roleIds)
+      : (await userModel.findById(id)).roles.some(({ role }) => role.name === "Super Administrator");
+    if (pin && !superadmin) throw forbidden("Only superadmins can have a login PIN.");
     const update = { ...data };
     if (password) update.passwordHash = await hashSecret(password);
     if (pin !== undefined) {
       update.pinHash = pin ? await hashSecret(pin) : null;
       update.pinLookup = pin ? createPinLookup(pin) : null;
     }
+    if (!superadmin) { update.pinHash = null; update.pinLookup = null; }
     if (roleIds)
       update.roles = {
         deleteMany: {},

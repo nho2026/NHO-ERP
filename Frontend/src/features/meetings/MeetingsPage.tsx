@@ -5,6 +5,7 @@ import {
   settingsSnapshot,
 } from "@/features/settings/settings";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { io, type Socket } from "socket.io-client";
 import {
   Camera,
@@ -196,7 +197,13 @@ function AudioStream({ stream }: { stream: MediaStream }) {
   return <audio ref={ref} autoPlay />;
 }
 
-export default function MeetingsPage() {
+export default function MeetingsPage({
+  visible = true,
+  onReturn,
+}: {
+  visible?: boolean;
+  onReturn?: () => void;
+}) {
   const { t } = useTranslation();
   const user = storedUser();
   const canCreate = hasPermission(user, "meetings.create");
@@ -250,11 +257,11 @@ export default function MeetingsPage() {
     }
   }, []);
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (visible) void load();
+  }, [load, visible]);
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (visible) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, visible]);
   useEffect(() => {
     if (!canCreate) return;
     void meetingsApi
@@ -443,6 +450,7 @@ export default function MeetingsPage() {
       return;
     }
     const socket = io(socketUrl, {
+      path: "/api/socket.io",
       withCredentials: true,
       transports: ["polling"],
       timeout: 10_000,
@@ -708,8 +716,12 @@ export default function MeetingsPage() {
       toast.info("Screen sharing is disabled in meeting settings.");
       return;
     }
-    if (!navigator.mediaDevices?.getDisplayMedia) {
+    if (!window.isSecureContext) {
       toast.error(t("liveMeetings.errors.screenSecure"));
+      return;
+    }
+    if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") {
+      toast.error(t("liveMeetings.errors.screenUnsupported"), { duration: 10_000 });
       return;
     }
     try {
@@ -850,6 +862,8 @@ export default function MeetingsPage() {
       },
     ]);
   };
+
+  if (!active && !visible) return null;
 
   if (!active)
     return (
@@ -1085,7 +1099,85 @@ export default function MeetingsPage() {
     );
 
   return (
-    <div className="grid min-h-[calc(100svh-7.5rem)] gap-4 xl:grid-cols-[1fr_340px]">
+    <>
+      {!visible &&
+        createPortal(
+          <Card
+            dir={document.documentElement.dir || "ltr"}
+            className="fixed bottom-4 end-4 z-50 w-[min(24rem,calc(100vw-2rem))] shadow-xl"
+          >
+            <CardContent className="space-y-3 p-4">
+              <Button
+                variant="ghost"
+                className="h-auto w-full justify-start whitespace-normal text-start"
+                onClick={onReturn}
+              >
+                <Video className="shrink-0 text-primary" />
+                <span>
+                  {t("liveMeetings.title")} · {active.title}
+                </span>
+              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    microphoneStream
+                      ? void stopStream(microphoneStream, setMicrophoneStream)
+                      : void startMicrophone()
+                  }
+                >
+                  {microphoneStream ? <MicOff /> : <Mic />}
+                  {t(
+                    microphoneStream
+                      ? "liveMeetings.mute"
+                      : "liveMeetings.microphone",
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    cameraStream
+                      ? void stopStream(cameraStream, setCameraStream)
+                      : void startCamera()
+                  }
+                >
+                  {cameraStream ? <CameraOff /> : <Camera />}
+                  {t(
+                    cameraStream
+                      ? "liveMeetings.stopCamera"
+                      : "liveMeetings.camera",
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    screenStream
+                      ? void stopStream(screenStream, setScreenStream)
+                      : void startScreen()
+                  }
+                >
+                  <MonitorUp />
+                  {t(
+                    screenStream
+                      ? "liveMeetings.stopSharing"
+                      : "liveMeetings.shareScreen",
+                  )}
+                </Button>
+                <Button variant="destructive" size="sm" onClick={leave}>
+                  <LogOut /> {t("liveMeetings.leave")}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>,
+          document.body,
+        )}
+    <div
+      style={{ display: visible ? undefined : "none" }}
+      className="grid min-h-[calc(100svh-7.5rem)] gap-4 xl:grid-cols-[1fr_340px]"
+    >
       <section className="flex min-w-0 flex-col gap-4">
         <div className="sticky bottom-3 z-20 order-2 flex flex-wrap items-center justify-center gap-2 rounded-2xl border bg-card/95 p-3 shadow-lg backdrop-blur-xl xl:static xl:order-1 xl:justify-start xl:shadow-sm">
           <div className="me-auto">
@@ -1378,6 +1470,7 @@ export default function MeetingsPage() {
         </div>
       </aside>
     </div>
+    </>
   );
 }
 

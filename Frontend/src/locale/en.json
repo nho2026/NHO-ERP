@@ -1,4 +1,10 @@
 {
+  "patientTv": {"open": "TV view", "back": "Go back"},
+  "whatsappInbox": {"title": "WhatsApp inbox", "subtitle": "Incoming contacts automatically become coded CRM leads.", "configured": "Cloud API configured", "configurationRequired": "Configuration required", "refresh": "Refresh inbox", "configurationError": "Unable to load WhatsApp configuration: {{error}}", "conversationsError": "Unable to load WhatsApp conversations: {{error}}", "setup": "Add {{variables}} to Backend/.env, then register {{webhook}} in Meta.", "search": "Search name, phone, or lead code", "newConversation": "New conversation", "loading": "Loading conversations…", "loadFailed": "Conversations could not be loaded. See the error above and retry.", "noMatches": "No conversations match your search.", "empty": "No incoming WhatsApp messages yet. New conversations appear when a message is received.", "lead": "Lead {{code}}", "compose": "Type a WhatsApp message", "send": "Send", "selectConversation": "Select a conversation to view messages.", "sentSuccess": "WhatsApp message sent.", "employeeName": "Employee name", "sent": "Sent", "delivered": "Delivered", "read": "Read", "failed": "Failed", "received": "Received", "pending": "Pending", "text": "Text", "image": "Image", "audio": "Audio", "video": "Video", "document": "Document", "sticker": "Sticker", "location": "Location", "contacts": "Contacts", "unknown": "Message"},
+  "patientBooking": {"departmentId": "Department", "doctorId": "Doctor", "surgeryId": "Surgery", "scheduledAt": "Date and time", "operatingRoom": "Operating room", "durationMinutes": "Duration (minutes)", "notes": "Notes (optional)", "description": "Choose the doctor and schedule the patient’s visit.", "loading": "Loading…", "selectDepartment": "Select department", "departmentFirst": "Select a department first", "selectDoctor": "Select doctor", "selectSurgery": "Select surgery", "selectRoom": "Select operating room", "notesPlaceholder": "Reason for the visit or additional instructions", "cancel": "Cancel", "saving": "Saving…", "save": "Save appointment", "noDepartments": "No active Hospital departments are available.", "noDoctors": "No doctors are available for this selection."},
+  "patientProgress": {"new": "Consulted", "contacted": "Follow-up", "qualified": "Ready", "appointment_requested": "OPD Appointment", "surgery_appointment": "Surgery Appointment", "converted": "OPD Converted", "direct_surgery_converted": "Direct Surgery Converted", "inactive": "Inactive"},
+  "patientActions": {"editProfile": "Edit profile", "saveProfile": "Save changes", "appointment": "Make appointment", "updateError": "Could not update patient status."},
+  "drugDose": {"title": "Drug-dose calculation", "doseMgKgDay": "Dose (mg/kg/day)", "dosesPerDay": "Doses per day", "concentrationMg": "Concentration: medicine (mg)", "concentrationMl": "Concentration: volume (mL)", "weight": "Weight (kg)", "missing": "Enter dose, frequency and concentration in inventory to calculate this product.", "apply": "Apply calculated dose", "review": "Review the product dose and patient weight before applying."},
   "language": {
     "label": "Language",
     "english": "English",
@@ -24,7 +30,7 @@
     "welcome": "Welcome back",
     "subtitle": "Enter your details to access your account.",
     "usernameTab": "Username",
-    "pinTab": "Secure PIN",
+    "pinTab": "Superadmin PIN",
     "username": "Username or email",
     "usernamePlaceholder": "Enter your username",
     "password": "Password",
@@ -36,7 +42,7 @@
     "signIn": "Sign in to workspace",
     "signingIn": "Signing in…",
     "pinTitle": "Enter your access PIN",
-    "pinDescription": "Use the 6-digit PIN assigned to your account.",
+    "pinDescription": "PIN login is available only to superadmins. Other users must sign in with username and password.",
     "pinLegend": "Six digit PIN",
     "pinDigit": "PIN digit {{number}}",
     "continue": "Continue securely",
@@ -133,6 +139,7 @@
     "permissions": "Permissions",
     "targets": "Targets",
     "crmLeads": "Leads",
+    "crmWhatsapp": "WhatsApp",
     "crmPatients": "Patients",
     "crmReferrals": "Referrals",
     "leadProgressOverview": "Lead progress overview",
@@ -499,6 +506,7 @@
     "unknown": "Unknown"
   },
   "serviceAdvance": {
+    "employeeName": "Employee name",
     "title": "Hospital service advances",
     "description": "Manage patient deposits received before hospital services are invoiced.",
     "add": "Add service advance",
@@ -919,7 +927,10 @@
       "referredAt": "Referral date"
     }
   },
-  "healthcareAdmin": {
+  "healthcareAdmin": {"position": "Position","clinicalRole": "Clinical role",
+    "departmentType": "Department type",
+    "hospital": "Hospital",
+    "office": "Office",
     "descriptions": {
       "departments": "Manage clinical departments, managers and assigned employees.",
       "staff": "Create medical profiles from existing HR employees.",
@@ -1551,7 +1562,8 @@
       "microphoneMissing": "No microphone was found. Connect a microphone and check the system input device.",
       "microphoneBusy": "The microphone is unavailable or being used by another application. Close other audio apps and retry.",
       "microphoneOpen": "Unable to open the microphone.{{detail}}",
-      "screenSecure": "Screen sharing requires Electron, localhost, or an HTTPS connection.",
+      "screenSecure": "Screen sharing requires a secure connection. Open this site using HTTPS with a trusted certificate.",
+      "screenUnsupported": "This browser does not support sharing your screen. HTTPS alone cannot enable it. Share from a supported desktop browser or the desktop app; you can still watch others sharing from your phone.",
       "screenDenied": "Screen-sharing permission was denied or the picker was cancelled.",
       "screenStart": "Unable to start screen sharing.",
       "chatReconnecting": "Chat is reconnecting. Wait a moment and try again.",

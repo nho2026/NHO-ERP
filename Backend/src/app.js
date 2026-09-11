@@ -27,6 +27,7 @@ import employeePortalRoutes from "./modules/employee-portal/employee-portal.rout
 import meetingRoutes from "./modules/meetings/meetings.routes.js";
 import targetRoutes from "./modules/targets/targets.routes.js";
 import crmRoutes from "./modules/crm/crm.routes.js";
+import whatsappRoutes from "./modules/crm/whatsapp/whatsapp.routes.js";
 import systemLogRoutes from "./modules/system-logs/system-logs.routes.js";
 import { auditApiRequest } from "./shared/middleware/audit-log.middleware.js";
 import { errorHandler } from "./shared/errors/error.middleware.js";
@@ -89,6 +90,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/employee-portal", employeePortalRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/targets", targetRoutes);
+app.use("/api/crm/whatsapp", whatsappRoutes);
 app.use("/api/crm", crmRoutes);
 app.use("/api/system-logs", systemLogRoutes);
 app.use((_req, res) => res.status(404).json({ message: "Route not found." }));

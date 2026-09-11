@@ -10,4 +10,10 @@ export const env = {
     .map((value) => value.trim())
     .filter(Boolean),
   production: process.env.NODE_ENV === "production",
+  whatsapp: {
+    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN ?? "",
+    accessToken: process.env.WHATSAPP_ACCESS_TOKEN ?? "",
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID ?? "",
+    graphVersion: process.env.WHATSAPP_GRAPH_VERSION ?? "v26.0",
+  },
 };

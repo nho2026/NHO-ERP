@@ -14,7 +14,13 @@ const productExpiry = z.preprocess(
     return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
   }, "Enter a valid calendar date.").transform(value => new Date(`${value}T00:00:00.000Z`)).nullable().optional(),
 );
+const optionalPositive = z.preprocess(value => value === "" ? null : value, z.coerce.number().finite().positive().nullable().optional());
 export const productSchema = z.object({
+  doseMgKgDay: optionalPositive,
+  dosesPerDay: z.preprocess(value => value === "" ? null : value, z.coerce.number().int().positive().max(24).nullable().optional()),
+  concentrationMg: optionalPositive,
+  concentrationMl: optionalPositive,
+
   expiryDate: productExpiry,
   sku: z.string().trim().min(1),
   barcode: optionalText,
@@ -55,6 +61,11 @@ export const barcodeAssignmentSchema = z.object({
 
 export const specialProductSchema = z
   .object({
+    doseMgKgDay: productSchema.shape.doseMgKgDay,
+    dosesPerDay: productSchema.shape.dosesPerDay,
+    concentrationMg: productSchema.shape.concentrationMg,
+    concentrationMl: productSchema.shape.concentrationMl,
+
     name: z.string().trim().min(2).max(191),
     categoryId: z.string().min(1),
     size: z.string().trim().max(100).default(""),

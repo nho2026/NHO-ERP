@@ -1,6 +1,6 @@
 import { z } from "zod";
 export const employeeSchema = z.object({
-  employeeCode: z.string().trim().min(1).max(32),
+  employeeCode: z.string().optional(),
   userId: z.string().trim().nullable().optional(),
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),

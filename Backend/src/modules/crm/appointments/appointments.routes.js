@@ -2,7 +2,7 @@ import { Router } from "express";
 import { requirePermission, requireAnyPermission } from "../../../shared/middleware/permission.middleware.js";
 import { validate } from "../../../shared/middleware/validation.middleware.js";
 import { appointmentsController } from "./appointments.controller.js";
-import { appointmentSchema } from "./appointments.schema.js";
+import { appointmentSchema, appointmentCreateSchema } from "./appointments.schema.js";
 
 const router = Router();
 const canViewAppointments = requirePermission("employees.view");
@@ -15,7 +15,7 @@ router.get("/", canViewAppointments, appointmentsController.list);
 router.post(
   "/",
   canManageAppointments,
-  validate(appointmentSchema),
+  validate(appointmentCreateSchema),
   appointmentsController.create,
 );
 router.patch(

@@ -1,3 +1,4 @@
+import { createPatient } from "../patient/patient-code.js";
 import { prisma } from "../../../shared/database/client.js";
 
 const select = {
@@ -93,12 +94,7 @@ export const leadModel = {
       const parts = lead.name.trim().split(/\s+/);
       const firstName = parts.shift() || lead.name;
       const lastName = parts.join(" ") || "Patient";
-      const patient = await tx.patient.create({
-        data: {
-          patientCode: `LEAD-${lead.id
-            .replace(/[^a-z0-9]/gi, "")
-            .slice(-10)
-            .toUpperCase()}`,
+      const patient = await createPatient(tx, {
           firstName,
           lastName,
           phone: lead.phone,
@@ -112,7 +108,6 @@ export const leadModel = {
             ? `Converted from CRM lead. ${lead.notes}`
             : "Converted from CRM lead.",
           status: "active",
-        },
       });
       const updated = await tx.crmLead.update({
         where: { id: lead.id },

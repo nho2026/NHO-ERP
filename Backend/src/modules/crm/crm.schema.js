@@ -4,7 +4,7 @@ const nullable = z.string().trim().nullable().optional();
 
 export const crmSchemas = {
   patients: z.object({
-    patientCode: z.string().trim().min(2),
+    patientCode: z.string().trim().optional(),
     firstName: z.string().trim().min(2),
     lastName: z.string().trim().min(2),
     phone: z.string().trim().min(5),
@@ -21,10 +21,10 @@ export const crmSchemas = {
     hasHypertension: z.boolean().default(false),
     allergies: nullable,
     medicalNotes: nullable,
-    status: z.enum(["active", "inactive"]).default("active"),
+    status: z.enum(["new", "contacted", "qualified", "appointment_requested", "surgery_appointment", "converted", "direct_surgery_converted", "active", "inactive"]).default("new"),
   }),
   surgeries: z.object({
-    code: z.string().trim().min(2),
+    code: z.string().optional(),
     name: z.string().trim().min(2),
     description: nullable,
     durationMinutes: z.coerce.number().int().min(10),
@@ -58,3 +58,7 @@ export const crmSchemas = {
 };
 
 export const isCrmResource = (resource) => Boolean(crmSchemas[resource]);
+
+export const patientUpdateSchema = crmSchemas.patients.partial().extend(Object.fromEntries(
+  ["isMarried", "childrenCount", "hasDiabetes", "hasHypertension", "status"].map(key => [key, crmSchemas.patients.shape[key].unwrap().optional()]),
+));
