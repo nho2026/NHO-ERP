@@ -95,7 +95,7 @@ function ReportChart({
     <Card className="gap-3 p-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-semibold 2xl:text-xl">{title}</h2>
-        <Button
+        <Button permission="export"
           variant="outline"
           size="sm"
           disabled={!groups.length}
@@ -493,7 +493,7 @@ export default function PatientProductsReportPage() {
               <RefreshCw className="size-4" />
               {tr("refresh")}
             </Button>
-            <Button
+            <Button permission="export"
               className="bg-green-600 text-white hover:bg-green-700"
               disabled={unavailable || !rows.length}
               onClick={exportCsv}
@@ -501,7 +501,7 @@ export default function PatientProductsReportPage() {
               <Download className="size-4" />
               {tr("export")}
             </Button>
-            <Button
+            <Button permission="print"
               variant="outline"
               disabled={unavailable || !rows.length}
               onClick={print}

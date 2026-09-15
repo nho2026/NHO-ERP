@@ -1,5 +1,6 @@
+import { assignablePermissionCatalog } from "@/features/auth/permission-policy";
 import { useCallback, useMemo, useState, type FormEvent } from "react";
-import { Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, LayoutGrid, List } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { permissionsApi, rolesApi } from "../api/access.api";
 import type { Permission, Role } from "../types/access.types";
@@ -8,6 +9,15 @@ import { apiErrorMessage } from "@/shared/api/client";
 import { hasPermission, storedUser } from "@/features/auth/access";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
+import { Textarea } from "@/shared/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -49,17 +59,19 @@ export default function RolesPage() {
   const pagination = usePaginatedItems(roles.data ?? undefined);
   const [editing, setEditing] = useState<Role | null | undefined>();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [view, setView] = useState<"table" | "cards">("table");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const groups = useMemo(
     () =>
-      (permissions.data ?? []).reduce<Record<string, Permission[]>>(
-        (result, permission) => {
+      (permissions.data ?? [])
+        .filter((permission) =>
+          assignablePermissionCatalog.some(({ key }) => key === permission.key),
+        )
+        .reduce<Record<string, Permission[]>>((result, permission) => {
           (result[permission.module] ??= []).push(permission);
           return result;
-        },
-        {},
-      ),
+        }, {}),
     [permissions.data],
   );
   const openEditor = (role: Role | null) => {
@@ -103,45 +115,157 @@ export default function RolesPage() {
             {t("rolesAdmin.description")}
           </p>
         </div>
-        {canCreate && (
-          <Button onClick={() => openEditor(null)}>
-            <Plus />
-            {t("rolesAdmin.new")}
+        <div className="flex items-center gap-2">
+          <Button
+            permission="view"
+            variant={view === "table" ? "default" : "outline"}
+            size="icon"
+            title={t("crm.actions.table")}
+            aria-label={t("crm.actions.table")}
+            aria-pressed={view === "table"}
+            onClick={() => setView("table")}
+          >
+            <List className="size-4" />
           </Button>
-        )}
+          <Button
+            permission="view"
+            variant={view === "cards" ? "default" : "outline"}
+            size="icon"
+            title={t("crm.actions.grid")}
+            aria-label={t("crm.actions.grid")}
+            aria-pressed={view === "cards"}
+            onClick={() => setView("cards")}
+          >
+            <LayoutGrid className="size-4" />
+          </Button>
+          {canCreate && (
+            <Button permission="create" onClick={() => openEditor(null)}>
+              <Plus />
+              {t("rolesAdmin.new")}
+            </Button>
+          )}
+        </div>
       </div>
       <ResourceState
         isLoading={roles.isLoading}
         error={roles.error}
         isEmpty={!roles.data?.length}
       />
-      {!roles.isLoading && !roles.error && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {!roles.isLoading && !roles.error && view === "table" && (
+        <div className="overflow-x-auto rounded-xl border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("rolesTable.name")}</TableHead>
+                <TableHead>{t("rolesTable.description")}</TableHead>
+                <TableHead>{t("rolesTable.users")}</TableHead>
+                <TableHead>{t("rolesTable.permissions")}</TableHead>
+                {(canUpdate || canAssign || canDelete) && (
+                  <TableHead className="text-end">
+                    {t("rolesTable.actions")}
+                  </TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody autoPaginate={false}>
+              {pagination.pageItems.map((role) => (
+                <TableRow key={role.id}>
+                  <TableCell className="whitespace-nowrap font-medium">
+                    {role.name}
+                  </TableCell>
+                  <TableCell className="max-w-md">
+                    <p
+                      className="truncate text-muted-foreground"
+                      title={role.description || t("rolesAdmin.noDescription")}
+                    >
+                      {role.description || t("rolesAdmin.noDescription")}
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{role.users}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{role.permissions}</Badge>
+                  </TableCell>
+                  {(canUpdate || canAssign || canDelete) && (
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        {(canUpdate || canAssign) && (
+                          <Button
+                            permission={
+                              canUpdate ? "update" : "assign_permissions"
+                            }
+                            data-action="edit"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t("rolesAdmin.manage")}
+                            title={t("rolesAdmin.manage")}
+                            onClick={() => openEditor(role)}
+                          >
+                            <Pencil />
+                          </Button>
+                        )}
+                        {canDelete && role.name !== "Super Administrator" && (
+                          <DeleteConfirmationDialog
+                            description={t("rolesTable.deleteDescription", {
+                              name: role.name,
+                            })}
+                            onConfirm={async () => {
+                              await rolesApi.remove(role.id);
+                              await roles.refresh();
+                            }}
+                          >
+                            <Button
+                              data-action="delete"
+                              variant="ghost"
+                              size="icon"
+                              aria-label={t("rolesTable.delete")}
+                              title={t("rolesTable.delete")}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </DeleteConfirmationDialog>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+      {!roles.isLoading && !roles.error && view === "cards" && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {pagination.pageItems.map((role) => (
             <Card key={role.id}>
-              <CardHeader className="flex-row items-center justify-between">
-                <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <ShieldCheck className="size-5" />
-                </span>
-                <Badge variant="outline">
-                  {t("rolesAdmin.usersCount", { count: role.users })}
-                </Badge>
-              </CardHeader>
-              <CardContent>
+              <CardHeader>
                 <CardTitle className="text-base">{role.name}</CardTitle>
-                <p className="mt-2 min-h-10 text-sm text-muted-foreground">
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
                   {role.description || t("rolesAdmin.noDescription")}
                 </p>
-                <div className="mt-5 flex items-center gap-2 border-t pt-4">
-                  <span className="me-auto text-xs text-muted-foreground">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">
+                    {t("rolesAdmin.usersCount", { count: role.users })}
+                  </Badge>
+                  <Badge variant="outline">
                     {t("rolesAdmin.permissionsCount", {
                       count: role.permissions,
                     })}
-                  </span>
+                  </Badge>
+                </div>
+                <div className="flex justify-end gap-2 border-t pt-3">
                   {(canUpdate || canAssign) && (
-                    <Button data-action="edit"
+                    <Button
+                      permission={canUpdate ? "update" : "assign_permissions"}
+                      data-action="edit"
                       variant="ghost"
                       size="icon"
+                      title={t("rolesAdmin.manage")}
+                      aria-label={t("rolesAdmin.manage")}
                       onClick={() => openEditor(role)}
                     >
                       <Pencil />
@@ -149,18 +273,23 @@ export default function RolesPage() {
                   )}
                   {canDelete && role.name !== "Super Administrator" && (
                     <DeleteConfirmationDialog
-                      description={`Delete role ${role.name}?`}
+                      description={t("rolesTable.deleteDescription", {
+                        name: role.name,
+                      })}
                       onConfirm={async () => {
                         await rolesApi.remove(role.id);
                         await roles.refresh();
                       }}
                     >
-                      <Button data-action="delete"
+                      <Button
+                        data-action="delete"
                         variant="ghost"
                         size="icon"
+                        title={t("rolesTable.delete")}
+                        aria-label={t("rolesTable.delete")}
                         className="text-destructive"
                       >
-                        <Trash2  className="size-4 text-white" />
+                        <Trash2 className="size-4" />
                       </Button>
                     </DeleteConfirmationDialog>
                   )}
@@ -194,12 +323,12 @@ export default function RolesPage() {
               required
               disabled={Boolean(editing) && !canUpdate}
             />
-            <textarea
+            <Textarea
               name="description"
               defaultValue={editing?.description ?? ""}
               placeholder={t("pageText.description")}
               disabled={Boolean(editing) && !canUpdate}
-              className="min-h-20 w-full rounded-lg border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              className="min-h-20"
             />
             {canAssign && (
               <div className="max-h-72 space-y-4 overflow-y-auto rounded-xl border p-4">
@@ -219,9 +348,8 @@ export default function RolesPage() {
                             onCheckedChange={(checked) =>
                               setSelected((current) => {
                                 const next = new Set(current);
-                                checked
-                                  ? next.add(permission.id)
-                                  : next.delete(permission.id);
+                                if (checked) next.add(permission.id);
+                                else next.delete(permission.id);
                                 return next;
                               })
                             }
@@ -235,7 +363,17 @@ export default function RolesPage() {
               </div>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button className="w-full" disabled={busy}>
+            <Button
+              permission={
+                editing
+                  ? canUpdate
+                    ? "update"
+                    : "assign_permissions"
+                  : "create"
+              }
+              className="w-full"
+              disabled={busy}
+            >
               {busy ? t("usersAdmin.saving") : t("common.save")}
             </Button>
           </form>

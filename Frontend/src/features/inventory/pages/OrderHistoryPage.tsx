@@ -1,3 +1,4 @@
+import { hasPagePermission } from "@/features/auth/access";
 import type { ReactNode } from "react";
 import { useCallback, useDeferredValue, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -25,7 +26,7 @@ import {
 
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 type Order = {
   id: string;
   name: string;
@@ -75,7 +76,7 @@ export default function OrderHistoryPage({
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const [error, setError] = useState("");
-  const canManage = hasPermission(storedUser(), "inventory.manage");
+  const canManage = hasPagePermission(storedUser(), "create", "update", "delete");
   const result = useApiResource(
     useCallback(
       () =>
@@ -247,7 +248,7 @@ export default function OrderHistoryPage({
                     ))}
                   <TableCell>
                     <div className="flex justify-end gap-2">
-                      <Button
+                      <Button permission="print"
                         size="icon"
                         className="size-8 bg-teal-500 text-white hover:bg-teal-600"
                         aria-label={`${t("buyHistory.print")} ${row.name}`}
@@ -383,7 +384,7 @@ export default function OrderHistoryPage({
               <p className="text-end font-semibold">
                 {t("orderForm.totalPrice")}: {money(selected.totalPrice)}
               </p>
-              <Button onClick={() => print(selected)}>
+              <Button permission="print" onClick={() => print(selected)}>
                 <Printer className="size-4" />
                 {t("buyHistory.print")}
               </Button>
@@ -417,7 +418,7 @@ export default function OrderHistoryPage({
             >
               {t("buyHistory.cancel")}
             </Button>
-            <Button
+            <Button permission="delete"
               variant="destructive"
               disabled={busy}
               onClick={() => void remove()}

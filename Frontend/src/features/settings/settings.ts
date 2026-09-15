@@ -68,7 +68,7 @@ let current: Settings | null = null;
 const listeners = new Set<() => void>();
 export const settingsSnapshot = () => current;
 export async function loadSettings() {
-  const response = await apiClient.get<Settings>("/settings");
+  const response = await apiClient.get<Settings>("/settings/runtime");
   current = response.data;
   const branding = current.organization;
   document.title = branding.name;

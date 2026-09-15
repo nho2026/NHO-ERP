@@ -1,3 +1,5 @@
+import { hasPermission, storedUser } from "@/features/auth/access";
+import { permissionForRequest } from "@/features/auth/permission-policy";
 import { apiClient } from "@/shared/api/client";
 import type { TFunction } from "i18next";
 
@@ -26,6 +28,7 @@ const endpoints: Record<string, string> = {
   "/warehouses/buy/product": "/inventory/purchases",
   "/warehouses/buy/order": "/inventory/orders",
   "/employees": "/employees",
+  "/teams": "/employees/teams",
   "/positions": "/employees/positions",
   "/salaries": "/employees/records/salaries",
   "/payrolls": "/employees/records/payrolls",
@@ -33,14 +36,14 @@ const endpoints: Record<string, string> = {
   "/departments": "/healthcare/departments",
   "/health-staff": "/healthcare/staff",
   "/crm/leads": "/crm/leads",
-  "/crm/whatsapp": "/crm/whatsapp",
+  "/crm/whatsapp": "/crm/whatsapp/conversations",
   "/crm/patients": "/crm/patients",
-  "/crm/referrals": "/crm/referrals",
-  "/crm/today-patients": "/crm/today-patients",
   "/crm/appointments": "/crm/appointments",
+  "/crm/payments": "/crm/payments",
+  "/crm/follow-up": "/crm/follow-up",
+  "/crm/referrals": "/crm/referrals",
   "/crm/surgeries": "/crm/surgeries",
   "/crm/surgery-appointments": "/crm/surgery-appointments",
-  "/crm/payments": "/crm/payments",
   "/crm/forms": "/crm/forms",
   "/accounting/accounts": "/accounting/accounts",
   "/accounting/journals": "/accounting/journals",
@@ -79,7 +82,11 @@ export async function searchSystemRecords(
   t: TFunction,
   signal: AbortSignal,
 ) {
-  const sources = menus.filter((menu) => endpoints[menu.to]);
+  const user = storedUser();
+  const sources = menus.filter((menu) => {
+    const endpoint = endpoints[menu.to];
+    return endpoint && hasPermission(user, permissionForRequest("GET", endpoint) ?? undefined);
+  });
   const results: PromiseSettledResult<Result[]>[] = [];
   let cursor = 0;
   await Promise.all(

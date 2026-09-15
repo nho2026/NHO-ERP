@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RequireAccess } from "@/features/auth/access";
+import { RequireAccess } from "@/features/auth/RequireAccess";
 import MeetingsPage from "./MeetingsPage";
 
 // Keep the session mounted outside the route outlet until the user logs out.

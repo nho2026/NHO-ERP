@@ -442,7 +442,7 @@ export default function FinancePage({ resource }: { resource: PageResource }) {
             )}
           </p>
         </div>
-        <Button
+        <Button permission="create"
           onClick={() => {
             setError("");
             setEditing(null);
@@ -619,7 +619,7 @@ export default function FinancePage({ resource }: { resource: PageResource }) {
             {error && (
               <p className="text-sm text-destructive sm:col-span-2">{error}</p>
             )}
-            <Button disabled={busy} className="sm:col-span-2">
+            <Button permission={editing ? "update" : "create"} disabled={busy} className="sm:col-span-2">
               {busy ? t("finance.saving") : t("finance.save")}
             </Button>
           </form>

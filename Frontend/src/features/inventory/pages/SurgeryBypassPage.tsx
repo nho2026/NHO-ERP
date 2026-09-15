@@ -1,7 +1,8 @@
+import { hasPagePermission } from "@/features/auth/access";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { Card } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Button } from "@/shared/components/ui/button";
@@ -37,7 +38,7 @@ export default function SurgeryBypassPage() {
     [error, setError] = useState(""),
     [selected, setSelected] = useState<Row | null>(null),
     [busy, setBusy] = useState(false);
-  const manage = hasPermission(storedUser(), "inventory.manage");
+  const manage = hasPagePermission(storedUser(), "create", "update", "delete");
   useEffect(() => {
     const c = new AbortController();
     apiClient
@@ -109,7 +110,7 @@ export default function SurgeryBypassPage() {
                   </TableCell>
                   {manage && (
                     <TableCell>
-                      <Button
+                      <Button permission="update"
                         variant="outline"
                         size="sm"
                         onClick={() => {
@@ -164,7 +165,7 @@ export default function SurgeryBypassPage() {
                   {error}
                 </p>
               )}
-              <Button
+              <Button permission="update"
                 disabled={busy}
                 onClick={async () => {
                   if (busy) return;

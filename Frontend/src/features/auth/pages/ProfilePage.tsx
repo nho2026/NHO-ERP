@@ -183,7 +183,7 @@ export default function ProfilePage() {
                     />
                   </label>
                   {editing && (
-                    <Button className="sm:col-span-2" disabled={saving}>
+                    <Button permission="update" className="sm:col-span-2" disabled={saving}>
                       {saving ? t("profile.saving") : t("profile.save")}
                     </Button>
                   )}
@@ -348,7 +348,7 @@ export default function ProfilePage() {
                   placeholder={t("profile.confirmPassword")}
                   required
                 />
-                <Button className="w-full" variant="outline" disabled={saving}>
+                <Button permission="update" className="w-full" variant="outline" disabled={saving}>
                   {t("profile.changePassword")}
                 </Button>
               </form>

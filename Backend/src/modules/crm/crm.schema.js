@@ -21,7 +21,8 @@ export const crmSchemas = {
     hasHypertension: z.boolean().default(false),
     allergies: nullable,
     medicalNotes: nullable,
-    status: z.enum(["new", "contacted", "qualified", "appointment_requested", "surgery_appointment", "converted", "direct_surgery_converted", "active", "inactive"]).default("new"),
+    followUpDate: z.coerce.date().nullable().optional(),
+    status: z.enum(["new", "contacted", "qualified", "appointment_requested", "surgery_appointment", "converted", "direct_surgery_converted", "active", "inactive", "post_discharge_follow_up", "post_discharge_follow_up_completed"]).default("new"),
   }),
   surgeries: z.object({
     code: z.string().optional(),

@@ -1,8 +1,13 @@
 {
+  "postDischargeFollowUp": {"title": "متابعة ما بعد الخروج", "description": "المرضى الذين غادروا المستشفى ويحتاجون إلى متابعة. أضف المريض من ملفه باستخدام إجراء الخروج إلى المتابعة.", "search": "بحث عن المرضى", "status": "الحالة", "active": "يحتاج إلى متابعة", "completed": "اكتملت المتابعة", "code": "رمز المريض", "patient": "المريض", "phone": "الهاتف", "actions": "الإجراءات", "complete": "إكمال المتابعة", "reopen": "إعادة فتح المتابعة", "empty": "لا يوجد مرضى في قائمة المتابعة.", "send": "الخروج إلى المتابعة", "sent": "تمت إضافة المريض إلى متابعة ما بعد الخروج.", "followUpDate": "تاريخ المتابعة", "surgeryType": "نوع العملية", "confirmTitle": "تأكيد تحديث الحالة", "confirmDescription": "أكد تاريخ المتابعة قبل تحديث حالة هذا المريض.", "confirm": "تأكيد التحديث"},
+  "rolesTable": {"name": "الدور", "description": "الوصف", "users": "المستخدمون", "permissions": "الصلاحيات", "actions": "الإجراءات", "delete": "حذف الدور", "deleteDescription": "هل تريد حذف الدور {{name}}؟"},
+  "crmDialogs": {"deleteDescription": "سيتم حذف هذا السجل نهائيًا. لا يمكن التراجع عن هذا الإجراء.", "surgeryDeleteDescription": "هل تريد حذف هذه العملية من القائمة؟ لا يمكن حذف العمليات المرتبطة بمواعيد المرضى.", "surgeryDetails": "تفاصيل العملية الجراحية", "viewSurgery": "عرض تفاصيل العملية الجراحية", "deleteError": "تعذر حذف السجل."},
+  "connectivity": {"checkingTitle": "جارٍ التحقق من الاتصال", "checkingDescription": "يرجى الانتظار بينما نتحقق من اتصالك.", "unreachableTitle": "انقطع الاتصال", "unreachableDescription": "تعذر الاتصال بالنظام. سيعود تلقائيًا عند استعادة الاتصال.", "offlineTitle": "لا يوجد اتصال بالإنترنت", "offlineDescription": "تحقق من اتصالك بالإنترنت. سيعود النظام تلقائيًا عند استعادة الاتصال."},
+  "access": {"denied": "ليس لديك إذن للوصول إلى هذه الصفحة أو تنفيذ هذا الإجراء."},
   "patientTv": {"open": "عرض التلفاز", "back": "رجوع"},
-  "whatsappInbox": {"title": "صندوق وارد واتساب", "subtitle": "تتحول جهات الاتصال الواردة تلقائياً إلى عملاء محتملين برموز في نظام إدارة علاقات العملاء.", "configured": "تم إعداد Cloud API", "configurationRequired": "الإعداد مطلوب", "refresh": "تحديث الوارد", "configurationError": "تعذر تحميل إعدادات واتساب: {{error}}", "conversationsError": "تعذر تحميل محادثات واتساب: {{error}}", "setup": "أضف {{variables}} إلى Backend/.env، ثم سجّل {{webhook}} في Meta.", "search": "ابحث بالاسم أو الهاتف أو رمز العميل المحتمل", "newConversation": "محادثة جديدة", "loading": "جارٍ تحميل المحادثات…", "loadFailed": "تعذر تحميل المحادثات. راجع الخطأ أعلاه وأعد المحاولة.", "noMatches": "لا توجد محادثات تطابق بحثك.", "empty": "لم تصل رسائل واتساب بعد. تظهر المحادثات الجديدة عند استلام رسالة.", "lead": "العميل المحتمل {{code}}", "compose": "اكتب رسالة واتساب", "send": "إرسال", "selectConversation": "اختر محادثة لعرض الرسائل.", "sentSuccess": "تم إرسال رسالة واتساب.", "employeeName": "اسم الموظف", "sent": "تم الإرسال", "delivered": "تم التسليم", "read": "تمت القراءة", "failed": "فشل", "received": "تم الاستلام", "pending": "قيد الانتظار", "text": "نص", "image": "صورة", "audio": "صوت", "video": "فيديو", "document": "مستند", "sticker": "ملصق", "location": "الموقع", "contacts": "جهات الاتصال", "unknown": "رسالة"},
+  "whatsappInbox": {"title": "صندوق الوارد", "subtitle": "المحادثات وجهات الاتصال وتفاصيل العملاء في مكان واحد.", "configured": "تم إعداد Cloud API", "configurationRequired": "الإعداد مطلوب", "refresh": "تحديث الوارد", "configurationError": "تعذر تحميل إعدادات واتساب: {{error}}", "conversationsError": "تعذر تحميل محادثات واتساب: {{error}}", "setup": "أضف {{variables}} إلى Backend/.env، ثم سجّل {{webhook}} في Meta.", "search": "ابحث بالاسم أو الهاتف أو رمز العميل المحتمل", "newConversation": "محادثة جديدة", "loading": "جارٍ تحميل المحادثات…", "loadFailed": "تعذر تحميل المحادثات. راجع الخطأ أعلاه وأعد المحاولة.", "noMatches": "لا توجد محادثات تطابق بحثك.", "empty": "لا توجد محادثات بعد.", "lead": "العميل المحتمل {{code}}", "compose": "اكتب رسالة…", "send": "إرسال", "selectConversation": "اختر محادثة لعرض الرسائل.", "sentSuccess": "تم إرسال الرسالة.", "employeeName": "اسم الموظف", "sent": "تم الإرسال", "delivered": "تم التسليم", "read": "تمت القراءة", "failed": "فشل", "received": "تم الاستلام", "pending": "قيد الانتظار", "text": "نص", "image": "صورة", "audio": "صوت", "video": "فيديو", "document": "مستند", "sticker": "ملصق", "location": "الموقع", "contacts": "جهات الاتصال", "unknown": "رسالة", "conversations": "المحادثات", "availableChannel": "متاح", "allChannels": "كل القنوات", "notConnected": "هذه القناة غير متصلة بعد. اربطها لاستقبال الرسائل والرد عليها.", "backToInbox": "العودة إلى المحادثات", "openProfile": "فتح ملف العميل المحتمل", "contactProfile": "ملف جهة الاتصال", "contact": "جهة اتصال", "phone": "رقم الهاتف", "channel": "القناة", "leadCode": "رمز العميل المحتمل", "channelUnavailable": "واتساب غير متصل. يمكنك قراءة الرسائل، لكن الإرسال غير متاح.", "composeHint": "Enter للإرسال · Shift + Enter لسطر جديد", "attachFile": "إرفاق ملف", "recordVoice": "تسجيل رسالة صوتية", "stopRecording": "إيقاف التسجيل", "recording": "جارٍ التسجيل… أوقف التسجيل للمعاينة (5 دقائق كحد أقصى).", "removeAttachment": "إزالة المرفق", "fileTooLarge": "الحد الأقصى للملفات 16 ميغابايت وللصور 5 ميغابايت.", "microphoneUnavailable": "التسجيل غير متاح. اسمح بالوصول إلى الميكروفون في إعدادات المتصفح أو الجهاز.", "voiceCall": "مكالمة صوتية", "videoCall": "مكالمة فيديو", "callExternalHelp": "افتح جهة الاتصال في واتساب ثم اختر زر المكالمة الصوتية أو الفيديو. تتم المكالمات في واتساب خارج صندوق الوارد هذا.", "openWhatsapp": "فتح واتساب"},
   "patientBooking": {"departmentId": "القسم", "doctorId": "الطبيب", "surgeryId": "العملية", "scheduledAt": "التاريخ والوقت", "operatingRoom": "غرفة العمليات", "durationMinutes": "المدة (دقائق)", "notes": "ملاحظات (اختياري)", "description": "اختر الطبيب وحدد موعد زيارة المريض.", "loading": "جارٍ التحميل…", "selectDepartment": "اختر القسم", "departmentFirst": "اختر القسم أولاً", "selectDoctor": "اختر الطبيب", "selectSurgery": "اختر العملية", "selectRoom": "اختر غرفة العمليات", "notesPlaceholder": "سبب الزيارة أو تعليمات إضافية", "cancel": "إلغاء", "saving": "جارٍ الحفظ…", "save": "حفظ الموعد", "noDepartments": "لا توجد أقسام مستشفى نشطة متاحة.", "noDoctors": "لا يوجد أطباء متاحون لهذا الاختيار."},
-  "patientProgress": {"new": "تمت الاستشارة", "contacted": "متابعة", "qualified": "جاهز", "appointment_requested": "موعد العيادة الخارجية", "surgery_appointment": "موعد العملية", "converted": "تم التحويل من العيادة", "direct_surgery_converted": "تم التحويل المباشر للعملية", "inactive": "غير نشط"},
+  "patientProgress": {"post_discharge_follow_up": "يحتاج إلى متابعة", "post_discharge_follow_up_completed": "اكتملت المتابعة", "new": "تمت الاستشارة", "contacted": "متابعة", "qualified": "جاهز", "appointment_requested": "موعد العيادة الخارجية", "surgery_appointment": "موعد العملية", "converted": "تم التحويل من العيادة", "direct_surgery_converted": "تم التحويل المباشر للعملية", "inactive": "غير نشط"},
   "patientActions": {"editProfile": "تعديل الملف", "saveProfile": "حفظ التغييرات", "appointment": "حجز موعد", "updateError": "تعذر تحديث حالة المريض."},
   "drugDose": {"title": "حساب جرعة الدواء", "doseMgKgDay": "الجرعة (ملغ/كغ/يوم)", "dosesPerDay": "عدد الجرعات يومياً", "concentrationMg": "التركيز: كمية الدواء (ملغ)", "concentrationMl": "التركيز: الحجم (مل)", "weight": "الوزن (كغ)", "missing": "أدخل الجرعة وعدد الجرعات والتركيز في المخزون لحساب جرعة هذا المنتج.", "apply": "تطبيق الجرعة المحسوبة", "review": "راجع جرعة المنتج ووزن المريض قبل التطبيق."},
   "language": {
@@ -97,6 +102,7 @@
     "attendance": "الحضور",
     "employees": "الموظفون",
     "humanResources": "الموارد البشرية",
+    "teams": "الفرق",
     "positions": "المناصب",
     "salaries": "الرواتب",
     "hrAttendance": "حضور الموظفين",
@@ -122,7 +128,7 @@
     "barcodes": "ملصقات الباركود",
     "productCategories": "الفئات",
     "productBrands": "العلامات التجارية",
-    "warehouses": "المخازن",
+    "warehouses": "المخزن",
     "stock": "مستويات المخزون",
     "stockMovements": "حركات المخزون",
     "pos": "نقطة البيع",
@@ -313,6 +319,16 @@
     }
   },
   "hr": {
+    "systemRoles": "أدوار النظام",
+    "team": "الفريق",
+    "teams": "الفرق",
+    "teamLeader": "قائد الفريق",
+    "teamName": "اسم الفريق",
+    "workingDays": "أيام العمل",
+    "expectedCheckIn": "وقت الحضور المتوقع",
+    "expectedCheckOut": "وقت الانصراف المتوقع",
+    "department": "القسم",
+    "hours": "ساعة",
     "clearFilters": "مسح الفلاتر",
     "allStatuses": "كل الحالات",
     "allPositions": "كل المناصب",
@@ -1032,6 +1048,7 @@
     "email": "البريد الإلكتروني",
     "department": "القسم",
     "newPasswordOptional": "كلمة مرور جديدة (اختياري)",
+    "passwordUnavailable": "لا يمكن عرض كلمة المرور الحالية. اترك الحقل فارغاً للاحتفاظ بها، أو أدخل كلمة مرور جديدة.",
     "passwordMinimum": "كلمة المرور (8 أحرف على الأقل)",
     "chooseRole": "اختر الدور",
     "saving": "جارٍ الحفظ…",
@@ -1242,7 +1259,7 @@
     },
     "products": "المنتجات",
     "categories": "فئات المنتجات",
-    "warehouses": "المخازن",
+    "warehouses": "المخزن",
     "stock": "مستويات المخزون",
     "movements": "حركات المخزون",
     "descriptions": {
@@ -1891,7 +1908,7 @@
     "reports": "التقارير",
     "productsPerPatient": "المنتجات لكل مريض",
     "topProducts": "أهم المنتجات",
-    "moduleDescription": "هذه الصفحة جاهزة لإعداد سير عمل المخازن.",
+    "moduleDescription": "هذه الصفحة جاهزة لإعداد سير عمل المخزن.",
     "storage": "التخزين",
     "editSpecialPrice": "تعديل السعر الخاص",
     "addStorage": "إضافة مخزن",
@@ -1904,7 +1921,7 @@
     "transferProduct": "نقل منتج",
     "transferHistory": "سجل النقل",
     "productDescription": "هذه الصفحة جاهزة لإعداد سير عمل المنتجات.",
-    "title": "المخازن",
+    "title": "المخزن",
     "buy": "الشراء",
     "buyProduct": "شراء منتج",
     "buyHistory": "سجل الشراء",
@@ -1931,7 +1948,7 @@
     "locationsTotal": "في جميع مواقع التخزين",
     "selectedLocation": "في مواقع التخزين المحددة",
     "reorderNote": "أرصدة عند حد إعادة الطلب أو أقل",
-    "workspace": "مساحة عمل المخازن",
+    "workspace": "مساحة عمل المخزن",
     "buyHint": "المشتريات والطلبات وديون الموردين",
     "productHint": "إدارة دليل المنتجات",
     "storageHint": "مستويات المخزون ومواقع التخزين",
@@ -2142,6 +2159,9 @@
     "newTransfer": "تحويل جديد"
   },
   "storageView": {
+    "availableProducts": "المنتجات المتوفرة",
+    "availableQuantity": "إجمالي الكمية المتوفرة",
+    "valuationHint": "تشمل الإجماليات جميع المنتجات المطابقة لفلاتر المخزن والفئة والبحث في جميع الصفحات. قيمة الشراء = الكمية المتوفرة × سعر الشراء الحالي؛ قيمة البيع = الكمية المتوفرة × سعر البيع الحالي.",
     "name": "الاسم",
     "size": "الحجم",
     "code": "الرمز",
@@ -2216,7 +2236,7 @@
     "workspaces": "مساحات عملك",
     "back": "كل المساحات",
     "pages": "{{count}} صفحات",
-    "warehouse": "المخازن",
+    "warehouse": "المخزن",
     "healthcare": "الرعاية الصحية",
     "hr": "الموارد البشرية",
     "attendance": "الحضور",
@@ -2513,6 +2533,11 @@
     "loadFailed": "تعذر تحميل المواعيد."
   },
   "prescription": {
+    "invoice": "فاتورة الأدوية",
+    "unitPrice": "سعر العبوة",
+    "lineTotal": "إجمالي الصنف",
+    "total": "إجمالي الفاتورة",
+    "billingHint": "تُحسب الرسوم حسب عدد الزجاجات أو العبوات. مل/جرعة هي معلومات الجرعة فقط.",
     "patient": "اسم المريض",
     "patientCode": "رمز المريض",
     "issued": "تاريخ الإصدار",
@@ -2556,5 +2581,7 @@
     "hours": "{{count}} ساعة",
     "summary": "{{days}} أيام/أسبوع · {{hours}} ساعات/أسبوع",
     "dayOff": "يوم عطلة"
-  }
+  },
+  "incomeExpenses": {"pending": "بانتظار الموافقة", "cashAccountId": "الحساب النقدي", "filters": "الفلاتر", "done": "تم", "departmentTotals": "إجماليات الأقسام", "title": "الإيرادات والمصروفات", "description": "المدفوعات والمصروفات المؤكدة حسب القسم والفئة. لا تشمل الإجماليات الحركات المنتظرة والمخططة والملغاة.", "add": "إضافة حركة", "required": "اختر التاريخ والقسم.", "departmentId": "القسم", "category": "الفئة", "currency": "العملة", "all": "الكل", "from": "من تاريخ", "to": "إلى تاريخ", "unassigned": "غير محدد", "reset": "إعادة ضبط الفلاتر", "income": "إجمالي الإيرادات", "expense": "إجمالي المصروفات", "net": "صافي الرصيد", "breakdown": "التفاصيل حسب القسم والفئة", "transactions": "الحركات", "flowDate": "التاريخ", "flowType": "النوع", "descriptionField": "الوصف", "amount": "المبلغ", "status": "الحالة", "actions": "الإجراءات", "inflow": "إيراد", "outflow": "مصروف", "confirmed": "مؤكد", "planned": "مخطط", "cancelled": "ملغى", "edit": "تعديل الحركة", "delete": "حذف الحركة", "deleteConfirm": "هل تريد حذف هذه الحركة؟ سيُزال مبلغها من الإجماليات.", "noDepartments": "أنشئ قسماً في الموارد البشرية قبل إضافة الحركات.", "retry": "إعادة المحاولة"},
+  "financeOverview": {"details": "عرض التفاصيل", "title": "نظرة عامة على المالية", "description": "حركة النقد والديون الحالية ومقارنة الأقسام شهرياً. قيمة المخزون منفصلة عن النقد.", "year": "السنة", "refresh": "تحديث", "pending": "مصروفات بانتظار الموافقة", "unassigned": "حركات بدون قسم", "cashAccounts": "الخزن والحسابات المصرفية", "addAccount": "إضافة حساب نقدي", "balanceHint": "الرصيد = الرصيد الافتتاحي + المقبوضات المؤكدة − المدفوعات المؤكدة المخصصة لهذا الحساب.", "openingDate": "تاريخ الرصيد الافتتاحي", "noAccounts": "أضف خزنة أو حساباً مصرفياً ثم خصص حركاته في الإيرادات والمصروفات.", "unallocated": "صافي حركة بدون حساب نقدي (ليس رصيداً نقدياً مؤكداً)", "debts": "الديون المستحقة", "debtHint": "أرصدة فواتير العملاء وديون المشتريات الحالية، بغض النظر عن سنة التقرير المختارة.", "receivable": "مستحقاتنا لدى العملاء", "payable": "مستحقات الموردين علينا", "type": "النوع", "name": "الاسم", "reference": "المرجع", "amount": "المبلغ", "dueDate": "تاريخ الاستحقاق", "monthly": "الإيرادات والمصروفات الشهرية", "month": "الشهر", "currency": "العملة", "income": "الإيرادات", "expense": "المصروفات", "net": "صافي الحركة النقدية", "departments": "مقارنة الأقسام الشهرية", "department": "القسم", "safe": "خزنة", "bank": "مصرف", "openingBalance": "الرصيد الافتتاحي", "openingHint": "أدخل الرصيد في بداية هذا التاريخ قبل الحركات التي ستخصصها. لا يمكن تخصيص حركات أقدم من هذا التاريخ.", "history": "السجل", "source": "السجل الأصلي", "approve": "الموافقة على المصروف", "cancelEntry": "إلغاء الحركة", "cancelHint": "هل تريد إلغاء الحركة وإزالتها من الإجماليات المؤكدة؟ سيتم الاحتفاظ بسجلها.", "sourceHint": "المبلغ والحالة مرتبطان بالسجل الأصلي ولا يمكن تعديلهما هنا. يمكنك تخصيص القسم والفئة والحساب النقدي.", "approvalHint": "تحتاج المصروفات اليدوية إلى موافقة مستخدم مخول آخر قبل احتسابها في الإجماليات.", "system": "مزامنة تلقائية من المصدر", "audit": {"create": "إنشاء", "update": "تعديل", "approve": "موافقة", "cancel": "إلغاء", "source_imported": "استيراد من المصدر", "source_updated": "تحديث المصدر", "source_cancelled": "إلغاء أو إزالة المصدر"}}
 }

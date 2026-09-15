@@ -7,7 +7,7 @@ const include = {
     include: {
       employee: {
         include: {
-          position: true,
+          team: { select: { leaderId: true } }, position: true,
           department: true,
           user: { select: { id: true, name: true, email: true } },
         },
@@ -60,7 +60,7 @@ export const taskModel = {
         assignees: {
           select: {
             employeeId: true,
-            employee: { select: { teamLeaderId: true } },
+            employee: { select: { team: { select: { leaderId: true } } } },
           },
         },
       },
@@ -69,7 +69,7 @@ export const taskModel = {
     prisma.employee.findMany({
       where: { status: "active", userId: { not: null }, ...where },
       include: {
-        position: true,
+        team: { select: { leaderId: true } }, position: true,
         department: true,
         user: { select: { id: true, name: true, email: true } },
       },
@@ -78,7 +78,7 @@ export const taskModel = {
   employeeScopes: (ids) =>
     prisma.employee.findMany({
       where: { id: { in: ids } },
-      select: { id: true, teamLeaderId: true, userId: true },
+      select: { id: true, team: { select: { leaderId: true } }, userId: true },
     }),
   hrUserIds: () =>
     prisma.user.findMany({

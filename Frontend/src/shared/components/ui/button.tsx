@@ -1,3 +1,4 @@
+import { useActionPermission } from "@/features/auth/permission-context";
 import { useTranslation } from "react-i18next";
 import {
   Tooltip,
@@ -46,13 +47,16 @@ export interface ButtonProps
     React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  permission?: string;
   "data-action"?: "edit" | "delete";
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, title, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, title, permission, ...props }, ref) => {
     const { t, i18n } = useTranslation();
     const action = props["data-action"];
+    const allowed = useActionPermission(permission ?? (action === "edit" ? "update" : action));
+    if (!allowed) return null;
     const tooltip =
       title ||
       (action

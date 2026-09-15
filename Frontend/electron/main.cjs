@@ -191,3 +191,8 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+
+ipcMain.handle("inbox:open-whatsapp", async (_event, phone) => {
+  if (typeof phone !== "string" || !/^\d{5,20}$/.test(phone)) throw new Error("Invalid phone number");
+  await shell.openExternal(`https://web.whatsapp.com/send?phone=${phone}`);
+});

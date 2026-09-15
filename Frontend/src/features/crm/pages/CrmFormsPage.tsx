@@ -1,3 +1,4 @@
+import { hasPagePermission } from "@/features/auth/access";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FilePlus2, Pencil, Plus, Trash2, X } from "lucide-react";
@@ -7,7 +8,7 @@ import {
   type DynamicFormField,
   type FormTemplate,
 } from "../api/crm.api";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -46,7 +47,7 @@ const blankField = (): DynamicFormField => ({
 
 export default function CrmFormsPage() {
   const { t } = useTranslation();
-  const canManage = hasPermission(storedUser(), "employees.manage");
+  const canManage = hasPagePermission(storedUser(), "create", "update", "delete");
   const templates = useApiResource(
     useCallback(() => crmFormsApi.templates(), []),
   );
@@ -106,7 +107,7 @@ export default function CrmFormsPage() {
           </p>
         </div>
         {canManage && (
-          <Button onClick={startCreate}>
+          <Button permission="create" onClick={startCreate}>
             <Plus />
             New form
           </Button>
@@ -322,7 +323,7 @@ export default function CrmFormsPage() {
               </div>
             </div>
             <div className="flex justify-end border-t p-4">
-              <Button type="submit">
+              <Button permission={editing ? "update" : "create"} type="submit">
                 {editing ? "Save changes" : "Create form"}
               </Button>
             </div>

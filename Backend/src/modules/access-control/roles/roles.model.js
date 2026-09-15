@@ -10,7 +10,7 @@ const permissionWrite = (ids) => ({
 export const roleModel = {
   findAll: () => prisma.role.findMany({ include, orderBy: { name: "asc" } }),
   findById: (id) => prisma.role.findUnique({ where: { id } }),
-  create: ({ permissionIds, ...data }) =>
+  create: ({ permissionIds = [], ...data }) =>
     prisma.role.create({
       data: {
         ...data,

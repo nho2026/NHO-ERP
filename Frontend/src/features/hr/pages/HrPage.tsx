@@ -1,3 +1,4 @@
+import { hasPermission, storedUser } from "@/features/auth/access";
 import { settingsSnapshot } from "@/features/settings/settings";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -65,13 +66,7 @@ const configs: Record<
       { name: "lastName", label: "Last name", required: true },
       { name: "departmentId", label: "Department", type: "department" },
       { name: "positionId", label: "Position", type: "position" },
-      {
-        name: "isTeamLeader",
-        label: "Team leader",
-        type: "boolean",
-        options: ["true", "false"],
-      },
-      { name: "teamLeaderId", label: "Reports to", type: "teamLeader" },
+      { name: "teamId", label: "Team", type: "team" },
       { name: "hireDate", label: "Hire date", type: "date", required: true },
       {
         name: "checkInTime",
@@ -96,15 +91,26 @@ const configs: Record<
       ["employeeCode", "Code"],
       ["fullName", "Employee"],
       ["position", "Position"],
+      ["roles", "System roles"],
       ["department", "Department"],
-      ["leadership", "Team leader"],
-      ["teamLeader", "Reports to"],
+      ["team", "Team"],
+      ["teamLeader", "Team leader"],
       ["hireDate", "Hire date"],
       ["workSchedule", "Working days"],
       ["checkInTime", "Expected check-in"],
       ["checkOutTime", "Expected check-out"],
       ["status", "Status"],
     ],
+  },
+  teams: {
+    title: "Teams",
+    fields: [
+      { name: "name", label: "Team name", required: true },
+      { name: "description", label: "Description" },
+      { name: "leaderId", label: "Team leader", type: "employee" },
+      { name: "status", label: "Status", type: "select", required: true, options: ["active", "inactive"] },
+    ],
+    columns: [["name", "Team"], ["description", "Description"], ["leader", "Team leader"], ["employeesCount", "Employees"], ["status", "Status"]],
   },
   positions: {
     title: "Positions",
@@ -327,11 +333,11 @@ const employeeName = (record: HrRecord) => {
   const employee = record.employee as HrRecord | undefined;
   return employee ? `${employee.firstName} ${employee.lastName}` : "—";
 };
-function display(record: HrRecord, key: string): string | number {
+function display(record: HrRecord, key: string, locale: string, translate: (text: string) => string): string | number {
   if (key === "workSchedule" && Array.isArray(record.workSchedule)) {
     return (record.workSchedule as { day: number }[])
       .map(({ day }) =>
-        new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(
+        new Intl.DateTimeFormat(locale, { weekday: "short" }).format(
           new Date(2026, 0, 4 + day),
         ),
       )
@@ -352,19 +358,23 @@ function display(record: HrRecord, key: string): string | number {
     )
       .map(
         (day) =>
-          `${new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(new Date(2026, 0, 4 + day.day))}: ${day.hours != null ? `${day.hours} h` : key === "checkInTime" ? day.checkInTime : day.checkOutTime}`,
+          `${new Intl.DateTimeFormat(locale, { weekday: "short" }).format(new Date(2026, 0, 4 + day.day))}: ${day.hours != null ? `${day.hours} ${translate("Hours")}` : key === "checkInTime" ? day.checkInTime : day.checkOutTime}`,
       )
       .join(" · ");
   }
   if (key === "fullName") return `${record.firstName} ${record.lastName}`;
   if (key === "employee") return employeeName(record);
+  if (key === "roles") {
+    const user = record.user as { roles?: { role: { name: string } }[] } | null;
+    return user?.roles?.map(({ role }) => translate(role.name)).join(", ") || "—";
+  }
   if (key === "position")
     return String((record.position as HrRecord | null)?.name ?? "—");
   if (key === "department")
     return String((record.department as HrRecord | null)?.name ?? "—");
-  if (key === "leadership") return record.isTeamLeader ? "Yes" : "No";
-  if (key === "teamLeader") {
-    const leader = record.teamLeader as HrRecord | null;
+  if (key === "team") return String((record.team as HrRecord | null)?.name ?? "—");
+  if (key === "teamLeader" || key === "leader") {
+    const leader = (key === "leader" ? record.leader : (record.team as HrRecord | null)?.leader) as HrRecord | null;
     return leader ? `${leader.firstName} ${leader.lastName}` : "—";
   }
   if (key === "employeesCount")
@@ -378,7 +388,7 @@ function display(record: HrRecord, key: string): string | number {
       key,
     )
   )
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat(locale, {
       dateStyle: "medium",
       ...(key === "checkIn" || key === "checkOut"
         ? { timeStyle: "short" }
@@ -390,7 +400,8 @@ function display(record: HrRecord, key: string): string | number {
 }
 
 export default function HrPage({ resource }: { resource?: Resource }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language.startsWith("ku") ? "ckb-IQ" : i18n.language;
   const tr = (text: string) => {
     const key = text
       .toLowerCase()
@@ -411,27 +422,29 @@ export default function HrPage({ resource }: { resource?: Resource }) {
   const [adjustmentEmployee, setAdjustmentEmployee] = useState<HrRecord | null>(
     null,
   );
+  const teams = useApiResource(useCallback(() => hasPermission(storedUser(), "hr.teams.view") ? hrApi.teams.list() : Promise.resolve([]), []));
   const positions = useApiResource(
-    useCallback(() => hrApi.positions.list(), []),
+    useCallback(() => hasPermission(storedUser(), "hr.positions.view") ? hrApi.positions.list() : Promise.resolve([]), []),
   );
   const employees = useApiResource(
-    useCallback(() => hrApi.employees.list(), []),
+    useCallback(() => hasPermission(storedUser(), "hr.employees.view") ? hrApi.employees.list() : Promise.resolve([]), []),
   );
-  const salaries = useApiResource(useCallback(() => hrApi.salaries.list(), []));
-  const users = useApiResource(useCallback(() => usersApi.list(), []));
+  const salaries = useApiResource(useCallback(() => hasPermission(storedUser(), "hr.salaries.view") ? hrApi.salaries.list() : Promise.resolve([]), []));
+  const users = useApiResource(useCallback(() => hasPermission(storedUser(), "users.view") ? usersApi.list() : Promise.resolve([]), []));
   const departments = useApiResource(
-    useCallback(() => healthcareApi.departments.list(), []),
+    useCallback(() => hasPermission(storedUser(), "healthcare.departments.view") ? healthcareApi.departments.list() : Promise.resolve([]), []),
   );
   const resources = {
+    teams,
     positions,
     employees,
     salaries,
-    attendance: useApiResource(useCallback(() => hrApi.attendance.list(), [])),
-    payrolls: useApiResource(useCallback(() => hrApi.payrolls.list(), [])),
+    attendance: useApiResource(useCallback(() => hasPermission(storedUser(), "hr.attendance.view") ? hrApi.attendance.list() : Promise.resolve([]), [])),
+    payrolls: useApiResource(useCallback(() => hasPermission(storedUser(), "hr.payrolls.view") ? hrApi.payrolls.list() : Promise.resolve([]), [])),
     adjustments: useApiResource(
-      useCallback(() => hrApi.adjustments.list(), []),
+      useCallback(() => hasPermission(storedUser(), "hr.payroll-adjustments.view") ? hrApi.adjustments.list() : Promise.resolve([]), []),
     ),
-    advances: useApiResource(useCallback(() => hrApi.advances.list(), [])),
+    advances: useApiResource(useCallback(() => hasPermission(storedUser(), "hr.advances.view") ? hrApi.advances.list() : Promise.resolve([]), [])),
   };
   const current = resources[tab];
   const rows = useMemo(
@@ -476,13 +489,8 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                 e.id,
                 `${e.employeeCode} — ${e.firstName} ${e.lastName}`,
               ])
-          : field.type === "teamLeader"
-            ? employees.data
-                ?.filter((e) => e.isTeamLeader && e.id !== editing?.id)
-                .map((e) => [
-                  e.id,
-                  `${e.employeeCode} — ${e.firstName} ${e.lastName}`,
-                ])
+          : field.type === "team"
+            ? (teams.data ?? []).map((team) => [team.id, String(team.name)])
             : field.type === "position"
               ? positions.data?.map((p) => [p.id, String(p.name)])
               : field.type === "salary"
@@ -530,6 +538,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
         current.refresh(),
         employees.refresh(),
         positions.refresh(),
+        teams.refresh(),
         salaries.refresh(),
       ]);
     } catch (cause) {
@@ -546,7 +555,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
       <div>
         <h1 className="text-2xl font-bold">{tr(configs[tab].title)}</h1>
         <p className="text-sm text-muted-foreground">
-          {t("hr.pageDescription")}
+          {["employees", "positions", "teams"].includes(tab) ? tr("Positions describe jobs. Roles control system access through the linked user account. Teams group employees, with a leader assigned to each team.") : t("hr.pageDescription")}
         </p>
       </div>
       <Tabs
@@ -583,12 +592,12 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                   </div>
                   <div className="flex items-center gap-2">
                     {key === "salaries" && (
-                      <Button variant="outline" onClick={printDocument}>
+                      <Button permission="hr.salaries.print" variant="outline" onClick={printDocument}>
                         <Printer className="size-4" />
                         {t("hr.printSalaryList")}
                       </Button>
                     )}
-                    <Button
+                    <Button permission="create"
                       onClick={() => {
                         setError("");
                         setEditing(null);
@@ -683,7 +692,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                   </div>
                 )}
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className={key === "employees" ? "[&_th]:whitespace-nowrap [&_td]:whitespace-nowrap" : undefined}>
                     <TableHeader>
                       <TableRow>
                         {configs[key].columns.map(([, label]) => (
@@ -707,17 +716,24 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                               <TableCell key={field}>
                                 {field === "status" || field === "type" ? (
                                   <Badge variant="secondary">
-                                    {tr(String(display(row, field)))}
+                                    {tr(String(display(row, field, locale, tr)))}
                                   </Badge>
+                                ) : key === "employees" ? (
+                                  <span
+                                    className={field === "fullName" ? "inline-block max-w-56 truncate align-middle" : "inline-block max-w-44 truncate align-middle"}
+                                    title={String(display(row, field, locale, tr))}
+                                  >
+                                    {display(row, field, locale, tr)}
+                                  </span>
                                 ) : (
-                                  display(row, field)
+                                  display(row, field, locale, tr)
                                 )}
                               </TableCell>
                             ))}
                             <TableCell className="whitespace-nowrap">
-                              <div className="flex flex-wrap items-center gap-2">
+                              <div className={key === "employees" ? "flex flex-nowrap items-center gap-2" : "flex flex-wrap items-center gap-2"}>
                                 {key === "employees" && (
-                                  <Button
+                                  <Button permission="hr.payroll-adjustments.create"
                                     variant="ghost"
                                     size="icon"
                                     title={t("hr.rewardPunishment", {
@@ -816,7 +832,9 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                         defaultValue={
                           initial != null
                             ? String(initial)
-                            : field.required
+                            : field.name === "status"
+                              ? "active"
+                              : field.required
                               ? undefined
                               : "__none__"
                         }
@@ -900,7 +918,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
               )}
             </div>
             <div className="flex shrink-0 justify-end border-t bg-background px-6 py-4">
-              <Button disabled={busy} className="w-full sm:w-auto sm:min-w-32">
+              <Button permission={editing ? "update" : "create"} disabled={busy} className="w-full sm:w-auto sm:min-w-32">
                 {busy ? t("hr.saving") : t("hr.save")}
               </Button>
             </div>
@@ -982,7 +1000,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
               />
             </label>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button disabled={busy}>
+            <Button permission="hr.payroll-adjustments.create" disabled={busy}>
               {busy ? t("hr.saving") : t("hr.save")}
             </Button>
           </form>
@@ -1001,7 +1019,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
             </div>
             <p>
               {t("hr.generatedAt")}:{" "}
-              {new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(
+              {new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(
                 new Date(),
               )}
             </p>

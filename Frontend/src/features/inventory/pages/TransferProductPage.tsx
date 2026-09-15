@@ -54,7 +54,7 @@ export default function TransferProductPage() {
   const [success, setSuccess] = useState(false);
   const [page, setPage] = useState(1);
   const lock = useRef(false);
-  const canManage = hasPermission(storedUser(), "inventory.manage");
+  const canManage = hasPermission(storedUser(), "inventory.transfers.create");
   const resources = useApiResource(
     useCallback(async () => {
       const [products, warehouses, stock] = await Promise.all([
@@ -156,7 +156,7 @@ export default function TransferProductPage() {
           {t("warehouseModule.transferProduct")}
         </h1>
         <div className="flex items-center gap-2">
-          <Button
+          <Button permission="create"
             disabled={!canManage || busy}
             onClick={() => {
               setError("");
@@ -339,7 +339,7 @@ export default function TransferProductPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap items-center gap-2">
-                            <Button data-action="delete"
+                            <Button permission="view" data-action="delete"
                               type="button"
                               variant="ghost"
                               size="icon"
@@ -370,7 +370,7 @@ export default function TransferProductPage() {
                 >
                   {t("common.cancel")}
                 </Button>
-                <Button type="submit" disabled={!lines.length || busy}>
+                <Button permission="create" type="submit" disabled={!lines.length || busy}>
                   {t(busy ? "buyHistory.processing" : "orderForm.submit")}
                 </Button>
               </DialogFooter>

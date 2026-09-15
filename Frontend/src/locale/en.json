@@ -1,8 +1,13 @@
 {
+  "postDischargeFollowUp": {"title": "Post-discharge Follow-up", "description": "Patients who have left hospital and need follow-up care. Add patients using Discharge to follow-up on their profile.", "search": "Search patients", "status": "Status", "active": "Needs follow-up", "completed": "Follow-up completed", "code": "Patient code", "patient": "Patient", "phone": "Phone", "actions": "Actions", "complete": "Complete follow-up", "reopen": "Reopen follow-up", "empty": "No patients in this follow-up list.", "send": "Discharge to follow-up", "sent": "Patient added to post-discharge follow-up.", "followUpDate": "Follow-up date", "surgeryType": "Surgery type", "confirmTitle": "Confirm status update", "confirmDescription": "Confirm the follow-up date before updating this patient’s status.", "confirm": "Confirm update"},
+  "rolesTable": {"name": "Role", "description": "Description", "users": "Users", "permissions": "Permissions", "actions": "Actions", "delete": "Delete role", "deleteDescription": "Delete role {{name}}?"},
+  "crmDialogs": {"deleteDescription": "This permanently deletes this record. This action cannot be undone.", "surgeryDeleteDescription": "Delete this surgery from the catalog? Surgeries linked to patient appointments cannot be deleted.", "surgeryDetails": "Surgery details", "viewSurgery": "View surgery details", "deleteError": "Unable to delete record."},
+  "connectivity": {"checkingTitle": "Checking connection", "checkingDescription": "Please wait while we check your connection.", "unreachableTitle": "Connection lost", "unreachableDescription": "Unable to reach the system. It will return automatically when the connection is restored.", "offlineTitle": "No internet", "offlineDescription": "Check your internet connection. The system will return automatically when you are back online."},
+  "access": {"denied": "You do not have permission to access this page or perform this action."},
   "patientTv": {"open": "TV view", "back": "Go back"},
-  "whatsappInbox": {"title": "WhatsApp inbox", "subtitle": "Incoming contacts automatically become coded CRM leads.", "configured": "Cloud API configured", "configurationRequired": "Configuration required", "refresh": "Refresh inbox", "configurationError": "Unable to load WhatsApp configuration: {{error}}", "conversationsError": "Unable to load WhatsApp conversations: {{error}}", "setup": "Add {{variables}} to Backend/.env, then register {{webhook}} in Meta.", "search": "Search name, phone, or lead code", "newConversation": "New conversation", "loading": "Loading conversations…", "loadFailed": "Conversations could not be loaded. See the error above and retry.", "noMatches": "No conversations match your search.", "empty": "No incoming WhatsApp messages yet. New conversations appear when a message is received.", "lead": "Lead {{code}}", "compose": "Type a WhatsApp message", "send": "Send", "selectConversation": "Select a conversation to view messages.", "sentSuccess": "WhatsApp message sent.", "employeeName": "Employee name", "sent": "Sent", "delivered": "Delivered", "read": "Read", "failed": "Failed", "received": "Received", "pending": "Pending", "text": "Text", "image": "Image", "audio": "Audio", "video": "Video", "document": "Document", "sticker": "Sticker", "location": "Location", "contacts": "Contacts", "unknown": "Message"},
+  "whatsappInbox": {"title": "Inbox", "subtitle": "Conversations, contacts, and customer details in one place.", "configured": "Cloud API configured", "configurationRequired": "Configuration required", "refresh": "Refresh inbox", "configurationError": "Unable to load WhatsApp configuration: {{error}}", "conversationsError": "Unable to load WhatsApp conversations: {{error}}", "setup": "Add {{variables}} to Backend/.env, then register {{webhook}} in Meta.", "search": "Search name, phone, or lead code", "newConversation": "New conversation", "loading": "Loading conversations…", "loadFailed": "Conversations could not be loaded. See the error above and retry.", "noMatches": "No conversations match your search.", "empty": "No conversations yet.", "lead": "Lead {{code}}", "compose": "Write a message…", "send": "Send", "selectConversation": "Select a conversation to view messages.", "sentSuccess": "Message sent.", "employeeName": "Employee name", "sent": "Sent", "delivered": "Delivered", "read": "Read", "failed": "Failed", "received": "Received", "pending": "Pending", "text": "Text", "image": "Image", "audio": "Audio", "video": "Video", "document": "Document", "sticker": "Sticker", "location": "Location", "contacts": "Contacts", "unknown": "Message", "conversations": "Conversations", "availableChannel": "Available", "allChannels": "All channels", "notConnected": "This channel is not connected yet. Connect it to receive and reply to messages.", "backToInbox": "Back to conversations", "openProfile": "Open lead profile", "contactProfile": "Contact profile", "contact": "Contact", "phone": "Phone number", "channel": "Channel", "leadCode": "Lead code", "channelUnavailable": "WhatsApp is not connected. Messages are available to read; sending is unavailable.", "composeHint": "Enter to send · Shift + Enter for a new line", "attachFile": "Attach file", "recordVoice": "Record voice message", "stopRecording": "Stop recording", "recording": "Recording… Stop to preview (maximum 5 minutes).", "removeAttachment": "Remove attachment", "fileTooLarge": "Files must be 16 MB or smaller. Images must be 5 MB or smaller.", "microphoneUnavailable": "Microphone recording is unavailable. Allow microphone access in your browser or device settings.", "voiceCall": "Voice call", "videoCall": "Video call", "callExternalHelp": "Open the contact in WhatsApp, then choose its voice or video call button. Calls take place in WhatsApp, outside this inbox.", "openWhatsapp": "Open WhatsApp"},
   "patientBooking": {"departmentId": "Department", "doctorId": "Doctor", "surgeryId": "Surgery", "scheduledAt": "Date and time", "operatingRoom": "Operating room", "durationMinutes": "Duration (minutes)", "notes": "Notes (optional)", "description": "Choose the doctor and schedule the patient’s visit.", "loading": "Loading…", "selectDepartment": "Select department", "departmentFirst": "Select a department first", "selectDoctor": "Select doctor", "selectSurgery": "Select surgery", "selectRoom": "Select operating room", "notesPlaceholder": "Reason for the visit or additional instructions", "cancel": "Cancel", "saving": "Saving…", "save": "Save appointment", "noDepartments": "No active Hospital departments are available.", "noDoctors": "No doctors are available for this selection."},
-  "patientProgress": {"new": "Consulted", "contacted": "Follow-up", "qualified": "Ready", "appointment_requested": "OPD Appointment", "surgery_appointment": "Surgery Appointment", "converted": "OPD Converted", "direct_surgery_converted": "Direct Surgery Converted", "inactive": "Inactive"},
+  "patientProgress": {"post_discharge_follow_up": "Needs follow-up", "post_discharge_follow_up_completed": "Follow-up completed", "new": "Consulted", "contacted": "Follow-up", "qualified": "Ready", "appointment_requested": "OPD Appointment", "surgery_appointment": "Surgery Appointment", "converted": "OPD Converted", "direct_surgery_converted": "Direct Surgery Converted", "inactive": "Inactive"},
   "patientActions": {"editProfile": "Edit profile", "saveProfile": "Save changes", "appointment": "Make appointment", "updateError": "Could not update patient status."},
   "drugDose": {"title": "Drug-dose calculation", "doseMgKgDay": "Dose (mg/kg/day)", "dosesPerDay": "Doses per day", "concentrationMg": "Concentration: medicine (mg)", "concentrationMl": "Concentration: volume (mL)", "weight": "Weight (kg)", "missing": "Enter dose, frequency and concentration in inventory to calculate this product.", "apply": "Apply calculated dose", "review": "Review the product dose and patient weight before applying."},
   "language": {
@@ -97,6 +102,7 @@
     "attendance": "Attendance",
     "employees": "Employees",
     "humanResources": "Human resources",
+    "teams": "Teams",
     "positions": "Positions",
     "salaries": "Salaries",
     "hrAttendance": "HR attendance",
@@ -232,16 +238,16 @@
     "removingCredential": "Removing from device…",
     "credentials": {
       "card": {
-        "label": "card",
-        "set": "Set or replace card"
+        "label": "Card",
+        "set": "Set or replace Card"
       },
       "fingerprint": {
-        "label": "fingerprint",
-        "set": "Capture or replace fingerprint"
+        "label": "Fingerprint",
+        "set": "Capture or replace Fingerprint"
       },
       "face": {
-        "label": "face",
-        "set": "Capture or replace face"
+        "label": "Face",
+        "set": "Capture or replace Face"
       },
       "pin": {
         "label": "PIN",
@@ -313,6 +319,16 @@
     }
   },
   "hr": {
+    "systemRoles": "System roles",
+    "team": "Team",
+    "teams": "Teams",
+    "teamLeader": "Team leader",
+    "teamName": "Team name",
+    "workingDays": "Working days",
+    "expectedCheckIn": "Expected check-in",
+    "expectedCheckOut": "Expected check-out",
+    "department": "Department",
+    "hours": "hours",
     "clearFilters": "Clear filters",
     "allStatuses": "All statuses",
     "allPositions": "All positions",
@@ -430,7 +446,7 @@
     "employeeCode": "Code",
     "position": "Position",
     "account": "Account",
-    "selectCard": "Select a card to open monthly attendance details.",
+    "selectCard": "Select a Card to open monthly attendance details.",
     "notLinked": "Not linked",
     "noEmployeesFound": "No employees found",
     "tryAnotherSearch": "Try another name or employee code.",
@@ -1032,6 +1048,7 @@
     "email": "Email",
     "department": "Department",
     "newPasswordOptional": "New password (optional)",
+    "passwordUnavailable": "The current password cannot be displayed. Leave this blank to keep it, or enter a new password.",
     "passwordMinimum": "Password (minimum 8 characters)",
     "chooseRole": "Choose role",
     "saving": "Saving…",
@@ -1064,14 +1081,14 @@
     "create": "Create on device",
     "edit": "Edit device user",
     "editTitle": "Edit device user",
-    "setCard": "Set access card",
+    "setCard": "Set access Card",
     "syncComplete": "Synchronization complete ({{count}} users)",
-    "captureFingerprint": "Capture fingerprint",
-    "captureFace": "Capture face",
+    "captureFingerprint": "Capture Fingerprint",
+    "captureFace": "Capture Face",
     "setPin": "Set attendance PIN",
     "assigningTo": "Assigning to",
     "onTerminal": "on the Hikvision terminal.",
-    "cardNumberPlaceholder": "Enter or scan card number",
+    "cardNumberPlaceholder": "Enter or scan Card number",
     "pinPlaceholder": "Enter 4 to 8 digit attendance PIN",
     "fingerprintInstruction": "After clicking Start, ask the user to place their finger on the terminal sensor.",
     "faceInstruction": "After clicking Start, ask the user to stand in front of the terminal camera.",
@@ -2142,6 +2159,9 @@
     "newTransfer": "New transfer"
   },
   "storageView": {
+    "availableProducts": "Available products",
+    "availableQuantity": "Total available quantity",
+    "valuationHint": "Totals cover all products matching the storage, category, and search filters, across all pages. Buy value = available quantity × current buy price; sell value = available quantity × current sell price.",
     "name": "Name",
     "size": "Size",
     "code": "Code",
@@ -2513,6 +2533,11 @@
     "loadFailed": "Unable to load appointments."
   },
   "prescription": {
+    "invoice": "Medication invoice",
+    "unitPrice": "Price / package",
+    "lineTotal": "Line total",
+    "total": "Invoice total",
+    "billingHint": "Charges are based on bottle/package quantity. mL/dose is dosage information only.",
     "patient": "Patient name",
     "patientCode": "Patient code",
     "issued": "Issued on",
@@ -2556,5 +2581,7 @@
     "days": "Working days",
     "hours": "{{count}} h",
     "summary": "{{days}} days/week · {{hours}} hours/week"
-  }
+  },
+  "incomeExpenses": {"pending": "Awaiting approval", "cashAccountId": "Cash account", "filters": "Filters", "done": "Done", "departmentTotals": "Department totals", "title": "Income & Expenses", "description": "Confirmed payments and expenses by department and category. Pending, planned, and cancelled entries are excluded from totals.", "add": "Add transaction", "required": "Select a date and department.", "departmentId": "Department", "category": "Category", "currency": "Currency", "all": "All", "from": "From date", "to": "To date", "unassigned": "Unassigned", "reset": "Reset filters", "income": "Total income", "expense": "Total expenses", "net": "Net balance", "breakdown": "Department and category breakdown", "transactions": "Transactions", "flowDate": "Date", "flowType": "Type", "descriptionField": "Description", "amount": "Amount", "status": "Status", "actions": "Actions", "inflow": "Income", "outflow": "Expense", "confirmed": "Confirmed", "planned": "Planned", "cancelled": "Cancelled", "edit": "Edit transaction", "delete": "Delete transaction", "deleteConfirm": "Delete this transaction? Its amount will be removed from the totals.", "noDepartments": "Create a department in HR before adding transactions.", "retry": "Retry"},
+  "financeOverview": {"details": "View details", "title": "Finance overview", "description": "Cash movement, current debts, and monthly department comparisons. Storage value is separate from cash.", "year": "Year", "refresh": "Refresh", "pending": "Expenses awaiting approval", "unassigned": "Entries without a department", "cashAccounts": "Safes & bank accounts", "addAccount": "Add cash account", "balanceHint": "Balances = opening balance + confirmed receipts − confirmed payments assigned to this account.", "openingDate": "Opening balance date", "noAccounts": "Add a safe or bank account, then assign its transactions in Income & Expenses.", "unallocated": "Net movement without a cash account (not a verified cash balance)", "debts": "Outstanding debts", "debtHint": "Current customer invoice balances and supplier purchase debts, independent of the selected reporting year.", "receivable": "Customers owe us", "payable": "We owe suppliers", "type": "Type", "name": "Name", "reference": "Reference", "amount": "Amount", "dueDate": "Due date", "monthly": "Monthly income & expenses", "month": "Month", "currency": "Currency", "income": "Income", "expense": "Expenses", "net": "Net cash movement", "departments": "Monthly department comparison", "department": "Department", "safe": "Safe", "bank": "Bank", "openingBalance": "Opening balance", "openingHint": "Enter the balance at the start of this date, before any transactions you will assign. Transactions before this date cannot be assigned.", "history": "History", "source": "Source record", "approve": "Approve expense", "cancelEntry": "Cancel entry", "cancelHint": "Cancel this entry and remove it from confirmed totals? Its history will be retained.", "sourceHint": "Source-linked amounts and status are read-only. You can assign a department, category, and cash account.", "approvalHint": "Manual expenses require approval by another authorized user before they count in totals.", "system": "Automatic source sync", "audit": {"create": "Created", "update": "Updated", "approve": "Approved", "cancel": "Cancelled", "source_imported": "Imported from source", "source_updated": "Source updated", "source_cancelled": "Source cancelled or removed"}}
 }

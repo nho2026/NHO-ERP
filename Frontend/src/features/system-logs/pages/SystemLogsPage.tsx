@@ -82,7 +82,7 @@ export default function SystemLogsPage() {
             {t("systemLogs.description")}
           </p>
         </div>
-        <Button className="print:hidden" variant="outline" onClick={printLogs}>
+        <Button permission="print" className="print:hidden" variant="outline" onClick={printLogs}>
           <Printer />
           {t("systemLogs.print")}
         </Button>

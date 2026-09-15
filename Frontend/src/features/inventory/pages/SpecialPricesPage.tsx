@@ -1,3 +1,4 @@
+import { hasPagePermission } from "@/features/auth/access";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pencil } from "lucide-react";
@@ -32,7 +33,7 @@ import {
 import { inventoryApi, type RecordItem } from "../api/inventory.api";
 import { apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 const columns = [
   "name",
   "size",
@@ -45,18 +46,13 @@ const columns = [
 ] as const;
 export default function SpecialPricesPage() {
   const { t, i18n } = useTranslation();
-  const result = useApiResource(
+  const options = useApiResource(
     useCallback(async () => {
-      const [products, warehouses, categories] = await Promise.all([
-        inventoryApi.all("products"),
+      const [warehouses, categories] = await Promise.all([
         inventoryApi.all("warehouses"),
         inventoryApi.all("categories"),
       ]);
-      return {
-        products: products.filter((p) => p.status === "active"),
-        warehouses,
-        categories,
-      };
+      return { warehouses, categories };
     }, []),
   );
   const [search, setSearch] = useState("");
@@ -64,6 +60,20 @@ export default function SpecialPricesPage() {
   const [category, setCategory] = useState("all");
   const [rate, setRate] = useState("1550");
   const [page, setPage] = useState(1);
+  const result = useApiResource(
+    useCallback(
+      () =>
+        inventoryApi.list("products", page, {
+          pageSize: "10",
+          status: "active",
+          compact: "true",
+          search,
+          ...(warehouse !== "all" && { warehouseId: warehouse }),
+          ...(category !== "all" && { categoryId: category }),
+        }),
+      [page, search, warehouse, category],
+    ),
+  );
   const visible: string[] = [...columns];
   const [selected, setSelected] = useState<RecordItem | null>(null);
   const [price, setPrice] = useState("");
@@ -71,7 +81,7 @@ export default function SpecialPricesPage() {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const lock = useRef(false);
-  const canEdit = hasPermission(storedUser(), "inventory.manage");
+  const canEdit = hasPagePermission(storedUser(), "create", "update", "delete");
   const validRate =
     Number.isFinite(Number(rate)) &&
     Number(rate) > 0 &&
@@ -82,17 +92,10 @@ export default function SpecialPricesPage() {
       currency,
       maximumFractionDigits: currency === "IQD" ? 0 : 2,
     }).format(value);
-  const rows = (result.data?.products ?? []).filter(
-    (p) =>
-      (category === "all" || p.categoryId === category) &&
-      (warehouse === "all" ||
-        p.stocks?.some((s: RecordItem) => s.warehouseId === warehouse)) &&
-      `${p.name} ${p.sku} ${p.barcode ?? ""}`
-        .toLocaleLowerCase()
-        .includes(search.toLocaleLowerCase()),
-  );
-  const pages = Math.max(1, Math.ceil(rows.length / 10));
-  const current = Math.min(page, pages);
+  const rows = result.data?.items ?? [];
+  const pages = result.data?.pagination.totalPages ?? 1;
+  const current = result.data?.pagination.page ?? page;
+  const total = result.data?.pagination.total ?? 0;
   const quantity = (p: RecordItem) =>
     (p.stocks ?? [])
       .filter(
@@ -152,9 +155,9 @@ export default function SpecialPricesPage() {
           </p>
         </div>
       </div>
-      {result.error && (
+      {(result.error || options.error) && (
         <p role="alert" className="text-destructive">
-          {result.error}
+          {result.error || options.error}
         </p>
       )}
       {saved && (
@@ -200,8 +203,8 @@ export default function SpecialPricesPage() {
           />
           {(
             [
-              [warehouse, setWarehouse, result.data?.warehouses, "allStorage"],
-              [category, setCategory, result.data?.categories, "allCategory"],
+              [warehouse, setWarehouse, options.data?.warehouses, "allStorage"],
+              [category, setCategory, options.data?.categories, "allCategory"],
             ] as const
           ).map(([value, change, items, label]) => (
             <Select
@@ -255,7 +258,7 @@ export default function SpecialPricesPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              rows.slice((current - 1) * 10, current * 10).map((p) => (
+              rows.map((p) => (
                 <TableRow key={p.id}>
                   {columns
                     .filter((k) => visible.includes(k))
@@ -273,7 +276,8 @@ export default function SpecialPricesPage() {
                     ))}
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Button data-action="edit"
+                      <Button
+                        data-action="edit"
                         variant="outline"
                         size="icon"
                         disabled={!canEdit}
@@ -296,19 +300,19 @@ export default function SpecialPricesPage() {
         </Table>
         <div className="flex items-center justify-between border-t p-4">
           <span className="text-sm text-muted-foreground">
-            {current} / {pages} · {rows.length}
+            {current} / {pages} · {total}
           </span>
           <div className="flex gap-2">
             <Button
               variant="outline"
-              disabled={current <= 1}
+              disabled={result.isLoading || current <= 1}
               onClick={() => setPage(current - 1)}
             >
               {t("transferForm.previous")}
             </Button>
             <Button
               variant="outline"
-              disabled={current >= pages}
+              disabled={result.isLoading || current >= pages}
               onClick={() => setPage(current + 1)}
             >
               {t("transferForm.next")}
@@ -376,7 +380,7 @@ export default function SpecialPricesPage() {
               >
                 {t("common.cancel")}
               </Button>
-              <Button disabled={busy || !canEdit}>
+              <Button permission="update" disabled={busy || !canEdit}>
                 {t(busy ? "buyHistory.processing" : "common.save")}
               </Button>
             </DialogFooter>

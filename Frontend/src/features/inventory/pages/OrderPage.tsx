@@ -94,7 +94,7 @@ function OrderForm({
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const requestId = useRef(randomId());
-  const canSubmit = hasPermission(storedUser(), "inventory.manage");
+  const canSubmit = hasPermission(storedUser(), "inventory.orders.create");
   const money = (v: number) =>
     new Intl.NumberFormat(i18n.language, {
       minimumFractionDigits: 2,
@@ -346,7 +346,7 @@ function OrderForm({
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button data-action="edit"
+                          <Button permission="view" data-action="edit"
                             type="button"
                             variant="outline"
                             size="icon"
@@ -359,7 +359,7 @@ function OrderForm({
                           >
                             <Pencil className="size-4" />
                           </Button>
-                          <Button data-action="delete"
+                          <Button permission="view" data-action="delete"
                             type="button"
                             variant="destructive"
                             size="icon"
@@ -403,7 +403,7 @@ function OrderForm({
               {t("orderForm.another")}
             </Button>
           ) : (
-            <Button
+            <Button permission="create"
               type="submit"
               disabled={busy || !canSubmit}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -411,7 +411,7 @@ function OrderForm({
               {t(busy ? "buyHistory.processing" : "orderForm.submit")}
             </Button>
           )}
-          <Button
+          <Button permission="print"
             type="button"
             className="bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={print}
@@ -635,7 +635,7 @@ function OrderForm({
                         if (file) void uploadImage(line.id, file);
                       }}
                     />
-                    <Button
+                    <Button permission="inventory.products.create"
                       type="button"
                       variant="outline"
                       className="h-14 w-full justify-start gap-3"
@@ -714,7 +714,7 @@ export default function OrderPage() {
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
   const [saved, setSaved] = useState(false);
-  const canSubmit = hasPermission(storedUser(), "inventory.manage");
+  const canSubmit = hasPermission(storedUser(), "inventory.orders.create");
   return (
     <div className="space-y-4">
       {saved && (
@@ -727,7 +727,7 @@ export default function OrderPage() {
         title="warehouseModule.order"
         headerAction={
           canSubmit && (
-            <Button
+            <Button permission="create"
               className="ms-auto"
               onClick={() => {
                 setSaved(false);

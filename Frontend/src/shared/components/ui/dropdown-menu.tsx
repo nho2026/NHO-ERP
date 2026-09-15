@@ -1,4 +1,5 @@
 "use client";
+import { useActionPermission } from "@/features/auth/permission-context";
 
 import * as React from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
@@ -77,10 +78,13 @@ DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
 const DropdownMenuItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & { permission?: string } & {
     inset?: boolean;
   }
->(({ className, inset, ...props }, ref) => (
+>(({ className, inset, permission, ...props }, ref) => {
+  const allowed = useActionPermission(permission);
+  if (!allowed) return null;
+  return (
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
@@ -90,7 +94,8 @@ const DropdownMenuItem = React.forwardRef<
     )}
     {...props}
   />
-));
+);
+});
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
 
 const DropdownMenuCheckboxItem = React.forwardRef<

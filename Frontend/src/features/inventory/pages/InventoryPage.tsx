@@ -1,3 +1,4 @@
+import { hasPagePermission } from "@/features/auth/access";
 import { SearchableSelect } from "@/shared/components/ui/searchable-select";
 import { Label } from "@/shared/components/ui/label";
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
@@ -47,7 +48,7 @@ import {
 } from "@/shared/components/ui/table";
 import { TableResourceState } from "@/shared/components/ui/table-resource-state";
 import { FormDatePicker } from "@/shared/components/ui/form-date-picker";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -139,10 +140,7 @@ const configs = {
 } as const;
 export default function InventoryPage({ resource }: { resource: Resource }) {
   const { t, i18n } = useTranslation();
-  const canManage = hasPermission(
-    storedUser(),
-    resource === "stock" ? "inventory.adjust" : "inventory.manage",
-  );
+  const canManage = hasPagePermission(storedUser(), "create", "update", "delete", "adjust", "return");
   const [page, setPage] = useState(1);
   const [productSearch, setProductSearch] = useState(
       () => new URLSearchParams(window.location.search).get("search") ?? "",
@@ -319,7 +317,7 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
             </div>
           )}
           {canManage && resource !== "movements" && (
-            <Button
+            <Button permission={resource === "stock" ? "adjust" : "create"}
               className="h-10 leading-none"
               onClick={() => {
                 setProductImages([]);
@@ -687,7 +685,7 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogAction permission="delete"
               disabled={busy}
               onClick={async () => {
                 if (!deleteTarget) return;
@@ -923,7 +921,7 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
                             alt=""
                             className="aspect-square w-full rounded-lg object-contain"
                           />
-                          <Button
+                          <Button permission="inventory.products.delete"
                             type="button"
                             variant="destructive"
                             size="icon"
@@ -965,7 +963,7 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
                           </Button>
                         </div>
                       ))}
-                      <Button
+                      <Button permission="inventory.products.create"
                         type="button"
                         variant="ghost"
                         disabled={busy || productImages.length >= 8}
@@ -988,7 +986,7 @@ export default function InventoryPage({ resource }: { resource: Resource }) {
               <p className="text-sm text-destructive col-span-full">{error}</p>
             )}
             </div>
-            <Button disabled={busy} className="w-full shrink-0">
+            <Button permission={resource === "stock" ? "adjust" : editing ? "update" : "create"} disabled={busy} className="w-full shrink-0">
               {busy ? t("inventory.saving") : t("inventory.save")}
             </Button>
           </form>

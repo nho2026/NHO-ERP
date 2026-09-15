@@ -12,7 +12,6 @@ import SpecialPricesPage from "@/features/inventory/pages/SpecialPricesPage";
 import StoragePage from "@/features/inventory/pages/StoragePage";
 import TransferProductPage from "@/features/inventory/pages/TransferProductPage";
 import AddSpecialProductPage from "@/features/inventory/pages/AddSpecialProductPage";
-import OrderHistoryPage from "@/features/inventory/pages/OrderHistoryPage";
 import OrderPage from "@/features/inventory/pages/OrderPage";
 import BuyDebtsPage from "@/features/inventory/pages/BuyDebtsPage";
 import BuyProductPage from "@/features/inventory/pages/BuyProductPage";
@@ -36,6 +35,8 @@ import EventsPage from "@/features/attendance/pages/EventsPage";
 import HrPage from "@/features/hr/pages/HrPage";
 import HrReportsPage from "@/features/hr/pages/HrReportsPage";
 import HealthcarePage from "@/features/healthcare/pages/HealthcarePage";
+import FinanceOverview from "@/features/accounting/pages/FinanceOverview";
+import IncomeExpensesPage from "@/features/accounting/pages/IncomeExpensesPage";
 import AccountingPage from "@/features/accounting/pages/AccountingPage";
 import BillingPage from "@/features/accounting/pages/BillingPage";
 import ServiceAdvancesPage from "@/features/accounting/pages/ServiceAdvancesPage";
@@ -55,6 +56,7 @@ import PayrollPage from "@/features/hr/pages/PayrollPage";
 import TargetsPage from "@/features/targets/pages/TargetsPage";
 import CrmPage from "@/features/crm/pages/CrmPage";
 import PatientPrescriptionsPage from "@/features/crm/pages/PatientPrescriptionsPage";
+import FollowUpPatientsPage from "@/features/crm/pages/FollowUpPatientsPage";
 import PatientProfilePage from "@/features/crm/pages/PatientProfilePage";
 import CrmFormsPage from "@/features/crm/pages/CrmFormsPage";
 import LeadProgressPage from "@/features/crm/pages/LeadProgressPage";
@@ -65,17 +67,9 @@ import { Toaster } from "sonner";
 import { DirectionProvider } from "@radix-ui/react-direction";
 import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
-import { RequireAccess } from "@/features/auth/access";
+import { RequireAccess } from "@/features/auth/RequireAccess";
 
-const secured = (
-  permission: string | undefined,
-  element: ReactNode,
-  allowCashier = false,
-) => (
-  <RequireAccess permission={permission} allowCashier={allowCashier}>
-    {element}
-  </RequireAccess>
-);
+const secured = (element: ReactNode) => <RequireAccess>{element}</RequireAccess>;
 
 export default function App() {
   const { i18n } = useTranslation();
@@ -87,104 +81,90 @@ export default function App() {
         <Route element={<DashboardLayout />}>
           <Route
             path="/dashboard"
-            element={secured("dashboard.view", <DashboardPage />)}
+            element={secured(<DashboardPage />)}
           />
           <Route
             path="/profile"
-            element={secured(undefined, <ProfilePage />, true)}
+            element={secured(<ProfilePage />)}
           />
           <Route
             path="/employee-portal"
-            element={secured(undefined, <EmployeePortalPage />, true)}
+            element={secured(<EmployeePortalPage />)}
           />
           <Route
             path="/tasks"
-            element={secured("tasks.list.view", <TasksPage />)}
+            element={secured(<TasksPage />)}
           />
           <Route
             path="/meetings"
-            element={secured(undefined, null)}
+            element={secured(null)}
           />
           <Route
             path="/targets"
-            element={secured(undefined, <TargetsPage />)}
+            element={secured(<TargetsPage />)}
           />
           <Route
             path="/tasks/:id"
-            element={secured("tasks.list.view", <TaskDetailPage />)}
+            element={secured(<TaskDetailPage />)}
           />
           <Route
             path="/tasks/reports"
-            element={secured("tasks.reports.view", <TaskReportsPage />)}
+            element={secured(<TaskReportsPage />)}
           />
           <Route
             path="/feedback"
-            element={secured("healthcare.feedback.view", <FeedbackPage />)}
+            element={secured(<FeedbackPage />)}
           />
-          <Route path="/users" element={secured("users.view", <UsersPage />)} />
-          <Route path="/roles" element={secured("roles.view", <RolesPage />)} />
+          <Route path="/users" element={secured(<UsersPage />)} />
+          <Route path="/roles" element={secured(<RolesPage />)} />
           <Route
             path="/system-logs"
-            element={secured("system.logs.view", <SystemLogsPage />)}
+            element={secured(<SystemLogsPage />)}
           />
           <Route
             path="/employees"
-            element={secured(
-              "hr.employees.view",
-              <HrPage resource="employees" />,
-            )}
+            element={secured(<HrPage resource="employees" />)}
+          />
+          <Route
+            path="/teams"
+            element={secured(<HrPage resource="teams" />)}
           />
           <Route
             path="/positions"
-            element={secured(
-              "hr.positions.view",
-              <HrPage resource="positions" />,
-            )}
+            element={secured(<HrPage resource="positions" />)}
           />
           <Route
             path="/salaries"
-            element={secured(
-              "hr.salaries.view",
-              <HrPage resource="salaries" />,
-            )}
+            element={secured(<HrPage resource="salaries" />)}
           />
           <Route
             path="/hr-attendance"
-            element={secured("hr.attendance.view", <HrAttendancePage />)}
+            element={secured(<HrAttendancePage />)}
           />
           <Route
             path="/payrolls"
-            element={secured("hr.payrolls.view", <PayrollPage />)}
+            element={secured(<PayrollPage />)}
           />
           <Route
             path="/hr/reports"
-            element={secured("hr.employees.view", <HrReportsPage />)}
+            element={secured(<HrReportsPage />)}
           />
           <Route
             path="/hr/warnings"
-            element={secured("hr.employees.update", <HrWarningsPage />)}
+            element={secured(<HrWarningsPage />)}
           />
           <Route
             path="/salary-advances"
-            element={secured(
-              "hr.advances.view",
-              <HrPage resource="advances" />,
-            )}
+            element={secured(<HrPage resource="advances" />)}
           />
           <Route
             path="/departments"
-            element={secured(
-              "healthcare.departments.view",
-              <HealthcarePage resource="departments" />,
-            )}
+            element={secured(<HealthcarePage resource="departments" />)}
           />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings" element={secured(<SettingsPage />)} />
           <Route
             path="/health-staff"
-            element={secured(
-              "healthcare.staff.view",
-              <HealthcarePage resource="staff" />,
-            )}
+            element={secured(<HealthcarePage resource="staff" />)}
           />
           <Route
             path="/appointments"
@@ -192,222 +172,156 @@ export default function App() {
           />
           <Route
             path="/crm/leads"
-            element={secured("employees.view", <CrmPage resource="leads" />)}
+            element={secured(<CrmPage resource="leads" />)}
           />
           <Route
             path="/crm/whatsapp"
-            element={secured("employees.view", <WhatsappPage />)}
+            element={secured(<WhatsappPage />)}
           />
           <Route
             path="/crm/leads/progress"
-            element={secured("employees.view", <LeadProgressPage />)}
+            element={secured(<LeadProgressPage />)}
           />
           <Route
             path="/crm/leads/:id"
-            element={secured("employees.view", <LeadDetailPage />)}
+            element={secured(<LeadDetailPage />)}
           />
+          <Route path="/crm/follow-up" element={secured(<FollowUpPatientsPage />)} />
           <Route
             path="/crm/patients"
-            element={secured("employees.view", <CrmPage resource="patients" />)}
+            element={secured(<CrmPage resource="patients" />)}
           />
           <Route
             path="/crm/patients/:id/medications"
-            element={secured("employees.view", <PatientPrescriptionsPage />)}
+            element={secured(<PatientPrescriptionsPage />)}
           />
           <Route
             path="/crm/patients/:id"
-            element={secured("employees.view", <PatientProfilePage />)}
+            element={secured(<PatientProfilePage />)}
           />
           <Route
             path="/crm/referrals"
-            element={secured(
-              "employees.view",
-              <CrmPage resource="referrals" />,
-            )}
+            element={secured(<CrmPage resource="referrals" />)}
           />
           <Route
             path="/crm/forms"
-            element={secured("employees.view", <CrmFormsPage />)}
+            element={secured(<CrmFormsPage />)}
           />
           <Route
             path="/crm/today-patients"
-            element={secured(
-              "healthcare.appointments.view",
-              <TodayPatientsPage />,
-            )}
+            element={secured(<TodayPatientsPage />)}
           />
           <Route
             path="/crm/appointments"
-            element={secured(
-              "healthcare.appointments.view",
-              <HealthcarePage resource="appointments" />,
-            )}
+            element={secured(<HealthcarePage resource="appointments" />)}
           />
           <Route
             path="/crm/surgery-appointments"
-            element={secured(
-              "employees.view",
-              <CrmPage resource="surgery-appointments" />,
-            )}
+            element={secured(<CrmPage resource="surgery-appointments" />)}
           />
           <Route
             path="/crm/payments"
-            element={secured("employees.view", <CrmPage resource="payments" />)}
+            element={secured(<CrmPage resource="payments" />)}
           />
           <Route
             path="/crm/surgeries"
-            element={secured(
-              "employees.view",
-              <CrmPage resource="surgeries" />,
-            )}
+            element={secured(<CrmPage resource="surgeries" />)}
           />
+          <Route path="/accounting/overview" element={secured(<FinanceOverview />)} />
+          <Route path="/accounting/income-expenses" element={secured(<IncomeExpensesPage />)} />
           <Route
             path="/accounting/accounts"
-            element={secured(
-              "accounting.accounts.view",
-              <AccountingPage resource="accounts" />,
-            )}
+            element={secured(<AccountingPage resource="accounts" />)}
           />
           <Route
             path="/accounting/journals"
-            element={secured(
-              "accounting.journals.view",
-              <AccountingPage resource="journals" />,
-            )}
+            element={secured(<AccountingPage resource="journals" />)}
           />
           <Route
             path="/accounting/customers"
-            element={secured(
-              "accounting.customers.view",
-              <BillingPage resource="customers" />,
-            )}
+            element={secured(<BillingPage resource="customers" />)}
           />
           <Route
             path="/accounting/invoices"
-            element={secured(
-              "accounting.invoices.view",
-              <BillingPage resource="invoices" />,
-            )}
+            element={secured(<BillingPage resource="invoices" />)}
           />
           <Route
             path="/accounting/payments"
-            element={secured(
-              "accounting.payments.view",
-              <BillingPage resource="payments" />,
-            )}
+            element={secured(<BillingPage resource="payments" />)}
           />
           <Route
             path="/accounting/service-advances"
-            element={secured(
-              "accounting.service_advances.view",
-              <ServiceAdvancesPage />,
-            )}
+            element={secured(<ServiceAdvancesPage />)}
           />
           <Route
             path="/accounting/reports"
-            element={secured(
-              "accounting.reports.view",
-              <AccountingPage resource="reports" />,
-            )}
+            element={secured(<AccountingPage resource="reports" />)}
           />
           <Route
             path="/finance/budgets"
-            element={secured(
-              "finance.budgets.view",
-              <FinancePage resource="budgets" />,
-            )}
+            element={secured(<FinancePage resource="budgets" />)}
           />
           <Route
             path="/finance/cash-flow"
-            element={secured(
-              "finance.cash-flow.view",
-              <FinancePage resource="cash-flow" />,
-            )}
+            element={secured(<IncomeExpensesPage />)}
           />
           <Route
             path="/finance/forecasts"
-            element={secured(
-              "finance.forecasts.view",
-              <FinancePage resource="forecasts" />,
-            )}
+            element={secured(<FinancePage resource="forecasts" />)}
           />
           <Route
             path="/finance/analysis"
-            element={secured(
-              "finance.analysis.view",
-              <FinancePage resource="analysis" />,
-            )}
+            element={secured(<FinancePage resource="analysis" />)}
           />
           <Route
             path="/finance/funding"
-            element={secured(
-              "finance.funding.view",
-              <FinancePage resource="funding" />,
-            )}
+            element={secured(<FinancePage resource="funding" />)}
           />
           <Route
             path="/warehouses/buy/product"
-            element={secured("inventory.warehouses.view", <BuyProductPage />)}
+            element={secured(<BuyProductPage />)}
           />
           <Route
             path="/warehouses/buy/debts"
-            element={secured("inventory.warehouses.view", <BuyDebtsPage />)}
+            element={secured(<BuyDebtsPage />)}
           />
           <Route
             path="/warehouses/buy/order"
-            element={secured("inventory.warehouses.view", <OrderPage />)}
-          />
-          <Route
-            path="/warehouses/buy/order-history"
-            element={secured("inventory.warehouses.view", <OrderHistoryPage />)}
+            element={secured(<OrderPage />)}
           />
           <Route
             path="/warehouses/buy/department-orders"
-            element={secured(
-              "inventory.warehouses.view",
-              <DepartmentOrdersPage />,
-            )}
+            element={secured(<DepartmentOrdersPage />)}
           />
           <Route
             path="/warehouses/product/special"
-            element={secured(
-              "inventory.products.view",
-              <AddSpecialProductPage />,
-            )}
+            element={secured(<AddSpecialProductPage />)}
           />
           <Route
             path="/warehouses/product/transfer"
-            element={secured(
-              "inventory.products.view",
-              <TransferProductPage />,
-            )}
+            element={secured(<TransferProductPage />)}
           />
           <Route
             path="/warehouses/storage/special-price"
-            element={secured("inventory.stock.view", <SpecialPricesPage />)}
+            element={secured(<SpecialPricesPage />)}
           />
           <Route
             path="/warehouses/storage/expire-soon"
-            element={secured("inventory.stock.view", <ExpireSoonPage />)}
+            element={secured(<ExpireSoonPage />)}
           />
           <Route
             path="/warehouses/storage/threshold"
-            element={secured("inventory.stock.view", <ThresholdPage />)}
+            element={secured(<ThresholdPage />)}
           />
           <Route
             path="/warehouses"
-            element={secured(
-              "inventory.warehouses.view",
-              <WarehouseDashboardPage />,
-            )}
+            element={secured(<WarehouseDashboardPage />)}
           />
           {warehousePages.map((page) => (
             <Route
               key={page.path}
               path={page.path}
-              element={secured(
-                "inventory.warehouses.view",
-                page.path === "/warehouses/cases/surgery-bypass" ? (
+              element={secured(page.path === "/warehouses/cases/surgery-bypass" ? (
                   <SurgeryBypassPage />
                 ) : page.path === "/warehouses/cases/icu" ? (
                   <IcuPage key="icu" />
@@ -434,45 +348,32 @@ export default function App() {
                   <PatientProductsReportPage />
                 ) : (
                   <WarehouseModulePage page={page} />
-                ),
-              )}
+                ))}
             />
           ))}
           <Route
             path="/inventory/products"
-            element={secured(
-              "inventory.products.view",
-              <InventoryPage resource="products" />,
-            )}
+            element={secured(<InventoryPage resource="products" />)}
           />
           <Route
             path="/inventory/barcodes"
-            element={secured("inventory.barcodes.view", <BarcodeLabelsPage />)}
+            element={secured(<BarcodeLabelsPage />)}
           />
           <Route
             path="/inventory/categories"
-            element={secured(
-              "inventory.categories.view",
-              <InventoryPage resource="categories" />,
-            )}
+            element={secured(<InventoryPage resource="categories" />)}
           />
           <Route
             path="/inventory/brands"
-            element={secured(
-              "inventory.brands.view",
-              <InventoryPage resource="brands" />,
-            )}
+            element={secured(<InventoryPage resource="brands" />)}
           />
           <Route
             path="/inventory/warehouses"
-            element={secured(
-              "inventory.warehouses.view",
-              <InventoryPage resource="warehouses" />,
-            )}
+            element={secured(<InventoryPage resource="warehouses" />)}
           />
           <Route
             path="/inventory/stock"
-            element={secured("inventory.stock.view", <StoragePage />)}
+            element={secured(<StoragePage />)}
           />
           <Route
             path="/inventory/movements"
@@ -480,30 +381,30 @@ export default function App() {
           />
           <Route
             path="/pos/sales"
-            element={secured("pos.sales.view", <PosPage mode="sales" />)}
+            element={secured(<PosPage mode="sales" />)}
           />
           <Route
             path="/attendance"
-            element={secured(undefined, <AttendanceShell />)}
+            element={secured(<AttendanceShell />)}
           >
             <Route index element={<Navigate to="devices" replace />} />
             <Route
               path="devices"
-              element={secured("attendance.devices.view", <DevicesPage />)}
+              element={secured(<DevicesPage />)}
             />
             <Route
               path="users"
-              element={secured("attendance.users.view", <DeviceUsersPage />)}
+              element={secured(<DeviceUsersPage />)}
             />
             <Route
               path="events"
-              element={secured("attendance.events.view", <EventsPage />)}
+              element={secured(<EventsPage />)}
             />
           </Route>
         </Route>
         <Route
           path="/pos/checkout"
-          element={secured("pos.checkout.view", <HealthPosPage />, true)}
+          element={secured(<HealthPosPage />)}
         />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

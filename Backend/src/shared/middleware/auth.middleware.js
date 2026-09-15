@@ -1,3 +1,5 @@
+import { effectivePermissions } from "../security/access-policy.js";
+import { requireRequestPermission } from "./permission.middleware.js";
 import { prisma } from "../database/client.js";
 import { verifyToken } from "../security/token.js";
 
@@ -17,8 +19,8 @@ export async function requireAuth(req, res, next) {
           select: {
             id: true,
             departmentId: true,
-            isTeamLeader: true,
-            teamLeaderId: true,
+            ledTeams: { select: { id: true } },
+            team: { select: { id: true, name: true, leaderId: true } },
           },
         },
         roles: {
@@ -32,15 +34,17 @@ export async function requireAuth(req, res, next) {
     });
     if (!user || user.status !== "active")
       return res.status(401).json({ message: "Account is unavailable." });
+    if (user.employee) user.employee.isTeamLeader = Boolean(user.employee.ledTeams?.length);
     req.user = user;
     req.permissionKeys = new Set(
       user.roles.flatMap(({ role }) =>
         role.permissions.map(({ permission }) => permission.key),
       ),
     );
+    req.permissionKeys = effectivePermissions(req.permissionKeys);
     if (user.roles.some(({ role }) => role.name === "Super Administrator"))
       req.permissionKeys.add("*");
-    next();
+    return requireRequestPermission(req, res, next);
   } catch (error) {
     console.error("Authentication lookup failed:", error);
     res.status(401).json({ message: "Your session is invalid or expired." });

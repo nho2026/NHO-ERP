@@ -441,6 +441,7 @@ export default function MeetingsPage({
   useEffect(() => leave, [leave]);
 
   const join = async (code: string) => {
+    if (!hasPermission(storedUser(), "meetings.join")) return;
     if (!code.trim()) return;
     leave();
     try {
@@ -801,6 +802,7 @@ export default function MeetingsPage({
     return sent;
   };
   const sendMessage = () => {
+    if (!hasPermission(storedUser(), "meetings.chat")) return;
     const text = message.trim();
     const socket = socketRef.current;
     if (!text) return;
@@ -821,6 +823,7 @@ export default function MeetingsPage({
     );
   };
   const endMeeting = () => {
+    if (!hasPermission(storedUser(), "meetings.end")) return;
     if (!active || !socketRef.current) return;
     socketRef.current.emit(
       "meeting:end",
@@ -919,7 +922,7 @@ export default function MeetingsPage({
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
+                <Button permission="meetings.create"
                   onClick={async () => {
                     try {
                       const meeting = await meetingsApi.create(
@@ -956,7 +959,7 @@ export default function MeetingsPage({
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                 placeholder={t("liveMeetings.roomCode")}
               />
-              <Button onClick={() => void join(roomCode)}>
+              <Button permission="meetings.join" onClick={() => void join(roomCode)}>
                 {t("liveMeetings.joinRoom")}
               </Button>
             </CardContent>
@@ -982,6 +985,7 @@ export default function MeetingsPage({
             {meetings.map((meeting) => (
               <button
                 key={meeting.id}
+                disabled={!hasPermission(user, "meetings.join")}
                 onClick={() => void join(meeting.roomCode)}
                 className="group rounded-2xl border bg-card p-5 text-start shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
               >
@@ -1251,7 +1255,7 @@ export default function MeetingsPage({
             active.creator.id === user?.id) && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">
+                <Button permission="meetings.end" variant="destructive">
                   {t("liveMeetings.endMeeting")}
                 </Button>
               </AlertDialogTrigger>
@@ -1266,7 +1270,7 @@ export default function MeetingsPage({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                  <AlertDialogAction onClick={endMeeting}>
+                  <AlertDialogAction permission="meetings.end" onClick={endMeeting}>
                     {t("liveMeetings.closeMeeting")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -1442,7 +1446,7 @@ export default function MeetingsPage({
               placeholder={t("liveMeetings.writeMessage")}
               className="border-0 bg-transparent shadow-none focus-visible:ring-0"
             />
-            <Button
+            <Button permission="meetings.chat"
               size="icon"
               onClick={sendMessage}
               disabled={!chatConnected || !message.trim()}

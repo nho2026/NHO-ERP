@@ -32,6 +32,14 @@ export class HikvisionClient {
             : typeof body === "string" || Buffer.isBuffer(body)
               ? body
               : JSON.stringify(body);
+        const connectionFailed = (error) => {
+          if (!error.status) error.status = error.code === "ETIMEDOUT" ? 504 : 502;
+          error.deviceConnection = true;
+          error.message = error.code === "ETIMEDOUT"
+            ? "The attendance device did not respond in time. Check its power and network connection, and verify the result before retrying."
+            : "The attendance device connection was interrupted. Check its power and network connection, and verify the result before retrying.";
+          reject(error);
+        };
         const req = http.request(
           {
             host: this.ipAddress,
@@ -39,6 +47,8 @@ export class HikvisionClient {
             path,
             method,
             timeout,
+            // Devices can close idle sockets without notifying a connection pool.
+            agent: false,
             headers: {
               Accept: contentType.includes("xml")
                 ? "application/xml"
@@ -56,6 +66,12 @@ export class HikvisionClient {
           },
           (res) => {
             const chunks = [];
+            res.on("error", connectionFailed);
+            res.on("aborted", () => {
+              const error = new Error("Device response ended before completion.");
+              error.code = "ECONNRESET";
+              connectionFailed(error);
+            });
             res.on("data", (c) => chunks.push(c));
             res.on("end", () => {
               const buffer = Buffer.concat(chunks);
@@ -74,11 +90,7 @@ export class HikvisionClient {
           error.status = 504;
           req.destroy(error);
         });
-        req.on("error", (error) => {
-          if (!error.status)
-            error.status = error.code === "ETIMEDOUT" ? 504 : 502;
-          reject(error);
-        });
+        req.on("error", connectionFailed);
         if (payload) req.write(payload);
         req.end();
       });

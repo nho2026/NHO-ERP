@@ -82,7 +82,7 @@ export default function ServiceAdvancesPage() {
             {t("serviceAdvance.description")}
           </p>
         </div>
-        <Button
+        <Button permission="create"
           onClick={() => {
             setError("");
             setEditing(null);
@@ -315,7 +315,7 @@ export default function ServiceAdvancesPage() {
             {error && (
               <p className="text-sm text-destructive sm:col-span-2">{error}</p>
             )}
-            <Button disabled={busy} className="sm:col-span-2">
+            <Button permission={editing ? "update" : "create"} disabled={busy} className="sm:col-span-2">
               {t("serviceAdvance.save")}
             </Button>
           </form>

@@ -22,6 +22,7 @@ export function SearchableSelect({
   searchPlaceholder,
   required,
   searchable,
+  pageSize,
 }: {
   name: string;
   id?: string;
@@ -31,11 +32,13 @@ export function SearchableSelect({
   searchPlaceholder?: string;
   required?: boolean;
   searchable?: boolean;
+  pageSize?: number;
 }) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(defaultValue);
   const [search, setSearch] = useState("");
+  const [visibleCount, setVisibleCount] = useState(pageSize ?? Infinity);
   const showSearch = searchable ?? options.length > 7;
   const selected = options.find((option) => option.value === value);
   const filtered = useMemo(() => {
@@ -45,6 +48,7 @@ export function SearchableSelect({
       `${option.label} ${option.searchText ?? ""}`.toLowerCase().includes(term),
     );
   }, [options, search, showSearch]);
+  const visibleOptions = filtered.slice(0, visibleCount);
 
   return (
     <>
@@ -54,7 +58,10 @@ export function SearchableSelect({
         open={open}
         onOpenChange={(nextOpen) => {
           setOpen(nextOpen);
-          if (!nextOpen) setSearch("");
+          if (!nextOpen) {
+            setSearch("");
+            setVisibleCount(pageSize ?? Infinity);
+          }
         }}
       >
         <PopoverTrigger asChild>
@@ -88,7 +95,10 @@ export function SearchableSelect({
                 aria-label={searchPlaceholder ?? t("common.searchOptions")}
                 autoFocus
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setVisibleCount(pageSize ?? Infinity);
+                }}
                 placeholder={searchPlaceholder ?? t("common.searchOptions")}
                 className="border-0 ps-9 shadow-none focus-visible:ring-0"
               />
@@ -96,8 +106,9 @@ export function SearchableSelect({
           )}
           <ScrollArea className="min-h-0 max-h-60 [&_[data-radix-scroll-area-viewport]]:h-auto [&_[data-radix-scroll-area-viewport]]:max-h-[min(240px,calc(var(--radix-popover-content-available-height)-80px))]">
             <div className="p-1">
-              {filtered.length ? (
-                filtered.map((option) => (
+              {visibleOptions.length ? (
+                <>
+                {visibleOptions.map((option) => (
                   <Button
                     key={option.value}
                     variant="ghost"
@@ -117,7 +128,20 @@ export function SearchableSelect({
                     />
                     <span>{option.label}</span>
                   </Button>
-                ))
+                ))}
+                {visibleOptions.length < filtered.length && pageSize && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="mt-1 w-full border-t text-primary"
+                    onClick={() =>
+                      setVisibleCount((current) => current + pageSize)
+                    }
+                  >
+                    {t("common.loadMore", { defaultValue: "Load more" })}
+                  </Button>
+                )}
+                </>
               ) : (
                 <p className="p-6 text-center text-sm text-muted-foreground">
                   {t("common.noOptionsFound")}

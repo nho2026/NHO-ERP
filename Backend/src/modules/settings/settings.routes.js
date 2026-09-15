@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../../shared/middleware/auth.middleware.js";
-import { allSettings, saveSettings, isSuperAdmin, getSettings } from "./settings.service.js";
+import { allSettings, saveSettings, getSettings } from "./settings.service.js";
 import { createBackup, listBackups } from "./settings.backups.js";
 const router = Router();
 const run = (fn) => (req, res, next) =>
@@ -13,31 +13,21 @@ router.get(
   }),
 );
 router.use(requireAuth);
+router.get("/runtime", run(async (_req, res) => res.json(await allSettings())));
 router.get(
   "/",
   run(async (_req, res) => res.json(await allSettings())),
 );
-const admin = (req, res, next) =>
-  isSuperAdmin(req.user)
-    ? next()
-    : res
-      .status(403)
-      .json({
-        message: "Only a Super Administrator can change system settings.",
-      });
 router.get(
   "/backups",
-  admin,
   run(async (_req, res) => res.json(await listBackups())),
 );
 router.post(
   "/backups",
-  admin,
   run(async (_req, res) => res.status(201).json(await createBackup())),
 );
 router.put(
   "/:category",
-  admin,
   run(async (req, res) =>
     res.json(await saveSettings(req.params.category, req.body)),
   ),

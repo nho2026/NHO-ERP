@@ -1,3 +1,5 @@
+import multer from "multer";
+import { requireRequestPermission } from "../../../shared/middleware/permission.middleware.js";
 import { Router } from "express";
 import { z } from "zod";
 import { requireAuth } from "../../../shared/middleware/auth.middleware.js";
@@ -12,16 +14,8 @@ const handle = (handler) => async (req, res, next) => {
     next(error);
   }
 };
-const canView = (req, res, next) =>
-  req.permissionKeys.has("*") ||
-  req.permissionKeys.has("employees.view") ||
-  req.permissionKeys.has("employees.manage")
-    ? next()
-    : res.status(403).json({ message: "CRM access is required." });
-const canManage = (req, res, next) =>
-  req.permissionKeys.has("*") || req.permissionKeys.has("employees.manage")
-    ? next()
-    : res.status(403).json({ message: "CRM management access is required." });
+const canView = requireRequestPermission;
+const canManage = requireRequestPermission;
 
 router.get(
   "/webhook",
@@ -59,15 +53,21 @@ router.get(
     res.json(await whatsappService.get(req.params.id)),
   ),
 );
-router.post(
-  "/conversations/:id/messages",
-  canManage,
-  validate(z.object({ body: z.string().trim().min(1).max(4096) })),
-  handle(async (req, res) =>
-    res
-      .status(201)
-      .json(await whatsappService.send(req.params.id, req.validatedBody.body)),
-  ),
-);
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 16 * 1024 * 1024, files: 1, fields: 3 } }).single("file");
+router.get("/messages/:id/media", canView, handle(async (req,res) => {
+  const media = await whatsappService.media(req.params.id);
+  res.set({"Content-Type":media.mime,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}).send(media.buffer);
+}));
+router.post("/conversations/:id/messages", canManage, (req,res,next) => upload(req,res,error => {
+  if (error) return res.status(400).json({message:error.code === "LIMIT_FILE_SIZE" ? "Files must be 16 MB or smaller." : "Invalid attachment upload."});
+  next();
+}), handle(async (req,res) => {
+  if (req.file) {
+    const input = z.object({body:z.string().trim().max(1024).optional(),voice:z.enum(["true","false"]).optional()}).parse(req.body);
+    return res.status(201).json(await whatsappService.sendMedia(req.params.id,req.file,input.voice === "true",input.body));
+  }
+  const {body} = z.object({body:z.string().trim().min(1).max(4096)}).parse(req.body);
+  res.status(201).json(await whatsappService.send(req.params.id,body));
+}));
 
 export default router;

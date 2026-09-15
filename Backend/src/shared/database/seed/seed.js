@@ -1,3 +1,4 @@
+import { syncPermissionCatalog } from "../../security/sync-permissions.js";
 import "dotenv/config";
 import { prisma } from "../../../shared/database/client.js";
 import { hashSecret } from "../../../core/security/BcryptPasswordHasher.js";
@@ -89,6 +90,7 @@ async function seed() {
       update: { name, module },
       create: { key, name, module },
     });
+  await syncPermissionCatalog();
   const permissions = await prisma.permission.findMany();
   const adminRole = await prisma.role.upsert({
     where: { name: "Super Administrator" },

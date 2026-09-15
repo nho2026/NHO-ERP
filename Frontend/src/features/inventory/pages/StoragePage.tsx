@@ -53,20 +53,13 @@ const escapeHtml = (value: unknown) =>
   );
 export default function StoragePage() {
   const { t, i18n } = useTranslation();
-  const data = useApiResource(
+  const options = useApiResource(
     useCallback(async () => {
-      const [products, warehouses, categories, stock] = await Promise.all([
-        inventoryApi.all("products"),
+      const [warehouses, categories] = await Promise.all([
         inventoryApi.all("warehouses"),
         inventoryApi.all("categories"),
-        inventoryApi.all("stock"),
       ]);
-      return {
-        products: products.filter((p) => p.status === "active"),
-        warehouses,
-        categories,
-        stock,
-      };
+      return { warehouses, categories };
     }, []),
   );
   const [search, setSearch] = useState("");
@@ -74,48 +67,42 @@ export default function StoragePage() {
   const [category, setCategory] = useState("all");
   const [page, setPage] = useState(1);
   const [ascending, setAscending] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const filters = useCallback(
+    () => ({
+      search,
+      ...(warehouse !== "all" && { warehouseId: warehouse }),
+      ...(category !== "all" && { categoryId: category }),
+      sort: ascending ? "asc" : "desc",
+    }),
+    [search, warehouse, category, ascending],
+  );
+  const data = useApiResource(
+    useCallback(() => inventoryApi.storage(page, filters()), [page, filters]),
+  );
   const visible: Column[] = [...columns];
   const [selected, setSelected] = useState<RecordItem | null>(null);
   const [mode, setMode] = useState<"view" | "edit" | "remove">("view");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const canManage = hasPermission(storedUser(), "inventory.manage");
+  const canManage = ["update", "delete"].some((action) =>
+    hasPermission(storedUser(), `inventory.products.${action}`),
+  );
   const money = (value: number) =>
     new Intl.NumberFormat(i18n.language, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(value);
-  const rows = (data.data?.products ?? [])
-    .filter(
-      (p) =>
-        (category === "all" || p.categoryId === category) &&
-        `${p.name} ${p.sku} ${p.barcode ?? ""}`
-          .toLocaleLowerCase()
-          .includes(search.toLocaleLowerCase()),
-    )
-    .map((p): RecordItem & { quantity: number } => ({
-      ...p,
-      quantity: (data.data?.stock ?? [])
-        .filter(
-          (s) =>
-            s.productId === p.id &&
-            (warehouse === "all" || s.warehouseId === warehouse),
-        )
-        .reduce((sum, s) => sum + Number(s.quantity), 0),
-    }))
-    .sort(
-      (a, b) =>
-        (ascending ? 1 : -1) * a.name.localeCompare(b.name, i18n.language),
-    );
-  const totalPages = Math.max(1, Math.ceil(rows.length / 10));
-  const currentPage = Math.min(page, totalPages);
-  const totals = rows.reduce(
-    (sum, p) => ({
-      buy: sum.buy + p.costPrice * p.quantity,
-      sell: sum.sell + p.sellingPrice * p.quantity,
-    }),
-    { buy: 0, sell: 0 },
-  );
+  const rows = data.data?.items ?? [];
+  const totalPages = data.data?.pagination.totalPages ?? 1;
+  const currentPage = data.data?.pagination.page ?? page;
+  const totalRows = data.data?.pagination.total ?? 0;
+  const totals = data.data?.totals ?? {
+    products: 0,
+    quantity: 0,
+    buy: 0,
+    sell: 0,
+  };
   const cell = (p: RecordItem, key: Column) =>
     ({
       name: p.name,
@@ -153,49 +140,85 @@ export default function StoragePage() {
       setBusy(false);
     }
   }
-  function exportCsv() {
-    const quote = (value: unknown) => {
-      let text = String(value ?? "");
-      if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
-      return `"${text.replace(/"/g, '""')}"`;
-    };
-    const csv = [
-      visible.map((key) => t(`storageView.${key}`)),
-      ...rows.map((p) => visible.map((key) => cell(p, key))),
-    ]
-      .map((row) => row.map(quote).join(","))
-      .join("\r\n");
-    const url = URL.createObjectURL(
-      new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }),
+  async function exportRows() {
+    const first = await inventoryApi.storage(1, {
+      ...filters(),
+      pageSize: "100",
+    });
+    const remaining = await Promise.all(
+      Array.from({ length: first.pagination.totalPages - 1 }, (_, index) =>
+        inventoryApi.storage(index + 2, { ...filters(), pageSize: "100" }),
+      ),
     );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "storage.csv";
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return {
+      rows: [...first.items, ...remaining.flatMap((result) => result.items)],
+      totals: first.totals,
+    };
   }
-  function print() {
+  async function exportCsv() {
+    if (exporting) return;
+    setExporting(true);
+    setError("");
+    try {
+      const { rows } = await exportRows();
+      const quote = (value: unknown) => {
+        let text = String(value ?? "");
+        if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+        return `"${text.replace(/"/g, '""')}"`;
+      };
+      const csv = [
+        visible.map((key) => t(`storageView.${key}`)),
+        ...rows.map((p) => visible.map((key) => cell(p, key))),
+      ]
+        .map((row) => row.map(quote).join(","))
+        .join("\r\n");
+      const url = URL.createObjectURL(
+        new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "storage.csv";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (cause) {
+      setError(apiErrorMessage(cause));
+    } finally {
+      setExporting(false);
+    }
+  }
+  async function print() {
+    if (exporting) return;
     const popup = window.open("", "_blank", "width=1100,height=800");
     if (!popup) {
       setError(t("buyHistory.popupBlocked"));
       return;
     }
     popup.opener = null;
-    popup.document.write(
-      `<html dir="${i18n.dir()}"><head><meta charset="utf-8"><title>${escapeHtml(t("warehouseModule.storage"))}</title><style>body{font:12px Arial;padding:24px}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #ddd;text-align:start}@page{size:A4 landscape}</style></head><body><h1>${escapeHtml(t("warehouseModule.storage"))}</h1><table><thead><tr>${visible.map((key) => `<th>${escapeHtml(t(`storageView.${key}`))}</th>`).join("")}</tr></thead><tbody>${rows.map((p) => `<tr>${visible.map((key) => `<td>${escapeHtml(cell(p, key))}</td>`).join("")}</tr>`).join("")}</tbody></table>${["buy", "sell", "profit"].map((key) => `<p>${escapeHtml(t(`storageView.total${key}`))}: ${money(key === "buy" ? totals.buy : key === "sell" ? totals.sell : totals.sell - totals.buy)}</p>`).join("")}</body></html>`,
-    );
-    popup.document.close();
-    popup.focus();
-    popup.print();
+    setExporting(true);
+    setError("");
+    try {
+      const { rows, totals } = await exportRows();
+      popup.document.write(
+        `<html dir="${i18n.dir()}"><head><meta charset="utf-8"><title>${escapeHtml(t("warehouseModule.storage"))}</title><style>body{font:12px Arial;padding:24px}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #ddd;text-align:start}@page{size:A4 landscape}</style></head><body><h1>${escapeHtml(t("warehouseModule.storage"))}</h1><p>${escapeHtml(t("storageView.availableProducts"))}: ${totals.products}</p><p>${escapeHtml(t("storageView.availableQuantity"))}: ${money(totals.quantity)}</p><p>${escapeHtml(t("storageView.valuationHint"))}</p><table><thead><tr>${visible.map((key) => `<th>${escapeHtml(t(`storageView.${key}`))}</th>`).join("")}</tr></thead><tbody>${rows.map((p) => `<tr>${visible.map((key) => `<td>${escapeHtml(cell(p, key))}</td>`).join("")}</tr>`).join("")}</tbody></table>${["buy", "sell", "profit"].map((key) => `<p>${escapeHtml(t(`storageView.total${key}`))}: ${money(key === "buy" ? totals.buy : key === "sell" ? totals.sell : totals.sell - totals.buy)}</p>`).join("")}</body></html>`,
+      );
+      popup.document.close();
+      popup.focus();
+      popup.print();
+    } catch (cause) {
+      popup.close();
+      setError(apiErrorMessage(cause));
+    } finally {
+      setExporting(false);
+    }
   }
   return (
     <div className="space-y-5" dir={i18n.dir()}>
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold">{t("warehouseModule.storage")}</h1>
       </div>
-      {(data.error || (!selected && error)) && (
+      {(data.error || options.error || (!selected && error)) && (
         <p role="alert" className="text-destructive">
-          {data.error || error}
+          {data.error || options.error || error}
         </p>
       )}
       <Card className="overflow-hidden">
@@ -212,8 +235,8 @@ export default function StoragePage() {
           />
           {(
             [
-              [warehouse, setWarehouse, data.data?.warehouses, "allStorage"],
-              [category, setCategory, data.data?.categories, "allCategory"],
+              [warehouse, setWarehouse, options.data?.warehouses, "allStorage"],
+              [category, setCategory, options.data?.categories, "allCategory"],
             ] as const
           ).map(([value, change, items, key]) => (
             <Select
@@ -241,6 +264,35 @@ export default function StoragePage() {
             </Select>
           ))}
         </div>
+        {!data.isLoading && !data.error && (
+          <div className="space-y-3 border-t bg-muted/30 p-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {(
+                [
+                  ["availableProducts", totals.products],
+                  ["availableQuantity", totals.quantity],
+                  ["totalbuy", totals.buy],
+                  ["totalsell", totals.sell],
+                  ["totalprofit", totals.sell - totals.buy],
+                ] as const
+              ).map(([key, value]) => (
+                <Card key={key} className="gap-2 p-4">
+                  <p className="text-sm text-muted-foreground">
+                    {t(`storageView.${key}`)}
+                  </p>
+                  <p className="text-xl font-semibold tabular-nums">
+                    {key === "availableProducts"
+                      ? value.toLocaleString(i18n.language)
+                      : money(value)}
+                  </p>
+                </Card>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("storageView.valuationHint")}
+            </p>
+          </div>
+        )}
         <Table>
           <TableHeader>
             <TableRow>
@@ -250,7 +302,10 @@ export default function StoragePage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setAscending((v) => !v)}
+                      onClick={() => {
+                        setAscending((v) => !v);
+                        setPage(1);
+                      }}
                     >
                       {t("storageView.name")} {ascending ? "↓" : "↑"}
                     </Button>
@@ -273,7 +328,7 @@ export default function StoragePage() {
                 </TableCell>
               </TableRow>
             ) : rows.length ? (
-              rows.slice((currentPage - 1) * 10, currentPage * 10).map((p) => (
+              rows.map((p) => (
                 <TableRow key={p.id}>
                   {visible.map((key) => (
                     <TableCell key={key}>{cell(p, key)}</TableCell>
@@ -290,14 +345,18 @@ export default function StoragePage() {
                       </Button>
                       {canManage && (
                         <>
-                          <Button data-action="edit"
+                          <Button
+                            permission="inventory.products.update"
+                            data-action="edit"
                             size="icon"
                             aria-label={t("storageView.edit")}
                             onClick={() => open(p, "edit")}
                           >
                             <Pencil className="size-4" />
                           </Button>
-                          <Button data-action="delete"
+                          <Button
+                            permission="inventory.products.delete"
+                            data-action="delete"
                             variant="destructive"
                             size="icon"
                             aria-label={t("storageView.remove")}
@@ -323,37 +382,21 @@ export default function StoragePage() {
             )}
           </TableBody>
         </Table>
-        <div className="grid gap-3 border-t p-4 sm:grid-cols-3">
-          {(["buy", "sell", "profit"] as const).map((key) => (
-            <div key={key}>
-              <p className="text-sm text-muted-foreground">
-                {t(`storageView.total${key}`)}
-              </p>
-              <p className="text-lg font-semibold">
-                {money(
-                  key === "buy"
-                    ? totals.buy
-                    : key === "sell"
-                      ? totals.sell
-                      : totals.sell - totals.buy,
-                )}
-              </p>
-            </div>
-          ))}
-        </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t p-4">
           <div className="flex gap-2">
             <Button
+              permission="print"
               variant="outline"
-              disabled={data.isLoading || !rows.length}
+              disabled={data.isLoading || exporting || !totalRows}
               onClick={print}
             >
               <Printer className="size-4" />
               {t("buyHistory.print")}
             </Button>
             <Button
+              permission="export"
               variant="outline"
-              disabled={data.isLoading || !rows.length}
+              disabled={data.isLoading || exporting || !totalRows}
               onClick={exportCsv}
             >
               <Download className="size-4" />
@@ -362,18 +405,18 @@ export default function StoragePage() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm">
-              {currentPage} / {totalPages} · {rows.length}
+              {currentPage} / {totalPages} · {totalRows}
             </span>
             <Button
               variant="outline"
-              disabled={currentPage <= 1}
+              disabled={data.isLoading || currentPage <= 1}
               onClick={() => setPage(currentPage - 1)}
             >
               {t("transferForm.previous")}
             </Button>
             <Button
               variant="outline"
-              disabled={currentPage >= totalPages}
+              disabled={data.isLoading || currentPage >= totalPages}
               onClick={() => setPage(currentPage + 1)}
             >
               {t("transferForm.next")}
@@ -448,7 +491,6 @@ export default function StoragePage() {
                         />
                       </div>
                     ))}
-
                   </div>
                 )}
                 <DialogFooter>
@@ -461,6 +503,11 @@ export default function StoragePage() {
                     {t("common.cancel")}
                   </Button>
                   <Button
+                    permission={
+                      mode === "remove"
+                        ? "inventory.products.delete"
+                        : "inventory.products.update"
+                    }
                     disabled={busy}
                     variant={mode === "remove" ? "destructive" : "default"}
                   >

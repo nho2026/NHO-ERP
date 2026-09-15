@@ -131,7 +131,7 @@ export default function DepartmentRequests() {
     <Card className="overflow-hidden" dir={i18n.dir()}>
       <div className="flex items-center justify-between gap-3 p-4">
         <h2 className="font-semibold">{t("departmentRequest.title")}</h2>
-        <Button
+        <Button permission="inventory.department-requests.create"
           disabled={catalog.isLoading || !!catalog.error}
           onClick={() => {
             setError("");
@@ -317,7 +317,7 @@ export default function DepartmentRequests() {
                       }
                     />
                   </div>
-                  <Button data-action="delete"
+                  <Button permission="view" data-action="delete"
                     type="button"
                     size="icon"
                     variant="ghost"
@@ -362,7 +362,7 @@ export default function DepartmentRequests() {
               >
                 {t("common.cancel")}
               </Button>
-              <Button disabled={busy || catalog.isLoading || !lines.length}>
+              <Button permission="inventory.department-requests.create" disabled={busy || catalog.isLoading || !lines.length}>
                 {t(busy ? "buyHistory.processing" : "orderForm.submit")}
               </Button>
             </DialogFooter>

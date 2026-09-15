@@ -11,6 +11,8 @@ const profileInclude = {
   ...roles,
   employee: {
     include: {
+      ledTeams: { select: { id: true } },
+      team: { select: { id: true, name: true, leaderId: true } },
       position: true,
       department: true,
       devicePeople: {
@@ -32,8 +34,8 @@ const loginInclude = {
       firstName: true,
       lastName: true,
       departmentId: true,
-      isTeamLeader: true,
-      teamLeaderId: true,
+      ledTeams: { select: { id: true } },
+      team: { select: { id: true, name: true, leaderId: true } },
       status: true,
     },
   },
@@ -55,16 +57,9 @@ export const authModel = {
       where: { userId },
       include: { devicePeople: { select: { employeeNo: true } } },
     }),
-  findMatchingPeople: (employeeId, employeeNo, name) =>
-    prisma.attendancePerson.findMany({
-      where: {
-        OR: [{ employeeId }, { employeeNo }, { name: { startsWith: name } }],
-      },
-      select: { employeeNo: true },
-    }),
-  findEvents: (employeeNumbers) =>
+  findOwnEvents: (employeeId) =>
     prisma.attendanceEvent.findMany({
-      where: { employeeNo: { in: employeeNumbers } },
+      where: { person: { employeeId } },
       include: { device: { select: { name: true } } },
       orderBy: { occurredAt: "desc" },
       take: 100,

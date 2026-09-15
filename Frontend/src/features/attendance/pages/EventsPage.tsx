@@ -368,10 +368,10 @@ export default function EventsPage() {
     );
   const visibleEvents = useMemo(() => {
     const from = filters.from
-      ? new Date(`${filters.from}T00:00:00`).getTime()
+      ? new Date(`${filters.from}T00:00:00+03:00`).getTime()
       : Number.NEGATIVE_INFINITY;
     const to = filters.to
-      ? new Date(`${filters.to}T23:59:59.999`).getTime()
+      ? new Date(`${filters.to}T23:59:59.999+03:00`).getTime()
       : Number.POSITIVE_INFINITY;
     return (events.data ?? [])
       .filter((event) => {
@@ -487,7 +487,7 @@ export default function EventsPage() {
               defaultValue: "matching events",
             })}
           </Badge>
-          <Button
+          <Button permission="sync"
             variant="outline"
             className="ms-auto"
             disabled={syncing || !selectedDeviceId}
@@ -594,6 +594,7 @@ export default function EventsPage() {
                     {new Intl.DateTimeFormat(i18n.resolvedLanguage, {
                       dateStyle: "medium",
                       timeStyle: "short",
+                      timeZone: "Asia/Baghdad",
                     }).format(new Date(e.occurredAt))}
                   </TableCell>
                 </TableRow>

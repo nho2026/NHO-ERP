@@ -4,14 +4,10 @@ import { payrollAdjustmentData } from "../hr/payroll-adjustments/payroll-adjustm
 const fail = (status, message) => {
   throw Object.assign(new Error(message), { status });
 };
-const isManager = (permissions) =>
-  permissions?.has("*") ||
-  permissions?.has("employees.manage") ||
-  permissions?.has("hr.employees.create") ||
-  permissions?.has("hr.employees.update");
+const isManager = (permissions) => permissions?.has("*") || permissions?.has("targets.manage_all");
 const include = {
   employee: {
-    include: { position: true, department: true },
+    include: { ledTeams: { select: { id: true } }, team: { select: { leaderId: true } }, position: true, department: true },
   },
   createdBy: { select: { id: true, name: true } },
 };
@@ -22,9 +18,9 @@ function ensureAssigner(user, permissions) {
 }
 
 async function eligibleEmployee(employeeId, user, permissions) {
-  const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+  const employee = await prisma.employee.findUnique({ where: { id: employeeId }, include: { ledTeams: { select: { id: true } }, team: true } });
   if (!employee || employee.status !== "active") fail(422, "Employee is unavailable.");
-  if (!isManager(permissions) && employee.teamLeaderId !== user.employee?.id)
+  if (!isManager(permissions) && employee.team?.leaderId !== user.employee?.id)
     fail(403, "Team leaders can assign targets only to their employees.");
   return employee;
 }
@@ -34,7 +30,7 @@ export const targetService = {
     const where = isManager(permissions)
       ? {}
       : user.employee?.isTeamLeader
-        ? { OR: [{ employeeId: user.employee.id }, { employee: { teamLeaderId: user.employee.id } }] }
+        ? { OR: [{ employeeId: user.employee.id }, { employee: { team: { leaderId: user.employee.id } } }] }
         : user.employee?.id
           ? { employeeId: user.employee.id }
           : { id: "__none__" };
@@ -45,10 +41,10 @@ export const targetService = {
     return prisma.employee.findMany({
       where: {
         status: "active",
-        ...(isManager(permissions) ? {} : { teamLeaderId: user.employee.id }),
+        ...(isManager(permissions) ? {} : { team: { leaderId: user.employee.id } }),
       },
-      include: { position: true, department: true },
-      orderBy: [{ isTeamLeader: "desc" }, { firstName: "asc" }],
+      include: { ledTeams: { select: { id: true } }, team: { select: { leaderId: true } }, position: true, department: true },
+      orderBy: [{ firstName: "asc" }],
     });
   },
   async create(user, permissions, data) {
@@ -58,10 +54,10 @@ export const targetService = {
     return prisma.employeeTarget.create({ data: { ...data, status, createdById: user.id }, include });
   },
   async update(id, user, permissions, data) {
-    const target = await prisma.employeeTarget.findUnique({ where: { id }, include: { employee: true } });
+    const target = await prisma.employeeTarget.findUnique({ where: { id }, include: { employee: { include: { ledTeams: { select: { id: true } }, team: true } } } });
     if (!target) fail(404, "Target not found.");
     const ownsTarget = target.employeeId === user.employee?.id;
-    const leadsEmployee = target.employee.teamLeaderId === user.employee?.id;
+    const leadsEmployee = (Boolean(user.employee?.id) && target.employee.team?.leaderId === user.employee.id);
     if (!isManager(permissions) && !ownsTarget && !leadsEmployee) fail(403, "You cannot update this target.");
     const { rewardAmount, rewardReason, ...targetData } = data;
     if (targetData.currentValue != null && targetData.currentValue >= target.targetValue && !targetData.status)

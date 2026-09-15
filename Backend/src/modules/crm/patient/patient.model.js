@@ -7,6 +7,11 @@ export const patientModel = {
         where,
         include: {
           sourceLeads: { orderBy: { createdAt: "desc" }, take: 1 },
+          surgeryAppointments: {
+            include: { surgery: true },
+            orderBy: { scheduledAt: "desc" },
+            take: 1,
+          },
           _count: {
             select: { surgeryAppointments: true, formSubmissions: true },
           },

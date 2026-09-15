@@ -136,7 +136,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
             {t(`billing.${resource}Description`)}
           </p>
         </div>
-        <Button
+        <Button permission="create"
           onClick={() => {
             setError("");
             setItems([
@@ -205,7 +205,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Button
+                        <Button permission="print"
                           size="icon"
                           variant="ghost"
                           title={t("billing.printInvoice")}
@@ -215,7 +215,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                         </Button>
                         {x.status === "draft" && (
                           <>
-                            <Button
+                            <Button permission="update"
                               size="sm"
                               variant="outline"
                               onClick={async () => {
@@ -349,7 +349,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                           }
                         />
                       ))}
-                      <Button
+                      <Button permission="view"
                         data-action="delete"
                         type="button"
                         variant="ghost"
@@ -456,7 +456,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
               </div>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button className="w-full" disabled={busy}>
+            <Button permission="create" className="w-full" disabled={busy}>
               {t("billing.save")}
             </Button>
           </form>

@@ -14,6 +14,7 @@ const resource = (path: string) => ({
 });
 
 export const hrApi = {
+  teams: resource("/employees/teams"),
   positions: resource("/employees/positions"),
   employees: resource("/employees"),
   salaries: resource("/employees/records/salaries"),

@@ -16,6 +16,8 @@ export const updateUserSchema = createUserSchema
   .omit({ password: true })
   .partial()
   .extend({
+    roleIds: z.array(z.string()).optional(),
+    status: z.enum(["active", "inactive"]).optional(),
     password: z.string().min(8).optional(),
     pin: z.union([z.string().regex(/^\d{6}$/), z.null()]).optional(),
   });

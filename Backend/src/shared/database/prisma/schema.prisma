@@ -159,6 +159,21 @@ model Position {
   @@map("hr_Position")
 }
 
+model Team {
+  id String @id @default(cuid())
+  name String @unique(map: "Team_name_key")
+  description String?
+  status String @default("active")
+  leaderId String?
+  leader Employee? @relation("TeamLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  employees Employee[] @relation("TeamEmployees")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leaderId])
+  @@map("hr_Team")
+}
+
 model Employee {
   id                    String                 @id @default(cuid())
   employeeCode          String                 @unique(map: "Employee_employeeCode_key")
@@ -176,10 +191,14 @@ model Employee {
   position              Position?              @relation(fields: [positionId], references: [id], onDelete: SetNull, map: "Employee_positionId_fkey")
   department            Department?            @relation("DepartmentEmployees", fields: [departmentId], references: [id], onDelete: SetNull, map: "Employee_departmentId_fkey")
   managedDepartments    Department[]           @relation("DepartmentManager")
-  isTeamLeader          Boolean                @default(false)
-  teamLeaderId          String?
-  teamLeader            Employee?              @relation("TeamLeaderMembers", fields: [teamLeaderId], references: [id], onDelete: SetNull, map: "Employee_teamLeaderId_fkey")
-  teamMembers           Employee[]             @relation("TeamLeaderMembers")
+  // Legacy columns are retained for migration/rollback; leadership comes from Team.leaderId.
+  isTeamLeader          Boolean                @default(false) @ignore
+  teamLeaderId          String? @ignore
+  teamLeader            Employee?              @relation("TeamLeaderMembers", fields: [teamLeaderId], references: [id], onDelete: SetNull, map: "Employee_teamLeaderId_fkey") @ignore
+  teamMembers           Employee[]             @relation("TeamLeaderMembers") @ignore
+  teamId String?
+  team Team? @relation("TeamEmployees", fields: [teamId], references: [id], onDelete: SetNull)
+  ledTeams Team[] @relation("TeamLeader")
   healthStaff           HealthStaff?
   user                  User?                  @relation(fields: [userId], references: [id], onDelete: SetNull, map: "Employee_userId_fkey")
   devicePeople          AttendancePerson[]
@@ -383,6 +402,7 @@ model TaskComment {
 }
 
 model Department {
+  cashFlows FinanceCashFlow[]
   type String @default("office")
   inventoryOrders InventoryDepartmentOrder[]
   id              String           @id @default(cuid())
@@ -589,6 +609,7 @@ model Patient {
   allergies           String?                 @db.Text
   medicalNotes        String?                 @db.Text
   status              String                  @default("active")
+  followUpDate        DateTime?
   surgeryAppointments SurgeryAppointment[]
   payments            PatientPayment[]
   sourceLeads         CrmLead[]
@@ -1042,17 +1063,32 @@ model FinanceBudget {
 }
 
 model FinanceCashFlow {
+  sourceType String?
+  sourceId String?
+  sourceUrl String?
+  sourceHash String?
+  cashAccountId String?
+  cashAccount FinanceCashAccount? @relation(fields: [cashAccountId], references: [id], onDelete: Restrict)
+  createdBy String?
+  approvedBy String?
+  approvedAt DateTime?
+  audits FinanceCashFlowAudit[]
+  @@unique([sourceType, sourceId])
+  @@index([cashAccountId])
+  departmentId String?
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   id          String   @id @default(cuid())
   flowDate    DateTime
   flowType    String
   category    String
-  amount      Float
+  amount      Decimal @db.Decimal(14, 2)
   currency    String   @default("IQD")
   description String
   status      String   @default("planned")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@index([departmentId, flowDate])
   @@index([flowDate], map: "FinanceCashFlow_flowDate_idx")
   @@index([flowType], map: "FinanceCashFlow_flowType_idx")
   @@map("finance_FinanceCashFlow")
@@ -1495,3 +1531,30 @@ model LoginAttempt {
   @@map("auth_LoginAttempt")
 }
 
+
+model FinanceCashAccount {
+  id String @id @default(cuid())
+  name String
+  type String
+  currency String
+  openingBalance Decimal @db.Decimal(18, 2)
+  openingDate DateTime
+  createdBy String
+  createdAt DateTime @default(now())
+  flows FinanceCashFlow[]
+  @@unique([name, currency])
+  @@map("finance_CashAccount")
+}
+
+model FinanceCashFlowAudit {
+  id String @id @default(cuid())
+  flowId String
+  action String
+  actorId String?
+  before Json?
+  after Json?
+  createdAt DateTime @default(now())
+  flow FinanceCashFlow @relation(fields: [flowId], references: [id], onDelete: Restrict)
+  @@index([flowId, createdAt])
+  @@map("finance_CashFlowAudit")
+}

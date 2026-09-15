@@ -5,7 +5,7 @@ import { retailersController } from "./retailers.controller.js";
 const router = Router();
 router.get(
   "/retailers",
-  requirePermission("inventory.warehouses.view"),
+  requirePermission("inventory.view"),
   retailersController.list,
 );
 router.post("/retailers", manage, retailersController.create);

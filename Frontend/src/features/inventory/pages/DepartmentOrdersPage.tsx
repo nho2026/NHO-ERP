@@ -1,3 +1,4 @@
+import { hasPagePermission } from "@/features/auth/access";
 import { useCallback, useDeferredValue, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -38,7 +39,7 @@ import {
 
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 type Order = {
   id: string;
   departmentName: string;
@@ -97,7 +98,7 @@ export default function DepartmentOrdersPage() {
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const canManage = hasPermission(storedUser(), "inventory.manage");
+  const canManage = hasPagePermission(storedUser(), "create", "update", "delete", "comment");
   const result = useApiResource(
     useCallback(
       () =>
@@ -341,7 +342,7 @@ export default function DepartmentOrdersPage() {
                   <TableCell>
                     <div className="flex justify-end gap-1.5">
                       {canManage && row.status === "pending" && (
-                        <Button
+                        <Button permission="update"
                           size="sm"
                           disabled={busy}
                           onClick={() => {
@@ -362,7 +363,7 @@ export default function DepartmentOrdersPage() {
                       >
                         <MessageCircle className="size-4" />
                       </Button>
-                      <Button
+                      <Button permission="print"
                         size="icon"
                         className="size-8 bg-teal-500 text-white hover:bg-teal-600"
                         aria-label={t("buyHistory.print")}
@@ -481,7 +482,7 @@ export default function DepartmentOrdersPage() {
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                   />
-                  <Button disabled={busy || !comment.trim()}>
+                  <Button permission="comment" disabled={busy || !comment.trim()}>
                     {t("departmentOrders.save")}
                   </Button>
                 </form>
@@ -570,7 +571,7 @@ export default function DepartmentOrdersPage() {
                     onChange={(e) => setReason(e.target.value)}
                   />
                   {canManage && (
-                    <Button disabled={busy}>
+                    <Button permission="update" disabled={busy}>
                       {t(
                         selected.status === "pending" &&
                           nextStatus === "approved"

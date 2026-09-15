@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../../shared/middleware/auth.middleware.js";
+import teams from "./teams/teams.routes.js";
 import positions from "./positions/positions.routes.js";
 import employees from "./employees/employees.routes.js";
 import salaries from "./salaries/salaries.routes.js";
@@ -11,6 +12,7 @@ import warnings from "./warnings/warnings.routes.js";
 const router = Router();
 router.use(requireAuth);
 router.use("/positions", positions);
+router.use("/teams", teams);
 router.use("/records/salaries", salaries);
 router.use("/records/attendance", attendance);
 router.use("/records/attendance-permissions", attendancePermissions);

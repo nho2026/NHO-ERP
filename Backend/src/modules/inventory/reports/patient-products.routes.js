@@ -4,7 +4,7 @@ import { patientProductsController } from "./patient-products.controller.js";
 const router = Router();
 router.get(
   "/reports/products-per-patient",
-  requirePermission("inventory.warehouses.view"),
+  requirePermission("inventory.view"),
   patientProductsController.list,
 );
 export default router;

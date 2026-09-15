@@ -52,21 +52,6 @@ export const authService = {
   async profileEvents(userId) {
     const employee = await authModel.getEmployeeIdentity(userId);
     if (!employee) return [];
-    const fullName = `${employee.firstName} ${employee.lastName}`.trim();
-    const people = await authModel.findMatchingPeople(
-      employee.id,
-      employee.employeeCode,
-      fullName,
-    );
-    const numbers = [
-      ...new Set(
-        [
-          employee.employeeCode,
-          ...employee.devicePeople.map((x) => x.employeeNo),
-          ...people.map((x) => x.employeeNo),
-        ].filter(Boolean),
-      ),
-    ];
-    return authModel.findEvents(numbers);
+    return authModel.findOwnEvents(employee.id);
   },
 };

@@ -2,19 +2,14 @@ import { taskModel } from "./tasks.model.js";
 const fail = (status, message) => {
   throw Object.assign(new Error(message), { status });
 };
-const isHr = (permissions) =>
-  permissions?.has("*") ||
-  permissions?.has("employees.manage") ||
-  permissions?.has("hr.employees.create") ||
-  permissions?.has("hr.employees.update") ||
-  permissions?.has("hr.employees.delete");
+const isHr = (permissions) => permissions?.has("*") || permissions?.has("tasks.list.manage_all");
 const canSee = (task, user, permissions) =>
   isHr(permissions) ||
   task.createdById === user.id ||
   task.assignees.some(
     ({ employeeId, employee }) =>
       employeeId === user.employee?.id ||
-      employee.teamLeaderId === user.employee?.id,
+      (Boolean(user.employee?.id) && employee.team?.leaderId === user.employee.id),
   );
 const ensureLeader = (user, permissions) => {
   if (!isHr(permissions) && !user.employee?.isTeamLeader)
@@ -26,7 +21,7 @@ const validateAssignees = async (ids, user, permissions) => {
     fail(422, "One or more selected employees do not exist.");
   if (
     !isHr(permissions) &&
-    employees.some(({ teamLeaderId }) => teamLeaderId !== user.employee?.id)
+    employees.some(({ team }) => team?.leaderId !== user.employee?.id)
   )
     fail(403, "Team leaders can assign tasks only to their employees.");
   return employees;
@@ -36,7 +31,7 @@ const notifyStatus = async (task, actorId, status) => {
   const employeeIds = task.assignees.map(({ employeeId }) => employeeId);
   const employees = await taskModel.employeeScopes(employeeIds);
   const assigneeUserIds = employees.map(({ userId }) => userId).filter(Boolean);
-  const leaderIds = [...new Set(employees.map(({ teamLeaderId }) => teamLeaderId).filter(Boolean))];
+  const leaderIds = [...new Set(employees.map(({ team }) => team?.leaderId).filter(Boolean))];
   const leaders = await taskModel.employeeScopes(leaderIds);
   const recipients = [
     task.createdById,
@@ -71,7 +66,7 @@ export const taskService = {
                 { assignees: { some: { employeeId: user.employee.id } } },
                 {
                   assignees: {
-                    some: { employee: { teamLeaderId: user.employee.id } },
+                    some: { employee: { team: { leaderId: user.employee.id } } },
                   },
                 },
               ],
@@ -108,7 +103,7 @@ export const taskService = {
   assignees(user, permissions) {
     ensureLeader(user, permissions);
     return taskModel.eligibleEmployees(
-      isHr(permissions) ? {} : { teamLeaderId: user.employee.id },
+      isHr(permissions) ? {} : { team: { leaderId: user.employee.id } },
     );
   },
   async create(user, permissions, input) {
@@ -171,7 +166,11 @@ export const taskService = {
       await notifyStatus(task, user.id, data.status);
     return task;
   },
-  remove: taskModel.remove,
+  async remove(id, user, permissions) {
+    const task = await taskModel.findAccess(id);
+    if (!canSee(task, user, permissions)) fail(403, "You cannot delete this task.");
+    return taskModel.remove(id);
+  },
   addAttachments: async (id, files, user, permissions) => {
     const task = await taskModel.findAccess(id);
     if (!canSee(task, user, permissions)) fail(403, "You cannot update this task.");
@@ -193,7 +192,7 @@ export const taskService = {
         task.assignees.some(
           ({ employeeId, employee }) =>
             employeeId === data.employeeId &&
-            employee.teamLeaderId === user.employee.id,
+            employee.team?.leaderId === user.employee.id,
         ))
     )
       fail(403, "You can record time only for yourself or your employees.");

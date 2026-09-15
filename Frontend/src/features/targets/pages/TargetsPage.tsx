@@ -1,3 +1,4 @@
+import { hasPermission } from "@/features/auth/access";
 import {
   useCallback,
   useEffect,
@@ -14,7 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import {
   targetsApi,
   type EmployeeTarget,
@@ -50,9 +51,7 @@ const statusStyle: Record<string, string> = {
 export default function TargetsPage() {
   const { t } = useTranslation();
   const user = storedUser();
-  const manager =
-    hasPermission(user, "employees.manage") ||
-    Boolean(user?.permissions?.some((key) => key.startsWith("hr.employees.")));
+  const manager = hasPermission(user, "targets.manage_all");
   const canAssign = manager || Boolean(user?.employee?.isTeamLeader);
   const [targets, setTargets] = useState<EmployeeTarget[]>([]);
   const [employees, setEmployees] = useState<TargetEmployee[]>([]);
@@ -147,7 +146,7 @@ export default function TargetsPage() {
         {canAssign && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="rounded-xl">
+              <Button permission="create" className="rounded-xl">
                 <Plus /> Assign target
               </Button>
             </DialogTrigger>
@@ -184,7 +183,7 @@ export default function TargetsPage() {
                         {employees.map((x) => (
                           <SelectItem key={x.id} value={x.id}>
                             {x.firstName} {x.lastName}
-                            {x.isTeamLeader ? " (Team leader)" : ""}
+                            {x.ledTeams?.length ? " (Team leader)" : ""}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -225,7 +224,7 @@ export default function TargetsPage() {
                     <FormDatePicker name="dueDate" required />
                   </label>
                 </div>
-                <Button type="submit">{t("pageText.assignTarget")}</Button>
+                <Button permission="create" type="submit">{t("pageText.assignTarget")}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -314,6 +313,7 @@ export default function TargetsPage() {
                     type="number"
                     min="0"
                     step="any"
+                    disabled={!hasPermission(user, "targets.update")}
                     defaultValue={target.currentValue}
                     onBlur={(e) => {
                       const value = Number(e.target.value);
@@ -382,7 +382,7 @@ export default function TargetsPage() {
             </p>
             <label className="grid gap-1 text-sm font-medium">
               Reward amount (optional)
-              <Input name="amount" type="number" min="0" step="0.01" />
+              <Input name="amount" type="number" min="0" step="0.01" disabled={!hasPermission(user, "targets.reward")} />
             </label>
             <label className="grid gap-1 text-sm font-medium">
               Reward reason
@@ -391,7 +391,7 @@ export default function TargetsPage() {
                 className="min-h-24 rounded-md border bg-background p-3"
               />
             </label>
-            <Button>{t("pageText.completeTarget")}</Button>
+            <Button permission="update">{t("pageText.completeTarget")}</Button>
           </form>
         </DialogContent>
       </Dialog>

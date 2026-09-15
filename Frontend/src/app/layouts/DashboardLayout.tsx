@@ -1,3 +1,4 @@
+import { permissionForPath } from "@/features/auth/permission-policy";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/shared/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { MeetingSessionHost } from "@/features/meetings/MeetingSessionHost";
@@ -94,7 +95,6 @@ import { useTheme } from "@/shared/hooks/useTheme";
 import { WindowControls } from "@/shared/components/WindowControls";
 import {
   hasPermission,
-  isCashier as userIsCashier,
 } from "@/features/auth/access";
 import {
   notificationsApi,
@@ -146,6 +146,7 @@ const attendanceNavigation = [
 ];
 const hrNavigation = [
   { to: "/employees", label: "navigation.employees", icon: UsersRound },
+  { to: "/teams", label: "navigation.teams", icon: BriefcaseBusiness },
   { to: "/positions", label: "navigation.positions", icon: BriefcaseBusiness },
   { to: "/salaries", label: "navigation.salaries", icon: BadgeDollarSign },
   { to: "/hr-attendance", label: "navigation.hrAttendance", icon: UserCheck },
@@ -177,6 +178,13 @@ const crmNavigation = [
   },
   { to: "/crm/patients", label: "navigation.crmPatients", icon: UsersRound },
   {
+    to: "/crm/appointments",
+    label: "navigation.doctorAppointments",
+    icon: CalendarPlus,
+  },
+  { to: "/crm/payments", label: "navigation.crmPayments", icon: CreditCard },
+  { to: "/crm/follow-up", label: "postDischargeFollowUp.title", icon: CalendarClock },
+  {
     to: "/crm/referrals",
     label: "navigation.crmReferrals",
     icon: ArrowRightLeft,
@@ -188,19 +196,15 @@ const crmNavigation = [
     icon: CalendarClock,
   },
   {
-    to: "/crm/appointments",
-    label: "navigation.doctorAppointments",
-    icon: CalendarPlus,
-  },
-  {
     to: "/crm/surgery-appointments",
     label: "navigation.surgeryAppointments",
     icon: CalendarClock,
   },
-  { to: "/crm/payments", label: "navigation.crmPayments", icon: CreditCard },
   { to: "/crm/surgeries", label: "navigation.surgeries", icon: HeartPulse },
 ];
 const accountingNavigation = [
+  { to: "/accounting/overview", label: "financeOverview.title", icon: ChartNoAxesCombined },
+  { to: "/accounting/income-expenses", label: "incomeExpenses.title", icon: WalletCards },
   {
     to: "/accounting/accounts",
     label: "navigation.chartOfAccounts",
@@ -274,11 +278,6 @@ const buyNavigation = [
     to: "/warehouses/buy/order",
     label: "warehouseModule.order",
     icon: ListTodo,
-  },
-  {
-    to: "/warehouses/buy/order-history",
-    label: "warehouseModule.orderHistory",
-    icon: ScrollText,
   },
   {
     to: "/warehouses/buy/department-orders",
@@ -660,78 +659,10 @@ export default function DashboardLayout() {
   const normalizedNavigationSearch = navigationSearch
     .trim()
     .toLocaleLowerCase(i18n.resolvedLanguage);
-  const cashier = userIsCashier(user);
-  const permissionForPath = (path: string) => {
-    if (path === "/warehouses") return "inventory.warehouses.view";
-    if (warehousePages.some((page) => page.path === path))
-      return "inventory.warehouses.view";
-    if (path.startsWith("/warehouses/storage/")) return "inventory.stock.view";
-    if (path.startsWith("/warehouses/product/"))
-      return "inventory.products.view";
-    if (path.startsWith("/warehouses/buy/")) return "inventory.warehouses.view";
-    const keys: Record<string, string | undefined> = {
-      "/dashboard": "dashboard.view",
-      "/meetings": undefined,
-      "/targets": undefined,
-      "/tasks": "tasks.list.view",
-      "/tasks/reports": "tasks.reports.view",
-      "/attendance/devices": "attendance.devices.view",
-      "/attendance/users": "attendance.users.view",
-      "/attendance/events": "attendance.events.view",
-      "/employees": "hr.employees.view",
-      "/positions": "hr.positions.view",
-      "/salaries": "hr.salaries.view",
-      "/hr-attendance": "hr.attendance.view",
-      "/payrolls": "hr.payrolls.view",
-      "/salary-advances": "hr.advances.view",
-      "/hr/reports": "hr.employees.view",
-      "/hr/warnings": "hr.employees.update",
-      "/departments": "healthcare.departments.view",
-      "/health-staff": "healthcare.staff.view",
-      "/appointments": "healthcare.appointments.view",
-      "/feedback": "healthcare.feedback.view",
-      "/crm/leads": "employees.view",
-      "/crm/whatsapp": "employees.view",
-      "/crm/leads/progress": "employees.view",
-      "/crm/patients": "employees.view",
-      "/crm/referrals": "employees.view",
-      "/crm/forms": "employees.view",
-      "/crm/today-patients": "healthcare.appointments.view",
-      "/crm/appointments": "healthcare.appointments.view",
-      "/crm/surgery-appointments": "employees.view",
-      "/crm/payments": "employees.view",
-      "/crm/surgeries": "employees.view",
-      "/accounting/accounts": "accounting.accounts.view",
-      "/accounting/journals": "accounting.journals.view",
-      "/accounting/customers": "accounting.customers.view",
-      "/accounting/invoices": "accounting.invoices.view",
-      "/accounting/payments": "accounting.payments.view",
-      "/accounting/service-advances": "accounting.service_advances.view",
-      "/accounting/reports": "accounting.reports.view",
-      "/finance/budgets": "finance.budgets.view",
-      "/finance/cash-flow": "finance.cash-flow.view",
-      "/finance/forecasts": "finance.forecasts.view",
-      "/finance/analysis": "finance.analysis.view",
-      "/finance/funding": "finance.funding.view",
-      "/inventory/brands": "inventory.brands.view",
-      "/inventory/products": "inventory.products.view",
-      "/inventory/barcodes": "inventory.barcodes.view",
-      "/inventory/categories": "inventory.categories.view",
-      "/inventory/warehouses": "inventory.warehouses.view",
-      "/inventory/stock": "inventory.stock.view",
-      "/pos/checkout": "pos.checkout.view",
-      "/pos/sales": "pos.sales.view",
-      "/users": "users.view",
-      "/roles": "roles.view",
-      "/system-logs": "system.logs.view",
-    };
-    return keys[path];
-  };
   const navItems = (items: typeof primaryNavigation) =>
     items
       .filter(
         ({ to, label }) =>
-          !cashier &&
           hasPermission(user, permissionForPath(to)) &&
           (!normalizedNavigationSearch ||
             t(label)
@@ -807,8 +738,7 @@ export default function DashboardLayout() {
       items: group.items.filter(
         (item, index, items) =>
           items.findIndex((candidate) => candidate.to === item.to) === index &&
-          (["/employee-portal", "/profile"].includes(item.to) ||
-            hasPermission(user, permissionForPath(item.to))),
+          hasPermission(user, permissionForPath(item.to)),
       ),
     }))
     .filter((group) => group.items.length);
@@ -931,7 +861,7 @@ export default function DashboardLayout() {
               <X className="size-4" />
             </Button>
           </div>
-          <div className={cashier ? "hidden" : "py-3"}>
+          <div className="py-3">
             <label className={`relative block ${collapsed ? "lg:hidden" : ""}`}>
               <Search className="absolute inset-s-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -985,29 +915,7 @@ export default function DashboardLayout() {
                 </span>
               </NavLink>
             </div>
-            {cashier && (
-              <div className="space-y-2 pt-3">
-                <NavLink
-                  to="/pos/checkout"
-                  className={({ isActive }) =>
-                    `flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/30 ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-primary/7 hover:text-primary"}`
-                  }
-                >
-                  <ShoppingCart className="size-5" />
-                  <span>{t("navigation.newSale")}</span>
-                </NavLink>
-                <NavLink
-                  to="/profile"
-                  className={({ isActive }) =>
-                    `flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/30 ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-primary/7 hover:text-primary"}`
-                  }
-                >
-                  <UserRound className="size-5" />
-                  <span>{t("navigation.profile")}</span>
-                </NavLink>
-              </div>
-            )}
-            <div className={cashier ? "hidden" : "contents"}>
+            <div className="contents">
               <div className="space-y-1">{navItems(primaryNavigation)}</div>
               <div
                 className={`mt-2 space-y-1 ${taskNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
@@ -1979,13 +1887,13 @@ export default function DashboardLayout() {
                   <Outlet key={location.pathname + location.search} />
                 </>
               )}
-              <MeetingSessionHost
+              {hasPermission(user, "meetings.view") && <MeetingSessionHost
                 visible={location.pathname.replace(/\/$/, "") === "/meetings" && !(panelMode && showPanel)}
                 onReturn={() => {
                   setShowPanel(false);
                   navigate("/meetings");
                 }}
-              />
+              />}
             </div>
           </main>
         </div>

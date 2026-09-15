@@ -13,9 +13,9 @@ export const eventsService = {
       ...(q.eventType && { eventType: String(q.eventType) }),
       ...((q.from || q.to) && {
         occurredAt: {
-          ...(q.from && { gte: new Date(String(q.from)) }),
+          ...(q.from && { gte: new Date(String(q.from).length === 10 ? `${q.from}T00:00:00+03:00` : String(q.from)) }),
           ...(to && {
-            lte: new Date(to.length === 10 ? `${to}T23:59:59.999Z` : to),
+            lte: new Date(to.length === 10 ? `${to}T23:59:59.999+03:00` : to),
           }),
         },
       }),

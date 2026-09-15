@@ -93,7 +93,7 @@ export default function BarcodeLabelsPage() {
             {t("inventory.barcode.description")}
           </p>
         </div>
-        <Button onClick={() => void openAddDialog()}>
+        <Button permission="create" onClick={() => void openAddDialog()}>
           <Plus />
           {t("inventory.barcode.addNew")}
         </Button>
@@ -144,7 +144,7 @@ export default function BarcodeLabelsPage() {
             />
             {t("inventory.barcode.selectAll")}
           </Label>
-          <Button
+          <Button permission="print"
             disabled={!chosen.length}
             onClick={() =>
               printProductBarcodes(chosen, Number(quantity) || 1, size)
@@ -213,7 +213,7 @@ export default function BarcodeLabelsPage() {
                       </DeleteConfirmationDialog>
                     )}
                     {product.barcode && (
-                      <Button
+                      <Button permission="print"
                         className="h-10 text-xs"
                         disabled={deleting === product.id}
                         onClick={() =>
@@ -251,7 +251,7 @@ export default function BarcodeLabelsPage() {
                 <ProductBarcode value={generatedBarcode} />
               ) : null}
             </div>
-            <Button
+            <Button permission="create"
               type="button"
               variant="outline"
               className="w-full"
@@ -288,7 +288,7 @@ export default function BarcodeLabelsPage() {
                 {t("inventory.barcode.noMissing")}
               </div>
             )}
-            <Button
+            <Button permission="update"
               className="w-full"
               disabled={
                 !addProductId ||

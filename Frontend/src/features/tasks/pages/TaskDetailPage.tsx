@@ -1,3 +1,4 @@
+import { hasPermission } from "@/features/auth/access";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -21,7 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -48,11 +49,7 @@ export default function TaskDetailPage() {
   const [adjustmentAmount, setAdjustmentAmount] = useState("");
   const [adjustmentReason, setAdjustmentReason] = useState("");
   const currentUser = storedUser();
-  const isHr =
-    hasPermission(currentUser, "employees.manage") ||
-    Boolean(
-      currentUser?.permissions?.some((key) => key.startsWith("hr.employees.")),
-    );
+  const isHr = hasPermission(currentUser, "tasks.list.manage_all");
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -315,7 +312,7 @@ export default function TaskDetailPage() {
                 placeholder={t("tasks.reviewNote")}
                 disabled={isHr && task.status !== "review"}
               />
-              {isHr && task.status === "review" && (
+              {isHr && hasPermission(currentUser, "hr.payroll-adjustments.create") && task.status === "review" && (
                 <div className="grid gap-3 rounded-lg border p-3">
                   <label className="grid gap-1 text-xs font-medium">
                     Payroll action
@@ -391,22 +388,22 @@ export default function TaskDetailPage() {
               )}
               {!isHr &&
                 !["review", "completed", "cancelled"].includes(task.status) && (
-                  <Button
+                  <Button permission="update"
                     disabled={saving}
                     onClick={() => void updateReview("review")}
                   >
                     {t("tasks.submitForReview")}
                   </Button>
                 )}
-              {isHr && task.status === "review" && (
+              {isHr && hasPermission(currentUser, "hr.payroll-adjustments.create") && task.status === "review" && (
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    disabled={saving}
+                  <Button permission="approve"
+                    disabled={saving || !hasPermission(currentUser, "tasks.list.update")}
                     onClick={() => void updateReview("completed")}
                   >
                     {t("tasks.approveCompletion")}
                   </Button>
-                  <Button
+                  <Button permission="update"
                     variant="outline"
                     disabled={saving}
                     onClick={() => void updateReview("in_progress")}

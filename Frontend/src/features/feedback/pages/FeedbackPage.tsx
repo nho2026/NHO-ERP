@@ -147,7 +147,7 @@ export default function FeedbackPage() {
                     {item.comment}
                   </TableCell>
                   <TableCell>
-                    <Select
+                    <Select permission="update"
                       value={item.status}
                       onValueChange={async (value) => {
                         await feedbackApi.status(item.id, value);
@@ -187,7 +187,7 @@ export default function FeedbackPage() {
                             <AlertDialogCancel>
                               {t("common.cancel")}
                             </AlertDialogCancel>
-                            <AlertDialogAction
+                            <AlertDialogAction permission="delete"
                               onClick={async () => {
                                 await feedbackApi.remove(item.id);
                                 await load();

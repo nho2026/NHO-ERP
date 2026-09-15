@@ -1,3 +1,4 @@
+import { requireRequestPermission } from "../../shared/middleware/permission.middleware.js";
 import prescriptionsRoutes from "./prescriptions/prescriptions.routes.js";
 import { Router } from "express";
 import { requireAuth } from "../../shared/middleware/auth.middleware.js";
@@ -12,17 +13,9 @@ import appointmentsRoutes from "./appointments/appointments.routes.js";
 
 const router = Router();
 
-const canView = (req, res, next) =>
-  req.permissionKeys.has("*") ||
-  req.permissionKeys.has("employees.view") ||
-  req.permissionKeys.has("employees.manage")
-    ? next()
-    : res.status(403).json({ message: "CRM access is required." });
+const canView = requireRequestPermission;
 
-const canManage = (req, res, next) =>
-  req.permissionKeys.has("*") || req.permissionKeys.has("employees.manage")
-    ? next()
-    : res.status(403).json({ message: "CRM management access is required." });
+const canManage = requireRequestPermission;
 
 const validateResource =
   (partial = false) =>

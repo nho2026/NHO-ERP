@@ -1,10 +1,11 @@
+import { hasPagePermission } from "@/features/auth/access";
 import { useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { crmApi } from "../api/crm.api";
 import { useApiResource } from "@/shared/hooks/useApiResource";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { Button } from "@/shared/components/ui/button";
 import PrescriptionWorkspace from "../components/PrescriptionWorkspace";
 
@@ -21,6 +22,6 @@ export default function PatientPrescriptionsPage() {
         {patient.data && <p className="text-muted-foreground">{String(patient.data.firstName ?? "")} {String(patient.data.lastName ?? "")} · {String(patient.data.patientCode ?? "")}</p>}
       </div>
     </header>
-    {patient.error ? <p role="alert" className="text-destructive">{patient.error}</p> : patient.isLoading ? <p>{t("resourceState.loading")}</p> : patient.data && <PrescriptionWorkspace key={id} patientId={id} canManage={hasPermission(storedUser(), "employees.manage")} />}
+    {patient.error ? <p role="alert" className="text-destructive">{patient.error}</p> : patient.isLoading ? <p>{t("resourceState.loading")}</p> : patient.data && <PrescriptionWorkspace key={id} patientId={id} patientWeightKg={patient.data.weightKg == null ? null : Number(patient.data.weightKg)} canManage={hasPagePermission(storedUser(), "create", "update", "delete")} />}
   </main>;
 }

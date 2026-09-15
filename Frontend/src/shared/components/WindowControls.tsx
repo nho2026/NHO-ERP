@@ -12,6 +12,7 @@ declare global {
         route?: string;
       }) => void;
       onNotificationClick: (callback: (route: string) => void) => () => void;
+      openWhatsapp?: (phone: string) => Promise<void>;
       openMediaSettings: (kind: "camera" | "microphone") => Promise<boolean>;
     };
   }

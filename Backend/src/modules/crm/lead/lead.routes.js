@@ -1,3 +1,4 @@
+import { requireRequestPermission } from "../../../shared/middleware/permission.middleware.js";
 import { Router } from "express";
 import multer from "multer";
 import path from "node:path";
@@ -22,17 +23,9 @@ const attachmentUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024, files: 10 },
 });
 
-const canView = (req, res, next) =>
-  req.permissionKeys.has("*") ||
-  req.permissionKeys.has("employees.view") ||
-  req.permissionKeys.has("employees.manage")
-    ? next()
-    : res.status(403).json({ message: "CRM access is required." });
+const canView = requireRequestPermission;
 
-const canManage = (req, res, next) =>
-  req.permissionKeys.has("*") || req.permissionKeys.has("employees.manage")
-    ? next()
-    : res.status(403).json({ message: "CRM management access is required." });
+const canManage = requireRequestPermission;
 
 router.get("/", canView, leadController.list);
 router.get("/:id", canView, leadController.get);

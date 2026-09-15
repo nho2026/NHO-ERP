@@ -1,3 +1,4 @@
+import { hasPagePermission } from "@/features/auth/access";
 import { useCallback, useState } from "react";
 import {
   CircleX,
@@ -16,7 +17,7 @@ import {
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { crmApi } from "../api/crm.api";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { toast } from "sonner";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { Badge } from "@/shared/components/ui/badge";
@@ -159,7 +160,7 @@ function Progress({
 }
 export default function LeadProgressPage() {
   const { t } = useTranslation();
-  const canManage = hasPermission(storedUser(), "employees.manage");
+  const canManage = hasPagePermission(storedUser(), "create", "update", "delete");
   const statusLabel = (status: string) =>
     fallbackLabels[status] ??
     t(`crm.values.${status}`, { defaultValue: status.replaceAll("_", " ") });
@@ -436,7 +437,7 @@ export default function LeadProgressPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44">
                         {canManage && lead.status !== "lost" && (
-                          <DropdownMenuItem
+                          <DropdownMenuItem permission="update"
                             className="text-destructive focus:text-destructive"
                             onSelect={() => void markAsLost(lead.id)}
                           >

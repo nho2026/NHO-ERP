@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { usersApi, rolesApi } from "../api/access.api";
 import type { User } from "../types/access.types";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { apiErrorMessage } from "@/shared/api/client";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import {
   Dialog,
@@ -38,6 +39,8 @@ import { healthcareApi } from "@/features/healthcare/api/healthcare.api";
 export default function UsersPage() {
   const { t } = useTranslation();
   const currentUser = storedUser();
+  const canAssignRoles = hasPermission(currentUser, "users.assign_roles");
+  const canChangePassword = hasPermission(currentUser, "users.password");
   const canCreate = hasPermission(currentUser, "users.create");
   const canUpdate = hasPermission(currentUser, "users.update");
   const canDelete = hasPermission(currentUser, "users.delete");
@@ -63,6 +66,7 @@ export default function UsersPage() {
     [department, setDepartment] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const filtered = useMemo(
     () =>
       users.data?.filter((u) =>
@@ -73,6 +77,7 @@ export default function UsersPage() {
     [users.data, search],
   );
   const openEditor = (user: User | null) => {
+    setShowPassword(false);
     setEditing(user);
     setRoleId(user?.roles?.[0]?.id ?? "");
     setDepartment(user?.department ?? "");
@@ -89,15 +94,15 @@ export default function UsersPage() {
       name: String(f.get("name")),
       department,
       status: String(f.get("status")),
-      roleIds: roleId ? [roleId] : [],
+      ...(canAssignRoles && { roleIds: roleId ? [roleId] : [] }),
       ...(!editing && { password: String(f.get("password")) }),
       ...(editing &&
+        canChangePassword &&
         f.get("password") && { password: String(f.get("password")) }),
     };
     try {
-      editing
-        ? await usersApi.update(editing.id, data)
-        : await usersApi.create(data);
+      if (editing) await usersApi.update(editing.id, data);
+      else await usersApi.create(data);
       setEditing(undefined);
       await users.refresh();
     } catch (c) {
@@ -116,7 +121,7 @@ export default function UsersPage() {
           </p>
         </div>
         {canCreate && (
-          <Button onClick={() => openEditor(null)}>
+          <Button permission="create" onClick={() => openEditor(null)}>
             <Plus />
             {t("usersAdmin.add")}
           </Button>
@@ -177,7 +182,8 @@ export default function UsersPage() {
                     <TableCell className="text-end">
                       <div className="flex flex-wrap items-center gap-2 justify-end">
                         {canUpdate && (
-                          <Button data-action="edit"
+                          <Button
+                            data-action="edit"
                             variant="ghost"
                             size="icon"
                             onClick={() => openEditor(u)}
@@ -199,12 +205,13 @@ export default function UsersPage() {
                               }
                             }}
                           >
-                            <Button data-action="delete"
+                            <Button
+                              data-action="delete"
                               variant="ghost"
                               size="icon"
                               className="text-destructive"
                             >
-                              <Trash2  className="size-4 text-white" />
+                              <Trash2 className="size-4 text-white" />
                             </Button>
                           </DeleteConfirmationDialog>
                         )}
@@ -219,7 +226,10 @@ export default function UsersPage() {
       <Dialog
         open={editing !== undefined}
         onOpenChange={(v) => {
-          if (!v) setEditing(undefined);
+          if (!v) {
+            setEditing(undefined);
+            setShowPassword(false);
+          }
         }}
       >
         <DialogContent>
@@ -228,7 +238,11 @@ export default function UsersPage() {
               {t(editing ? "usersAdmin.edit" : "usersAdmin.add")}
             </DialogTitle>
           </DialogHeader>
-          <form className="space-y-3" onSubmit={submit}>
+          <form
+            key={editing?.id ?? "new"}
+            className="space-y-3"
+            onSubmit={submit}
+          >
             <Input
               name="name"
               defaultValue={editing?.name}
@@ -266,17 +280,62 @@ export default function UsersPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Input
-              name="password"
-              type="password"
-              placeholder={
-                editing
-                  ? t("usersAdmin.newPasswordOptional")
-                  : t("usersAdmin.passwordMinimum")
-              }
-              required={!editing}
-            />
-            <Select value={roleId} onValueChange={setRoleId}>
+            <div className="space-y-2">
+              <Label htmlFor="user-password">
+                {t(
+                  editing ? "usersAdmin.newPasswordOptional" : "auth.password",
+                )}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="user-password"
+                  name="password"
+                  className="pe-12"
+                  disabled={Boolean(editing) && !canChangePassword}
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  minLength={8}
+                  aria-describedby={editing ? "user-password-help" : undefined}
+                  placeholder={t(
+                    editing
+                      ? "usersAdmin.newPasswordOptional"
+                      : "usersAdmin.passwordMinimum",
+                  )}
+                  required={!editing}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute end-1 top-1/2 -translate-y-1/2"
+                  disabled={Boolean(editing) && !canChangePassword}
+                  aria-label={t(
+                    showPassword ? "auth.hidePassword" : "auth.showPassword",
+                  )}
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((value) => !value)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </Button>
+              </div>
+              {editing && (
+                <p
+                  id="user-password-help"
+                  className="text-xs text-muted-foreground"
+                >
+                  {t("usersAdmin.passwordUnavailable")}
+                </p>
+              )}
+            </div>
+            <Select
+              permission="users.assign_roles"
+              value={roleId}
+              onValueChange={setRoleId}
+            >
               <SelectTrigger>
                 <SelectValue placeholder={t("usersAdmin.chooseRole")} />
               </SelectTrigger>
@@ -302,7 +361,11 @@ export default function UsersPage() {
               </SelectContent>
             </Select>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button className="w-full" disabled={busy}>
+            <Button
+              permission={editing ? "update" : "create"}
+              className="w-full"
+              disabled={busy}
+            >
               {busy
                 ? t("usersAdmin.saving")
                 : t(editing ? "usersAdmin.update" : "usersAdmin.create")}

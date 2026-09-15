@@ -250,7 +250,7 @@ export default function DeviceUsersPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button
+          <Button permission="sync"
             variant="outline"
             disabled={syncing || !selectedDeviceId}
             onClick={async () => {
@@ -330,7 +330,7 @@ export default function DeviceUsersPage() {
             }}
           >
             <DialogTrigger asChild>
-              <Button
+              <Button permission="create"
                 className="ms-auto gap-2"
                 disabled={!selectedDeviceId || people.isLoading}
               >
@@ -403,7 +403,7 @@ export default function DeviceUsersPage() {
                     {error}
                   </p>
                 )}
-                <Button className="w-full" disabled={!deviceId || busy}>
+                <Button permission="create" className="w-full" disabled={!deviceId || busy}>
                   {busy ? t("deviceUsers.creating") : t("deviceUsers.create")}
                 </Button>
               </form>
@@ -498,14 +498,14 @@ export default function DeviceUsersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start">
-                            <DropdownMenuItem
+                            <DropdownMenuItem permission="create"
                               onSelect={() => startCredential(p, method)}
                             >
                               <Icon className="size-4" />
                               {t(`attendancePage.credentials.${method}.set`)}
                             </DropdownMenuItem>
                             {active && (
-                              <DropdownMenuItem
+                              <DropdownMenuItem permission="delete"
                                 className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                                 onSelect={() => {
                                   setRemoveError("");
@@ -612,7 +612,7 @@ export default function DeviceUsersPage() {
                   {credentialError}
                 </p>
               )}
-              <Button className="w-full gap-2" disabled={credentialBusy}>
+              <Button permission="create" className="w-full gap-2" disabled={credentialBusy}>
                 {credentialBusy && (
                   <LoaderCircle className="size-4 animate-spin" />
                 )}
@@ -684,7 +684,7 @@ export default function DeviceUsersPage() {
                     {editError}
                   </p>
                 )}
-                <Button className="w-full gap-2" disabled={editBusy}>
+                <Button permission="update" className="w-full gap-2" disabled={editBusy}>
                   {editBusy && <LoaderCircle className="size-4 animate-spin" />}
                   {editBusy
                     ? t("deviceUsers.updating")
@@ -744,7 +744,7 @@ export default function DeviceUsersPage() {
               >
                 {t("common.cancel", { defaultValue: "Cancel" })}
               </Button>
-              <Button
+              <Button permission="delete"
                 variant="destructive"
                 disabled={removeBusy}
                 onClick={async () => {

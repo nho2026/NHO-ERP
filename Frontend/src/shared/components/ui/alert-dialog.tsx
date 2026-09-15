@@ -1,3 +1,4 @@
+import { useActionPermission } from "@/features/auth/permission-context";
 import * as React from "react";
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import { cn } from "@/lib/utils";
@@ -75,14 +76,18 @@ const AlertDialogDescription = React.forwardRef<
 AlertDialogDescription.displayName = "AlertDialogDescription";
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> & { permission?: string }
+>(({ className, permission, ...props }, ref) => {
+  const allowed = useActionPermission(permission);
+  if (!allowed) return null;
+  return (
   <AlertDialogPrimitive.Action
     ref={ref}
     className={cn(buttonVariants({ variant: "destructive" }), className)}
     {...props}
   />
-));
+);
+});
 AlertDialogAction.displayName = "AlertDialogAction";
 const AlertDialogCancel = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Cancel>,

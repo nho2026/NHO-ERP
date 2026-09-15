@@ -96,9 +96,9 @@ export default function BuyHistoryPage({
   const lock = useRef(false);
   const [error, setError] = useState("");
   const [retailers, setRetailers] = useState<string[]>([]);
-  const canReturn = hasPermission(storedUser(), "inventory.adjust");
+  const canReturn = hasPermission(storedUser(), "inventory.purchases.return");
   const canDelete =
-    canReturn && hasPermission(storedUser(), "inventory.manage");
+    hasPermission(storedUser(), "inventory.purchases.delete");
   const result = useApiResource(
     useCallback(
       () =>
@@ -368,7 +368,7 @@ export default function BuyHistoryPage({
                             disabled,
                           }) => (
                             <Button
-                              data-action={key === "delete" ? "delete" : undefined}
+                              permission={key} data-action={key === "delete" ? "delete" : undefined}
                               key={key}
                               variant="ghost"
                               size="icon"
@@ -509,7 +509,7 @@ export default function BuyHistoryPage({
                   {t("buyProductForm.attachment")}
                 </a>
               )}
-              <Button
+              <Button permission="print"
                 onClick={() => print(selected)}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
@@ -557,7 +557,7 @@ export default function BuyHistoryPage({
             >
               {t("buyHistory.cancel")}
             </Button>
-            <Button
+            <Button permission={action?.kind === "return" ? "return" : "delete"}
               variant="destructive"
               disabled={busy}
               onClick={() => void confirm()}

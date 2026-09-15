@@ -1,3 +1,4 @@
+import { useActionPermission } from "@/features/auth/permission-context";
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,16 +15,20 @@ import {
 
 type DeleteConfirmationDialogProps = {
   children: ReactElement;
+  permission?: string;
   description: string;
   onConfirm: () => void | Promise<void>;
 };
 
 export function DeleteConfirmationDialog({
   children,
+  permission = "delete",
   description,
   onConfirm,
 }: DeleteConfirmationDialogProps) {
   const { t } = useTranslation();
+  const allowed = useActionPermission(permission);
+  if (!allowed) return null;
 
   return (
     <AlertDialog>
@@ -35,7 +40,7 @@ export function DeleteConfirmationDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-          <AlertDialogAction onClick={() => void onConfirm()}>
+          <AlertDialogAction permission={permission} onClick={() => void onConfirm()}>
             {t("common.deletePermanently")}
           </AlertDialogAction>
         </AlertDialogFooter>

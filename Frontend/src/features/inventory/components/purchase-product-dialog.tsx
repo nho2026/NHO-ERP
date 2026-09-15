@@ -48,7 +48,7 @@ export function PurchaseProductDialog({ onClose, onCreated }: { onClose: () => v
             <Select name={key === "categories" ? "categoryId" : "brandId"}><SelectTrigger><SelectValue placeholder="—" /></SelectTrigger><SelectContent>{options.data?.[key].map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select>
           </Label>)}
           {(error || options.error) && <p role="alert" className="col-span-full text-destructive">{error || options.error}</p>}
-          <div className="col-span-full flex justify-end gap-2"><Button type="button" variant="outline" onClick={onClose}>{t("common.cancel")}</Button><Button type="submit">{t(busy ? "inventory.saving" : "inventory.save")}</Button></div>
+          <div className="col-span-full flex justify-end gap-2"><Button type="button" variant="outline" onClick={onClose}>{t("common.cancel")}</Button><Button permission="inventory.products.create" type="submit">{t(busy ? "inventory.saving" : "inventory.save")}</Button></div>
         </fieldset>
       </form>
     </DialogContent>

@@ -1,3 +1,4 @@
+import { hasPagePermission } from "@/features/auth/access";
 import {
   Select,
   SelectContent,
@@ -9,7 +10,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Eye, Plus, Printer, Trash2 } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -56,7 +57,7 @@ export default function IcuPage({
   const parts = ["scrubNurse", "anesthesia", "perfusion"];
   const endpoint = `/inventory/${unit}-cases`;
   const { t, i18n } = useTranslation();
-  const manage = hasPermission(storedUser(), "inventory.manage");
+  const manage = hasPagePermission(storedUser(), "create", "update", "delete");
   const [patients, setPatients] = useState<
     { id: string; patientCode: string; firstName: string; lastName: string }[]
   >([]);
@@ -158,7 +159,7 @@ export default function IcuPage({
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">{t(`${unit}.title`)}</h1>
         {manage && (
-          <Button
+          <Button permission="create"
             onClick={() => {
               setError("");
               setSelected({
@@ -241,7 +242,7 @@ export default function IcuPage({
                   <TableCell>{row.items.length}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button
+                      <Button permission="print"
                         variant="outline"
                         size="icon"
                         aria-label={t("icu.print")}
@@ -580,7 +581,7 @@ export default function IcuPage({
                 </p>
               )}
               {manage && (
-                <Button disabled={busy || !selected.patientId}>
+                <Button permission={selected.id ? "update" : "create"} disabled={busy || !selected.patientId}>
                   {t("retailers.save")}
                 </Button>
               )}
@@ -604,7 +605,7 @@ export default function IcuPage({
               {error}
             </p>
           )}
-          <Button
+          <Button permission="delete"
             variant="destructive"
             disabled={busy}
             onClick={async () => {

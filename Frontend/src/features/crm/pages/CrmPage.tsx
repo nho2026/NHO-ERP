@@ -1,5 +1,6 @@
+import { hasPagePermission } from "@/features/auth/access";
 import PatientAppointmentDialog from "../components/PatientAppointmentDialog";
-const patientStages = ["new", "contacted", "qualified", "appointment_requested", "surgery_appointment", "converted", "direct_surgery_converted"];
+const patientStages = ["new", "contacted", "qualified", "appointment_requested", "surgery_appointment", "converted", "direct_surgery_converted", "post_discharge_follow_up", "post_discharge_follow_up_completed"];
 import { useSettings } from "@/features/settings/settings";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -32,7 +33,7 @@ import {
   type CrmResource,
 } from "../api/crm.api";
 import { useApiResource } from "@/shared/hooks/useApiResource";
-import { storedUser, hasPermission } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
@@ -554,6 +555,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [patientBooking, setPatientBooking] = useState<{ patient: CrmRecord; surgery: boolean } | null>(null);
   const [appointmentPatientId, setAppointmentPatientId] = useState("");
+  const [selectedSurgery, setSelectedSurgery] = useState<CrmRecord | null>(null);
   const { t } = useTranslation();
   const systemSettings = useSettings();
   const config = {
@@ -569,7 +571,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
       ),
     },
     user = storedUser(),
-    canManage = hasPermission(user, "employees.manage");
+    canManage = hasPagePermission(user, "create", "update", "delete");
   const [page, setPage] = useState(1);
   const [leadFilters, setLeadFilters] = useState<LeadFilters>(emptyLeadFilters);
   const [draftFilters, setDraftFilters] =
@@ -752,7 +754,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
     );
   };
   const [patientStatusBusy, setPatientStatusBusy] = useState<string | null>(null);
-  const patientStatusControl = (patient: CrmRecord) => <Select
+  const patientStatusControl = (patient: CrmRecord) => <Select permission="update"
     value={String(patient.status === "active" ? "new" : patient.status)} disabled={patientStatusBusy !== null}
     onValueChange={async status => {
       if (patientStatusBusy !== null || status === patient.status) return;
@@ -770,7 +772,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
   const patientEditAction = (patient: CrmRecord) => <Button asChild variant="outline" size="icon" className="size-9 shrink-0 border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" data-action="edit" title={t("patientActions.editProfile")} aria-label={t("patientActions.editProfile")}>
     <Link to={`/crm/patients/${patient.id}?edit=1`}><Pencil className="size-4" /></Link>
   </Button>;
-  const patientAppointmentAction = (patient: CrmRecord) => <Button type="button" variant="outline" size="icon" className="size-9 shrink-0 border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" title={t("patientActions.appointment")} aria-label={t("patientActions.appointment")} onClick={() => openPatientAppointment(patient, "appointment_requested")}>
+  const patientAppointmentAction = (patient: CrmRecord) => <Button permission="healthcare.appointments.create" type="button" variant="outline" size="icon" className="size-9 shrink-0 border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" title={t("patientActions.appointment")} aria-label={t("patientActions.appointment")} onClick={() => openPatientAppointment(patient, "appointment_requested")}>
     <CalendarPlus className="size-4" />
   </Button>;
   const updateLeadStatus = async (row: CrmRecord, status: string) => {
@@ -1047,7 +1049,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
             }}
           >
             <DialogTrigger asChild>
-              <Button
+              <Button permission="create"
                 onClick={() => {
                   setEditingRecord(null);
                   setSurgeryDraftAt("");
@@ -1188,6 +1190,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                             )}
                             placeholder={t("crm.actions.selectPatient")}
                             searchPlaceholder={t("crm.actions.searchPatients")}
+                            pageSize={20}
                             options={choices(field).map((patient) => ({
                               value: patient.id,
                               label: labelOf(patient, field.type),
@@ -1287,7 +1290,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                             <span className="text-[10px] text-muted-foreground">
                               {(file.size / 1024 / 1024).toFixed(1)} MB
                             </span>
-                            <Button data-action="delete"
+                            <Button permission="view" data-action="delete"
                               type="button"
                               size="icon"
                               variant="ghost"
@@ -1309,7 +1312,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                 )}
                 </div>
                 <div className="shrink-0 border-t bg-background px-6 py-4">
-                <Button
+                <Button permission={editingRecord ? "update" : "create"}
                   className="w-full"
                   type="submit"
                 >
@@ -1333,7 +1336,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
         </div>
         {(resource === "leads" || resource === "patients") && (
           <>
-            <Button
+            <Button permission="export"
               variant="outline"
               onClick={() =>
                 void runReportExport(() => exportCollectionExcel(resource))
@@ -1341,7 +1344,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
             >
               <FileSpreadsheet /> Excel
             </Button>
-            <Button
+            <Button permission="export"
               variant="outline"
               onClick={() =>
                 void runReportExport(() => exportCollectionPdf(resource))
@@ -1576,7 +1579,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                 </div>
               </PopoverContent>
             </Popover>
-            <Button
+            <Button permission="export"
               variant="outline"
               onClick={() =>
                 void runReportExport(
@@ -1587,7 +1590,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
             >
               <FileSpreadsheet /> {t("crm.actions.excel")}
             </Button>
-            <Button
+            <Button permission="export"
               variant="outline"
               onClick={() =>
                 void runReportExport(
@@ -1995,7 +1998,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                     })}
                   </TableHead>
                 ))}
-                {(canManage || resource === "referrals") && <TableHead />}
+                {(canManage || resource === "referrals" || resource === "surgeries") && <TableHead />}
               </TableRow>
             </TableHeader>
             <TableBody
@@ -2088,7 +2091,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                       )}
                     </TableCell>
                   ))}
-                  {(canManage || resource === "referrals") && (
+                  {(canManage || resource === "referrals" || resource === "surgeries") && (
                     <TableCell>
                       <div className="flex justify-end gap-2">
                         {resource === "referrals" && (
@@ -2116,6 +2119,33 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                             )}
                           </>
                         )}
+                        {resource === "surgeries" && (
+                          <Button
+                            permission="view"
+                            size="icon"
+                            variant="ghost"
+                            title={t("crmDialogs.viewSurgery")}
+                            aria-label={t("crmDialogs.viewSurgery")}
+                            onClick={() => setSelectedSurgery(row)}
+                          >
+                            <Eye className="size-4 text-teal-600" />
+                          </Button>
+                        )}
+                        {(resource === "surgeries" || resource === "payments") && canManage && (
+                          <Button
+                            data-action="edit"
+                            size="icon"
+                            variant="ghost"
+                            title={t("crm.actions.editRecord")}
+                            aria-label={t("crm.actions.editRecord")}
+                            onClick={() => {
+                              setEditingRecord(row);
+                              setOpen(true);
+                            }}
+                          >
+                            <Pencil className="size-4 text-primary" />
+                          </Button>
+                        )}
                         {resource === "patients" && canManage && <>{patientEditAction(row)}{patientAppointmentAction(row)}</>}
                         {resource === "leads" && (
                           <>
@@ -2129,7 +2159,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                                 <Eye className="size-4 text-teal-600" />
                               </Link>
                             </Button>
-                            <Button
+                            <Button permission="healthcare.appointments.create"
                               asChild
                               size="icon"
                               variant="ghost"
@@ -2157,7 +2187,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                         )}
                         {canManage && (
                           <DeleteConfirmationDialog
-                            description="This permanently deletes this CRM record. This action cannot be undone."
+                            description={t(resource === "surgeries" ? "crmDialogs.surgeryDeleteDescription" : "crmDialogs.deleteDescription")}
                             onConfirm={async () => {
                               try {
                                 await crmApi[resource].remove(row.id);
@@ -2173,7 +2203,7 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
                                       ? t("crm.errors.referralDelete")
                                       : error instanceof Error
                                         ? error.message
-                                        : "Unable to delete record.",
+                                        : t("crmDialogs.deleteError"),
                                 );
                               }
                             }}
@@ -2192,6 +2222,26 @@ export default function CrmPage({ resource }: { resource: CrmResource }) {
           </Table>
         </div>
       )}
+      <Dialog
+        open={Boolean(selectedSurgery)}
+        onOpenChange={(isOpen) => !isOpen && setSelectedSurgery(null)}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{String(selectedSurgery?.name ?? t("crmDialogs.surgeryDetails"))}</DialogTitle>
+          </DialogHeader>
+          {selectedSurgery && (
+            <dl className="grid gap-4 sm:grid-cols-2">
+              {[{ name: "code", label: "Code" }, ...configs.surgeries.fields].map((field) => (
+                <div key={field.name}>
+                  <dt className="text-sm text-muted-foreground">{t(`crm.fields.${field.name}`, { defaultValue: field.label })}</dt>
+                  <dd className="whitespace-pre-wrap break-words">{show(selectedSurgery, field.name)}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={Boolean(selectedReferral)}
         onOpenChange={(isOpen) => !isOpen && setSelectedReferral(null)}

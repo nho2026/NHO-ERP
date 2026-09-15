@@ -65,9 +65,27 @@ export const crmModel = {
     ]),
   create: (resource, data) =>
     resource === "surgery-appointments" ? bookWithProgress(prisma, data.patientId, "surgery_appointment", tx => tx.surgeryAppointment.create({ data, ...includeFor(resource) })) : resource === "patients" ? createPatient(prisma, data) : resource === "surgeries" ? createWithCode(prisma.surgery, { data }, "SUR") : delegate(resource).create({ data, ...includeFor(resource) }),
-  update: (resource, id, data) => {
+  update: async (resource, id, data) => {
     const changes = resource === "surgeries" ? withoutCode(data) : { ...data };
-    if (resource === "patients") delete changes.patientCode;
+    if (resource === "patients") {
+      delete changes.patientCode;
+      if (
+        [
+          "post_discharge_follow_up",
+          "post_discharge_follow_up_completed",
+        ].includes(changes.status)
+      ) {
+        const current = await prisma.patient.findUniqueOrThrow({
+          where: { id },
+          select: { followUpDate: true },
+        });
+        if (!changes.followUpDate && !current.followUpDate) {
+          throw Object.assign(new Error("Follow-up date is required."), {
+            status: 400,
+          });
+        }
+      }
+    }
     return delegate(resource).update({ where: { id }, data: changes, ...includeFor(resource) });
   },
   delete: (resource, id) => delegate(resource).delete({ where: { id } }),

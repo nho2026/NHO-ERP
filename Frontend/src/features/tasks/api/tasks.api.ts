@@ -7,7 +7,7 @@ export type TaskEmployee = {
   hireDate: string;
   status: string;
   isTeamLeader?: boolean;
-  teamLeaderId?: string | null;
+  team?: { id?: string; name?: string; leaderId: string | null } | null;
   position?: { name: string };
   department?: { name: string };
   user?: { id: string; name: string; email: string };

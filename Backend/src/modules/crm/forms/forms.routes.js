@@ -1,19 +1,12 @@
+import { requireRequestPermission } from "../../../shared/middleware/permission.middleware.js";
 import { Router } from "express";
 import { validate } from "../../../shared/middleware/validation.middleware.js";
 import { formsController } from "./forms.controller.js";
 import { formSubmissionSchema, formTemplateSchema } from "./forms.schema.js";
 
 const router = Router();
-const canView = (req, res, next) =>
-  req.permissionKeys.has("*") ||
-  req.permissionKeys.has("employees.view") ||
-  req.permissionKeys.has("employees.manage")
-    ? next()
-    : res.status(403).json({ message: "CRM access is required." });
-const canManage = (req, res, next) =>
-  req.permissionKeys.has("*") || req.permissionKeys.has("employees.manage")
-    ? next()
-    : res.status(403).json({ message: "CRM management access is required." });
+const canView = requireRequestPermission;
+const canManage = requireRequestPermission;
 
 router.get("/", canView, formsController.templates);
 router.get("/active", canView, formsController.activeTemplates);

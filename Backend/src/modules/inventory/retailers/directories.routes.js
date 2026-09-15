@@ -9,7 +9,7 @@ for (const definition of directoryDefinitions) {
   const controller = createDirectoryController(definition);
   router.get(
     `/${path}`,
-    requirePermission("inventory.warehouses.view"),
+    requirePermission("inventory.view"),
     controller.list,
   );
   router.post(`/${path}`, manage, controller.create);

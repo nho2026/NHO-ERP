@@ -7,7 +7,6 @@ type BuyPage =
   | "buyHistory"
   | "buyDebts"
   | "order"
-  | "orderHistory"
   | "departmentOrders";
 
 export default function WarehouseBuyPage({ page }: { page: BuyPage }) {

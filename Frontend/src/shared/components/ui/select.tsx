@@ -1,3 +1,4 @@
+import { useActionPermission } from "@/features/auth/permission-context";
 import { useTranslation } from "react-i18next";
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
@@ -20,7 +21,10 @@ function optionText(value: React.ReactNode): string {
 
 import { cn } from "@/lib/utils";
 
-const Select = SelectPrimitive.Root;
+function Select({ permission, disabled, onValueChange, ...props }: React.ComponentProps<typeof SelectPrimitive.Root> & { permission?: string }) {
+  const allowed = useActionPermission(permission);
+  return <SelectPrimitive.Root {...props} disabled={disabled || !allowed} onValueChange={allowed ? onValueChange : undefined} />;
+}
 
 const SelectGroup = SelectPrimitive.Group;
 

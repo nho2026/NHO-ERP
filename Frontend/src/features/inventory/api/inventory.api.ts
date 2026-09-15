@@ -9,7 +9,19 @@ export type PageData = {
     totalPages: number;
   };
 };
+export type StoragePageData = PageData & {
+  totals: { products: number; quantity: number; buy: number; sell: number };
+};
+export type ExpiryPageData = PageData & { warehouses: RecordItem[]; categories: RecordItem[]; today: string };
 export const inventoryApi = {
+  expiry: (page = 1, filters: Record<string, string> = {}) =>
+    apiClient.get<ExpiryPageData>("/inventory/expiry", { params: { page, pageSize: 50, ...filters } }).then(response => response.data),
+  storage: (page = 1, filters: Record<string, string> = {}) =>
+    apiClient
+      .get<StoragePageData>("/inventory/storage", {
+        params: { page, pageSize: 10, ...filters },
+      })
+      .then((response) => response.data),
   list: (resource: string, page = 1, filters: Record<string, string> = {}) =>
     apiClient
       .get<PageData>(`/inventory/${resource}`, {

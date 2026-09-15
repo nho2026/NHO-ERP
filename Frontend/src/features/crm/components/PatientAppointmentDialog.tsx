@@ -86,7 +86,7 @@ export default function PatientAppointmentDialog({ patient, surgery, onClose, on
         </fieldset>
         <div className="flex justify-end gap-2 border-t bg-muted/20 px-6 py-4">
           <Button type="button" variant="outline" disabled={busy} onClick={onClose}>{label("cancel")}</Button>
-          <Button type="submit" disabled={busy || catalog.isLoading || !!catalog.error || !doctorId || (!surgery && !departmentId)}><CalendarPlus className="size-4" />{label(busy ? "saving" : "save")}</Button>
+          <Button permission="healthcare.appointments.create" type="submit" disabled={busy || catalog.isLoading || !!catalog.error || !doctorId || (!surgery && !departmentId)}><CalendarPlus className="size-4" />{label(busy ? "saving" : "save")}</Button>
         </div>
       </form>
     </DialogContent>

@@ -100,6 +100,7 @@ export default function DevicesPage() {
         id: toastId,
       });
     } catch (cause) {
+      await devices.refresh();
       toast.error(t("attendance.device.testFailed"), {
         id: toastId,
         description: apiErrorMessage(cause),
@@ -111,7 +112,7 @@ export default function DevicesPage() {
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button permission="create">
               <Plus />
               {t("attendance.device.setup")}
             </Button>
@@ -138,7 +139,7 @@ export default function DevicesPage() {
                 required
               />
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button disabled={busy} className="w-full">
+              <Button permission="create" disabled={busy} className="w-full">
                 {busy
                   ? t("attendance.device.connecting")
                   : t("attendance.device.connectSave")}
@@ -191,7 +192,7 @@ export default function DevicesPage() {
                 </span>
               </div>
               <div className="mt-4 flex gap-2">
-                <Button
+                <Button permission="attendance.events.delete"
                   title={t("attendance.device.clearEvents")}
                   variant="ghost"
                   size="icon"
@@ -200,7 +201,7 @@ export default function DevicesPage() {
                 >
                   <CalendarX2 />
                 </Button>
-                <Button
+                <Button permission="update"
                   variant="outline"
                   size="sm"
                   onClick={() => setManaging(d)}
@@ -208,7 +209,7 @@ export default function DevicesPage() {
                   <Settings2 />
                   {t("common.manage")}
                 </Button>
-                <Button
+                <Button permission="test"
                   variant="outline"
                   size="sm"
                   className="flex-1"
@@ -356,7 +357,7 @@ export default function DevicesPage() {
                   {error}
                 </p>
               )}
-              <Button className="w-full" disabled={busy}>
+              <Button permission="update" className="w-full" disabled={busy}>
                 {busy
                   ? t("attendance.schedule.saving")
                   : t("attendance.device.saveChanges")}
@@ -365,7 +366,7 @@ export default function DevicesPage() {
           )}
         </DialogContent>
       </Dialog>
-      <DeleteConfirmationDialog
+      <DeleteConfirmationDialog permission="attendance.events.delete"
         open={!!clearingEvents}
         title={t("attendance.device.clearEventsTitle")}
         description={t("attendance.device.clearEventsDescription", {

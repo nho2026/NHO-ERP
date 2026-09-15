@@ -23,6 +23,14 @@ export const patientService = {
       ...(filters.gender && { gender: filters.gender }),
       ...(filters.bloodType && { bloodType: filters.bloodType }),
       ...(filters.status && { status: filters.status }),
+      ...(filters.followUp && {
+        status: {
+          in: [
+            "post_discharge_follow_up",
+            "post_discharge_follow_up_completed",
+          ],
+        },
+      }),
       ...(filters.isMarried !== undefined && {
         isMarried: filters.isMarried,
       }),

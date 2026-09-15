@@ -1,3 +1,4 @@
+import { hasPermission } from "@/features/auth/access";
 import { SearchableFilter } from "@/shared/components/ui/searchable-filter";
 import { NavigationPreference } from "./NavigationPreference";
 import { useSettingsTranslation } from "./useSettingsTranslation";
@@ -144,9 +145,7 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-  const admin = storedUser()?.roles?.some(
-    (r) => r.name === "Super Administrator",
-  );
+  const admin = hasPermission(storedUser(), "settings.update");
   useEffect(() => {
     void loadSettings().catch((e) => setError(apiErrorMessage(e)));
   }, []);
@@ -220,9 +219,7 @@ export default function SettingsPage() {
                 <h2 className="text-lg font-semibold">{tr(selected[1])}</h2>
                 {!admin && (
                   <p className="text-sm text-muted-foreground">
-                    {tr(
-                      "Only a Super Administrator can change system policies.",
-                    )}
+                    {tr("Permission is required to change system policies.")}
                   </p>
                 )}
               </div>
@@ -492,7 +489,7 @@ export default function SettingsPage() {
               )}
               {admin && settings && (
                 <div className="flex items-center gap-3">
-                  <Button disabled={busy} type="submit">
+                  <Button permission="update" disabled={busy} type="submit">
                     <Save className="size-4" />
                     {tr(busy ? "Saving…" : "Save changes")}
                   </Button>
@@ -510,10 +507,10 @@ export default function SettingsPage() {
           )}
           {category === "security" && (
             <div className="flex flex-wrap gap-3">
-              <Button asChild variant="outline">
+              <Button permission="roles.view" asChild variant="outline">
                 <Link to="/roles">{tr("Manage roles & permissions")}</Link>
               </Button>
-              <Button asChild variant="outline">
+              <Button permission="users.view" asChild variant="outline">
                 <Link to="/users">{tr("Manage users")}</Link>
               </Button>
             </div>
@@ -524,7 +521,7 @@ export default function SettingsPage() {
               <UpdatesPanel />
               <Card className="p-5">
                 <h2 className="font-semibold mb-3">{tr("Integrations")}</h2>
-                <Button asChild variant="outline">
+                <Button permission="attendance.devices.view" asChild variant="outline">
                   <Link to="/attendance/devices">
                     {tr("Manage attendance devices")}
                   </Link>
@@ -566,7 +563,7 @@ function BackupsPanel() {
           {tr(error)}
         </p>
       )}
-      <Button
+      <Button permission="settings.backups.create"
         disabled={busy}
         onClick={async () => {
           setBusy(true);

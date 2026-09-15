@@ -1,3 +1,4 @@
+import { hasPermission } from "@/features/auth/access";
 import { randomId } from "@/shared/lib/random-id";
 import { Card } from "@/shared/components/ui/card";
 import {
@@ -27,7 +28,7 @@ import { useTranslation } from "react-i18next";
 import { Eye, PieChart, Printer } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -95,7 +96,7 @@ export default function BuyDebtsPage() {
   const [saving, setSaving] = useState(false);
   const lock = useRef(false);
   const paymentId = useRef("");
-  const canPay = hasPermission(storedUser(), "inventory.manage");
+  const canPay = hasPermission(storedUser(), "inventory.purchases.pay");
   const result = useApiResource(
     useCallback(
       () =>
@@ -356,7 +357,7 @@ export default function BuyDebtsPage() {
                       ))}
                     <TableCell className="px-2 py-2">
                       <div className="flex justify-end gap-1.5">
-                        <Button
+                        <Button permission="print"
                           size="icon"
                           className="size-8 bg-primary text-primary-foreground hover:bg-primary/90"
                           aria-label={`${t("buyHistory.print")} ${row.invoiceNumber}`}
@@ -374,7 +375,7 @@ export default function BuyDebtsPage() {
                           <Eye className="size-3.5" />
                         </Button>
                         {canPay && (
-                          <Button
+                          <Button permission="inventory.purchases.pay"
                             size="sm"
                             className="h-8 bg-primary text-primary-foreground hover:bg-primary/90"
                             disabled={balance(row) <= 0}
@@ -415,7 +416,7 @@ export default function BuyDebtsPage() {
             })}
           </span>
           <div className="flex gap-2">
-            <Button
+            <Button permission="print"
               size="icon"
               className="size-8 bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={
@@ -640,7 +641,7 @@ export default function BuyDebtsPage() {
               >
                 {t("buyHistory.cancel")}
               </Button>
-              <Button
+              <Button permission="inventory.purchases.pay"
                 type="submit"
                 disabled={saving}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"

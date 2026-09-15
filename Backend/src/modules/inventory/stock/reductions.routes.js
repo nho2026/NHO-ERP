@@ -6,7 +6,7 @@ import { createReduction, listReductions } from "./reductions.service.js";
 const router = Router();
 router.get(
   "/item-reductions",
-  requirePermission("inventory.warehouses.view"),
+  requirePermission("inventory.view"),
   inventoryAction(listReductions),
 );
 router.post("/item-reductions", adjust, inventoryAction(createReduction, 201));

@@ -23,7 +23,10 @@ type Line = {
   medicine: string;
   dosage: string;
   frequency: string;
-  duration: string;
+  unitPrice: number;
+  lineTotal?: number;
+  currency?: string;
+  unit?: string;
   quantity: number;
   instructions: string;
 };
@@ -40,20 +43,26 @@ const newLine = (medicine = ""): Line => ({
   medicine,
   dosage: "",
   frequency: "",
-  duration: "",
+  unitPrice: 0,
   quantity: 1,
   instructions: "",
 });
 export default function PrescriptionWorkspace({
   patientId,
+  patientWeightKg,
   canManage,
 }: {
   patientId: string;
+  patientWeightKg?: number | null;
   canManage: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const tr = (key: string) => t(`prescription.${key}`);
-  const organization = useSettings()?.organization;
+  const money = (value: number) => value.toLocaleString(i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const lineAmount = (line: Line) => Math.round(line.quantity * line.unitPrice * 100) / 100;
+  const invoiceTotal = (items: Line[]) => items.every(item => item.lineTotal != null && Number.isFinite(item.lineTotal)) ? items.reduce((sum, item) => sum + item.lineTotal!, 0) : null;
+  const settings = useSettings();
+  const organization = settings?.organization;
   const [editing, setEditing] = useState(false);
   const [search, setSearch] = useState(""),
     [lines, setLines] = useState<Line[]>([]),
@@ -104,12 +113,13 @@ export default function PrescriptionWorkspace({
     const field = (label: string, value: string) =>
       `<div class="field"><span class="label">${esc(label)}</span><strong class="value">${esc(value)}</strong></div>`;
     win.document
-      .write(`<!doctype html><html dir="${i18n.dir()}" lang="${esc(i18n.language)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(tr("title"))} — ${esc(record.patientName)}</title><style>@font-face{font-family:RxArabic;src:url("${absolute(arabicFont)}")}@font-face{font-family:RxKurdish;src:url("${absolute(kurdishFont)}")}body{font-family:${font},sans-serif}${prescriptionPrintStyles}</style></head><body>
+      .write(`<!doctype html><html dir="${i18n.dir()}" lang="${esc(i18n.language)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(invoiceTotal(record.items) == null ? tr("title") : tr("invoice"))} — ${esc(record.patientName)}</title><style>@font-face{font-family:RxArabic;src:url("${absolute(arabicFont)}")}@font-face{font-family:RxKurdish;src:url("${absolute(kurdishFont)}")}body{font-family:${font},sans-serif}${prescriptionPrintStyles}</style></head><body>
       <div class="toolbar"><button onclick="window.print()">${esc(tr("print"))}</button></div>
       <main class="sheet"><header><img class="logo" src="${esc(absolute(organization?.logo || defaultLogo))}" alt="${esc(organization?.name || "NHO")}"><div><h1>${esc(organization?.name || "NHO")}</h1><div class="contact">${esc([organization?.address, organization?.phone, organization?.email].filter(Boolean).join(" · "))}</div></div></header>
-      <div class="document-heading"><h2>${esc(tr("title"))}</h2><span class="rx" aria-hidden="true">℞</span></div>
+      <div class="document-heading"><h2>${esc(invoiceTotal(record.items) == null ? tr("title") : tr("invoice"))}</h2><span class="rx" aria-hidden="true">℞</span></div>
       <section class="meta">${field(tr("patient"), record.patientName)}${field(tr("patientCode"), record.patientCode)}${field(tr("prescriber"), record.prescriberName)}${field(tr("issued"), new Date(record.createdAt).toLocaleString(i18n.language, { dateStyle: "medium", timeStyle: "short" }))}</section>
-      ${record.items.map((line, index) => `<section class="medicine"><div class="medicine-heading"><span class="number">${index + 1}</span><h3>${esc(line.medicine)}</h3></div><div class="directions">${(["dosage", "frequency", "duration", "quantity"] as const).map((key) => `<div><span class="label">${esc(tr(key))}</span><strong class="value">${esc(line[key])}</strong></div>`).join("")}</div>${line.instructions ? `<p class="instructions"><span class="label">${esc(tr("instructions"))}</span>${esc(line.instructions)}</p>` : ""}</section>`).join("")}
+      ${record.items.map((line, index) => `<section class="medicine"><div class="medicine-heading"><span class="number">${index + 1}</span><h3>${esc(line.medicine)}</h3></div><div class="directions">${(["dosage", "frequency", "quantity"] as const).map((key) => `<div><span class="label">${esc(tr(key))}</span><strong class="value">${esc(line[key])}</strong></div>`).join("")}</div>${line.lineTotal != null ? `<div class="directions">${field(tr("unitPrice"), `${money(line.unitPrice)} ${line.currency ?? ""}`)}${field(tr("lineTotal"), `${money(line.lineTotal)} ${line.currency ?? ""}`)}</div>` : ""}${line.instructions ? `<p class="instructions"><span class="label">${esc(tr("instructions"))}</span>${esc(line.instructions)}</p>` : ""}</section>`).join("")}
+      ${invoiceTotal(record.items) != null ? `<section class="notes"><strong>${esc(tr("total"))}: ${esc(money(invoiceTotal(record.items)!))} ${esc(record.items[0]?.currency ?? "")}</strong></section>` : ""}
       ${record.notes ? `<section class="notes"><strong>${esc(tr("notes"))}</strong><p>${esc(record.notes)}</p></section>` : ""}
       <footer><div class="reference">${esc(tr("reference"))}<br><span dir="ltr">${esc(record.id)}</span></div><div class="signature"><div class="signature-line"></div><span class="label">${esc(tr("signature"))}</span><strong>${esc(record.prescriberName)}</strong></div></footer></main></body></html>`);
     win.document.close();
@@ -135,7 +145,7 @@ export default function PrescriptionWorkspace({
     try {
       await apiClient.post(`/crm/prescriptions/patient/${patientId}`, {
         requestId: request.current,
-        items: lines.map(({ product: _product, ...line }) => line),
+        items: lines.map(({ product, ...line }) => ({ ...line, ...(product && { productId: product.id }) })),
         notes,
       });
       setLines([]);
@@ -159,7 +169,7 @@ export default function PrescriptionWorkspace({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">{tr("medications")}</h2>
         {canManage && !editing && (
-          <Button
+          <Button permission="crm.prescriptions.create"
             onClick={() => {
               setEditing(true);
               setLines([newLine()]);
@@ -210,7 +220,7 @@ export default function PrescriptionWorkspace({
                       request.current = null;
                       setLines((rows) => [
                         ...rows,
-                        { ...newLine(`${product.name}${product.size ? ` (${product.size})` : ""}`), product },
+                        { ...newLine(`${product.name}${product.size ? ` (${product.size})` : ""}`), product, unitPrice: product.sellingPrice },
                       ]);
                     }}
                   >
@@ -243,7 +253,7 @@ export default function PrescriptionWorkspace({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-10 text-center">#</TableHead>
-                    {(["medicine", "dosage", "frequency", "duration", "quantity", "instructions"] as const).map(key => <TableHead key={key} className={key === "medicine" ? "w-[23%] text-start" : key === "quantity" ? "w-20 text-start" : "text-start"}>{tr(key)}</TableHead>)}
+                    {(["medicine", "dosage", "frequency", "quantity", "unitPrice", "lineTotal", "instructions"] as const).map(key => <TableHead key={key} className={key === "medicine" ? "w-[23%] text-start" : key === "quantity" ? "w-20 text-start" : "text-start"}>{tr(key)}</TableHead>)}
                     <TableHead className="w-14 text-center"><span className="sr-only">{t("drugDose.title")}</span><Calculator aria-hidden="true" className="mx-auto size-4" /></TableHead>
                     <TableHead className="w-14"><span className="sr-only">{tr("remove")}</span></TableHead>
                   </TableRow>
@@ -252,7 +262,7 @@ export default function PrescriptionWorkspace({
                   {lines.map((line, index) => (
                     <TableRow key={index} className="align-middle [&>td]:px-2 [&>td]:py-3">
                       <TableCell className="text-center text-muted-foreground">{index + 1}</TableCell>
-                      {(["medicine", "dosage", "frequency", "duration", "quantity"] as const).map(key => (
+                      {(["medicine", "dosage", "frequency", "quantity", "unitPrice"] as const).map(key => (
                         <TableCell key={key}>
                           <Input
                             className="h-9 min-w-0"
@@ -260,17 +270,18 @@ export default function PrescriptionWorkspace({
                             id={`rx-${index}-${key}`}
                             aria-label={`${tr(key)} ${index + 1}`}
                             required
-                            readOnly={key === "medicine" && !!line.product}
-                            type={key === "quantity" ? "number" : "text"}
-                            min={key === "quantity" ? 1 : undefined}
-                            max={key === "quantity" ? 100000 : undefined}
-                            step={key === "quantity" ? 1 : undefined}
+                            readOnly={(key === "medicine" || key === "unitPrice") && !!line.product}
+                            type={key === "quantity" || key === "unitPrice" ? "number" : "text"}
+                            min={key === "quantity" ? 1 : key === "unitPrice" ? 0 : undefined}
+                            max={key === "quantity" ? 100000 : key === "unitPrice" ? 100000000 : undefined}
+                            step={key === "quantity" ? 1 : key === "unitPrice" ? "any" : undefined}
                             maxLength={200}
                             value={line[key]}
-                            onChange={event => change(index, { [key]: key === "quantity" ? Number(event.target.value) : event.target.value })}
+                            onChange={event => change(index, { [key]: key === "quantity" || key === "unitPrice" ? Number(event.target.value) : event.target.value })}
                           />
                         </TableCell>
                       ))}
+                      <TableCell className="text-end tabular-nums">{money(lineAmount(line))}</TableCell>
                       <TableCell>
                         <Textarea
                           rows={1}
@@ -288,12 +299,12 @@ export default function PrescriptionWorkspace({
                           <PopoverTrigger asChild><Button type="button" variant="outline" size="icon" className="size-9 border-primary/20 bg-primary/10 text-primary" aria-label={t("drugDose.title")} title={t("drugDose.title")}><Calculator className="size-4" /></Button></PopoverTrigger>
                           <PopoverContent className="w-80 max-w-[90vw]" dir={i18n.dir()}>
                             <p className="mb-2 font-semibold">{line.medicine}</p>
-                            <DrugDoseCalculator product={line.product} onApply={(dosage, frequency) => change(index, { dosage, frequency })} />
+                            <DrugDoseCalculator product={line.product} patientWeightKg={patientWeightKg} onApply={(dosage, frequency) => change(index, { dosage, frequency })} />
                           </PopoverContent>
                         </Popover> : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
-                        <Button data-action="delete" type="button" variant="ghost" size="icon" aria-label={`${tr("remove")} ${index + 1}`} onClick={() => {
+                        <Button permission="view" data-action="delete" type="button" variant="ghost" size="icon" aria-label={`${tr("remove")} ${index + 1}`} onClick={() => {
                           request.current = null;
                           setLines(rows => rows.filter((_, i) => i !== index));
                         }}><Trash2 className="size-4" /></Button>
@@ -302,6 +313,8 @@ export default function PrescriptionWorkspace({
                   ))}
                 </TableBody>
               </Table>
+              <p className="text-end font-semibold" aria-live="polite">{tr("total")}: {money(lines.reduce((sum, line) => sum + lineAmount(line), 0))} {settings?.finance.currency}</p>
+              <p className="text-xs text-muted-foreground">{tr("billingHint")}</p>
               <Label htmlFor="rx-notes">{tr("notes")}</Label>
               <Textarea
                 id="rx-notes"
@@ -312,7 +325,7 @@ export default function PrescriptionWorkspace({
                   setNotes(e.target.value);
                 }}
               />
-              <Button type="submit" disabled={busy || !lines.length}>
+              <Button permission="crm.prescriptions.create" type="submit" disabled={busy || !lines.length}>
                 {busy ? tr("saving") : tr("save")}
               </Button>
             </fieldset>
@@ -341,14 +354,16 @@ export default function PrescriptionWorkspace({
                 <p className="text-sm text-muted-foreground">
                   {new Date(record.createdAt).toLocaleString(i18n.language)}
                 </p>
+                {invoiceTotal(record.items) != null && <p className="font-semibold">{tr("total")}: {money(invoiceTotal(record.items)!)} {record.items[0]?.currency}</p>}
                 <div className="mt-3 space-y-3">
                   {record.items.map((item, index) => (
                     <div key={index} className="space-y-1">
                       <p className="font-medium">{item.medicine}</p>
                       <p className="text-sm">
                         {tr("dosage")}: {item.dosage} · {tr("frequency")}:{" "}
-                        {item.frequency} · {tr("duration")}: {item.duration} ·{" "}
+                        {item.frequency} ·{" "}
                         {tr("quantity")}: {item.quantity}
+                        {item.lineTotal != null && <> · {tr("lineTotal")}: {money(item.lineTotal)} {item.currency}</>}
                       </p>
                       {item.instructions && (
                         <p className="whitespace-pre-wrap text-sm text-muted-foreground">
@@ -364,7 +379,7 @@ export default function PrescriptionWorkspace({
                   </p>
                 )}
               </div>
-              <Button variant="outline" onClick={() => print(record)}>
+              <Button permission="crm.prescriptions.print" variant="outline" onClick={() => print(record)}>
                 <Printer className="size-4" />
                 {tr("print")}
               </Button>

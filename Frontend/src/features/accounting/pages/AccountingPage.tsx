@@ -133,7 +133,7 @@ export default function AccountingPage({
               {t("accounting.reportDescription")}
             </p>
           </div>
-          <Button variant="outline" onClick={printDocument}>
+          <Button permission="accounting.reports.print" variant="outline" onClick={printDocument}>
             <Printer />
             {t("accounting.printReport")}
           </Button>
@@ -316,7 +316,7 @@ export default function AccountingPage({
             {t(`accounting.${resource}Description`)}
           </p>
         </div>
-        <Button
+        <Button permission="create"
           onClick={() => {
             setError("");
             setEditing(null);
@@ -434,7 +434,7 @@ export default function AccountingPage({
                           <div className="flex flex-wrap items-center gap-2">
                             {row.status === "draft" && (
                               <>
-                                <Button
+                                <Button permission="post"
                                   variant="ghost"
                                   size="icon"
                                   onClick={async () => {
@@ -546,7 +546,7 @@ export default function AccountingPage({
             {error && (
               <p className="text-sm text-destructive sm:col-span-2">{error}</p>
             )}
-            <Button disabled={busy} className="sm:col-span-2">
+            <Button permission={editing ? "update" : "create"} disabled={busy} className="sm:col-span-2">
               {t("accounting.save")}
             </Button>
           </form>
@@ -629,7 +629,7 @@ export default function AccountingPage({
                       )
                     }
                   />
-                  <Button data-action="delete"
+                  <Button permission="view" data-action="delete"
                     type="button"
                     variant="ghost"
                     size="icon"
@@ -654,7 +654,7 @@ export default function AccountingPage({
               {t("accounting.addLine")}
             </Button>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button className="w-full" disabled={busy}>
+            <Button permission="create" className="w-full" disabled={busy}>
               {t("accounting.saveDraft")}
             </Button>
           </form>

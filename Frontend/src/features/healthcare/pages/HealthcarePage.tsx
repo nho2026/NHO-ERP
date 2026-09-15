@@ -866,7 +866,7 @@ export default function HealthcarePage({
                   </Button>
                 </div>
               )}
-              <Button
+              <Button permission="create"
                 onClick={() => {
                   setError("");
                   setAppointmentDraftAt("");
@@ -1066,7 +1066,7 @@ export default function HealthcarePage({
             {error && (
               <p className="text-sm text-destructive sm:col-span-2">{error}</p>
             )}
-            <Button className="sm:col-span-2" disabled={busy}>
+            <Button permission={editing ? "update" : "create"} className="sm:col-span-2" disabled={busy}>
               {busy ? t("healthcareAdmin.saving") : t("healthcareAdmin.save")}
             </Button>
           </form>

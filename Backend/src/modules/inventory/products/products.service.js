@@ -61,13 +61,19 @@ export const productsService = {
     }));
   },
   list: async ({ query = {} }) => {
+    const warehouseId = query.warehouseId ? String(query.warehouseId) : null;
+    const search = String(query.search || "").replace(/[\\%_]/g, "\\$&");
+    const stockWhere = {
+      ...(warehouseId && { warehouseId }),
+      ...(query.inStock === "true" && { quantity: { gt: 0 } }),
+    };
     const where = {
       ...(query.isSpecial === "true" && { isSpecial: true }),
       ...(query.search && {
         OR: [
-          { name: { contains: String(query.search) } },
-          { sku: { contains: String(query.search) } },
-          { barcode: { contains: String(query.search) } },
+          { name: { contains: search } },
+          { sku: { contains: search } },
+          { barcode: { contains: search } },
         ],
       }),
       ...(query.categoryId && { categoryId: String(query.categoryId) }),
@@ -85,19 +91,24 @@ export const productsService = {
       ...(query.discountType && {
         discountType: String(query.discountType),
       }),
-      ...(query.inStock === "true" && {
-        stocks: { some: { quantity: { gt: 0 } } },
+      ...((warehouseId || query.inStock === "true") && {
+        stocks: { some: stockWhere },
       }),
     };
     return await productsModel.paginate(query, "inventoryProduct", {
       where,
       include: {
         category: true,
-        brand: true,
-        stocks: { include: { warehouse: true } },
-        images: { orderBy: { sortOrder: "asc" } },
+        brand: query.compact !== "true",
+        stocks: query.includeStocks === "false" ? false : {
+          ...(warehouseId && { where: { warehouseId } }),
+          ...(query.compact === "true"
+            ? { select: { warehouseId: true, quantity: true } }
+            : { include: { warehouse: true } }),
+        },
+        images: query.compact === "true" ? false : { orderBy: { sortOrder: "asc" } },
       },
-      orderBy: { name: "asc" },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
     });
   },
   newBarcode: async () => {

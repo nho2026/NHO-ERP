@@ -1,3 +1,4 @@
+import { hasPagePermission } from "@/features/auth/access";
 import { useCallback } from "react";
 import {
   ArrowLeft,
@@ -23,7 +24,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { crmApi, leadAttachmentApi, type CrmRecord } from "../api/crm.api";
 import { useApiResource } from "@/shared/hooks/useApiResource";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { toast } from "sonner";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -60,7 +61,7 @@ export default function LeadDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const canManage = hasPermission(storedUser(), "employees.manage");
+  const canManage = hasPagePermission(storedUser(), "create", "update", "delete");
   const lead = useApiResource(useCallback(() => crmApi.leads.get(id), [id]));
   if (!lead.data)
     return (
@@ -141,7 +142,7 @@ export default function LeadDetailPage() {
 
   return (
     <div className="mx-auto max-w-[1320px] space-y-6 pb-10">
-      <header className="flex items-center gap-3">
+      <header className="flex flex-wrap items-center gap-3">
         <Button
           size="icon"
           variant="outline"
@@ -150,14 +151,14 @@ export default function LeadDetailPage() {
         >
           <ArrowLeft className="rtl:rotate-180" />
         </Button>
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-bold uppercase tracking-[.18em] text-primary">
             {t("crm.progress.detail.eyebrow", { defaultValue: "Lead profile" })}
           </p>
           <h1 className="text-2xl font-bold">{String(item.name)}</h1>
         </div>
         {canManage && status !== "lost" && (
-          <Button
+          <Button permission="update"
             className="ms-auto"
             variant="destructive"
             onClick={() => void markAsLost()}
@@ -172,14 +173,14 @@ export default function LeadDetailPage() {
           <TrendingUp /> {t("crm.progress.detail.viewProgress")}
         </Button>
         {canManage && (
-          <Button
+          <Button permission="update"
             variant="outline"
             onClick={() => navigate(`/crm/leads?edit=${id}`)}
           >
             {t("common.edit", { defaultValue: "Edit" })}
           </Button>
         )}
-        <Button
+        <Button permission="healthcare.appointments.create"
           onClick={() =>
             navigate(
               `/crm/appointments?patientName=${encodeURIComponent(String(item.name))}&patientPhone=${encodeURIComponent(String(item.phone))}`,
@@ -237,7 +238,7 @@ export default function LeadDetailPage() {
           </div>
           {status !== "lost" && (
             <div className="mt-8 overflow-x-auto pb-2">
-              <div className="relative grid min-w-[620px] grid-cols-5">
+              <div className="relative grid min-w-[760px] grid-cols-7">
                 <span className="absolute inset-x-[10%] top-5 h-0.5 bg-border" />
                 {current > 0 && (
                   <span
@@ -274,8 +275,8 @@ export default function LeadDetailPage() {
         </CardContent>
       </Card>
 
-      <section className="grid gap-6 lg:grid-cols-[1.35fr_.8fr]">
-        <div className="space-y-6">
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.8fr)]">
+        <div className="order-2 min-w-0 space-y-6">
           <Card>
             <CardHeader className="border-b">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -366,11 +367,43 @@ export default function LeadDetailPage() {
               )}
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader className="border-b">
+              <CardTitle className="text-base">
+                {t("crm.progress.detail.insights")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 p-6 text-sm sm:grid-cols-3">
+              <div className="flex justify-between gap-3 sm:block">
+                <span className="text-muted-foreground">
+                  {t("crm.fields.age")}
+                </span>
+                <strong className="sm:mt-1 sm:block">
+                  {String(item.age ?? "—")}
+                </strong>
+              </div>
+              <div className="flex justify-between gap-3 sm:block">
+                <span className="text-muted-foreground">
+                  {t("crm.progress.detail.historyEvents")}
+                </span>
+                <strong className="sm:mt-1 sm:block">{history.length}</strong>
+              </div>
+              <div className="flex justify-between gap-3 sm:block">
+                <span className="text-muted-foreground">
+                  {t("crm.progress.detail.currentStage")}
+                </span>
+                <strong className="sm:mt-1 sm:block">{tr(status)}</strong>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-6">
-          <Card id="timeline" className="scroll-mt-6 overflow-hidden">
-            <CardHeader className="border-b bg-muted/20">
+        <div className="contents">
+          <Card
+            id="timeline"
+            className="order-1 scroll-mt-6 overflow-hidden lg:col-span-2"
+          >
+            <CardHeader className="border-b bg-muted/20 py-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Clock3 className="size-5 text-primary" />
                 {t("crm.progress.detail.history", {
@@ -383,24 +416,23 @@ export default function LeadDetailPage() {
                 })}
               </p>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               {history.length ? (
-                <div>
-                  {history.map((entry, index) => (
+                <div className="flex gap-3 overflow-x-auto pb-1">
+                  {history.map((entry) => (
                     <div
                       key={String(entry.id)}
-                      className="relative flex gap-4 pb-7 last:pb-0"
+                      className="flex min-w-[210px] flex-1 items-start gap-3 rounded-xl border bg-muted/10 p-3"
                     >
-                      {index < history.length - 1 && (
-                        <span className="absolute start-[15px] top-8 h-full w-px bg-border" />
-                      )}
                       <span
-                        className={`relative z-10 mt-0.5 grid size-8 shrink-0 place-items-center rounded-full border ${colors[String(entry.toStatus)] ?? "bg-primary/10 text-primary"}`}
+                        className={`grid size-8 shrink-0 place-items-center rounded-full border ${colors[String(entry.toStatus)] ?? "bg-primary/10 text-primary"}`}
                       >
                         <Check className="size-3.5" />
                       </span>
-                      <div className="pt-1">
-                        <p className="font-semibold">{tr(entry.toStatus)}</p>
+                      <div className="min-w-0 pt-0.5">
+                        <p className="truncate text-sm font-semibold">
+                          {tr(entry.toStatus)}
+                        </p>
                         <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                           <CalendarDays className="size-3.5" />
                           {date(entry.createdAt)}
@@ -429,7 +461,7 @@ export default function LeadDetailPage() {
               )}
             </CardContent>
           </Card>
-          <div className="order-first space-y-6">
+          <div className="order-3 min-w-0 space-y-6">
             <Card>
               <CardHeader className="border-b">
                 <CardTitle className="text-base">
@@ -484,33 +516,6 @@ export default function LeadDetailPage() {
                     <p className="mt-1 font-semibold">{value}</p>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="border-b">
-                <CardTitle className="text-base">
-                  {t("crm.progress.detail.insights")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-3 p-6 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    {t("crm.fields.age")}
-                  </span>
-                  <strong>{String(item.age ?? "—")}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    {t("crm.progress.detail.historyEvents")}
-                  </span>
-                  <strong>{history.length}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    {t("crm.progress.detail.currentStage")}
-                  </span>
-                  <strong>{tr(status)}</strong>
-                </div>
               </CardContent>
             </Card>
           </div>

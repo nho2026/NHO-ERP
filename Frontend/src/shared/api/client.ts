@@ -1,14 +1,12 @@
+import { apiBaseUrl } from "./base-url";
+import { hasPermission, storedUser } from "@/features/auth/access";
+import { permissionForRequest } from "@/features/auth/permission-policy";
 import axios from "axios";
 import { toast } from "sonner";
 import i18n from "@/i18n";
 
-const defaultApiUrl =
-  window.location.protocol === "file:"
-    ? "http://192.168.1.90:4000/api"
-    : "/api";
-
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? defaultApiUrl,
+  baseURL: apiBaseUrl,
   withCredentials: true,
   headers: { "Content-Type": "application/json", Accept: "application/json" },
   timeout: 15_000,
@@ -19,6 +17,23 @@ export const apiErrorMessage = (error: unknown) =>
     ? (error.response?.data?.message ??
       "The server is unavailable. Please try again.")
     : "Something went wrong. Please try again.";
+
+// Client checks provide immediate feedback; the API independently enforces the same policy.
+apiClient.interceptors.request.use((config) => {
+  const method = (config.method ?? "get").toUpperCase();
+  const permission = permissionForRequest(method, config.url ?? "");
+  if (permission && !["GET", "HEAD"].includes(method)) {
+    const user = storedUser();
+    const view = `${permission.slice(0, permission.lastIndexOf("."))}.view`;
+    if (!hasPermission(user, view) || !hasPermission(user, permission)) {
+      throw new axios.AxiosError(i18n.t("access.denied"), "ERR_FORBIDDEN", config, undefined, {
+        status: 403, statusText: "Forbidden", headers: {}, config,
+        data: { message: i18n.t("access.denied") },
+      });
+    }
+  }
+  return config;
+});
 
 const nonCrudAction =
   /\/(login|logout|sync|test|capture|password|time|checkout|check-in|check-out)(\/|$)|\/pos\/(sales|returns)(\/|$)|\/notifications(\/|$)/i;
@@ -36,6 +51,9 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (!axios.isCancel(error) && !error.response && ["ERR_NETWORK", "ECONNABORTED", "ETIMEDOUT"].includes(error.code)) {
+      window.dispatchEvent(new Event("nho:connection-error"));
+    }
     const method = error.config?.method?.toLowerCase();
     if (
       !axios.isCancel(error) &&

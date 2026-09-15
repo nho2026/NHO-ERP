@@ -1,5 +1,6 @@
 export function errorHandler(error, _req, res, _next) {
-  console.error(error);
+  if (error.deviceConnection) console.warn("Attendance device connection failed:", error.code, error.message);
+  else console.error(error);
   if (error.name === "ZodError")
     return res.status(400).json({
       message: error.issues?.[0]?.message ?? "Invalid request.",

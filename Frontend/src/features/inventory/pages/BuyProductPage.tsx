@@ -69,8 +69,8 @@ function BuyProductForm({
   onBusy: (busy: boolean) => void;
 }) {
   const { t, i18n } = useTranslation();
-  const canBuy = hasPermission(storedUser(), "inventory.adjust");
-  const canManage = hasPermission(storedUser(), "inventory.manage");
+  const canBuy = hasPermission(storedUser(), "inventory.purchases.create");
+  const canManage = hasPermission(storedUser(), "inventory.products.create");
   const options = useApiResource(
     useCallback(async () => {
       const [products, warehouses] = await Promise.all([
@@ -359,7 +359,7 @@ function BuyProductForm({
                         alt={t("buyProductForm.attachment")}
                         className="max-h-72 max-w-full rounded-lg object-contain"
                       />
-                      <Button
+                      <Button permission="view"
                         type="button"
                         variant="ghost"
                         className="mt-3"
@@ -376,7 +376,7 @@ function BuyProductForm({
                       </Button>
                     </>
                   ) : (
-                    <Button
+                    <Button permission="inventory.products.create"
                       type="button"
                       variant="ghost"
                       disabled={!canManage || saving}
@@ -518,7 +518,7 @@ function BuyProductForm({
                         </Label></TableCell>
 
 <TableCell className="align-middle font-semibold tabular-nums">{money(lineTotal(line))}</TableCell>
-<TableCell className="align-middle">                        <Button data-action="delete"
+<TableCell className="align-middle">                        <Button permission="view" data-action="delete"
                           type="button"
                           variant="ghost"
                           size="icon"
@@ -630,7 +630,7 @@ function BuyProductForm({
         <Button type="button" variant="outline" className="h-11" onClick={() => setSummaryOpen(true)}>
           {t("buyProductForm.summary")}
         </Button>
-        <Button
+        <Button permission="create"
           type="submit"
           disabled={saving || options.isLoading || !!options.error || !canBuy}
           className="h-11 flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -650,7 +650,7 @@ export default function BuyProductPage() {
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
   const [saved, setSaved] = useState(false);
-  const canBuy = hasPermission(storedUser(), "inventory.adjust");
+  const canBuy = hasPermission(storedUser(), "inventory.purchases.create");
   return (
     <div className="space-y-4">
       {saved && (
@@ -663,7 +663,7 @@ export default function BuyProductPage() {
         title="warehouseModule.buyProduct"
         headerAction={
           canBuy && (
-            <Button
+            <Button permission="create"
               className="ms-auto"
               onClick={() => {
                 setSaved(false);

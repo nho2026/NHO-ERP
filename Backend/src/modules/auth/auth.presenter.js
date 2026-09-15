@@ -21,6 +21,6 @@ export function presentUser(user) {
     roles,
     permissions: [...new Set(permissions)],
     createdAt: user.createdAt,
-    employee: user.employee ?? null,
+    employee: user.employee ? { ...user.employee, isTeamLeader: Boolean(user.employee.ledTeams?.length) } : null,
   };
 }

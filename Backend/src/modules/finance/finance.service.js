@@ -15,10 +15,10 @@ export const financeService = {
       plannedBudget = budgets.reduce((s, x) => s + x.plannedAmount, 0),
       inflow = flows
         .filter((x) => x.flowType === "inflow")
-        .reduce((s, x) => s + x.amount, 0),
+        .reduce((s, x) => s + Number(x.amount), 0),
       outflow = flows
         .filter((x) => x.flowType === "outflow")
-        .reduce((s, x) => s + x.amount, 0),
+        .reduce((s, x) => s + Number(x.amount), 0),
       projectedRevenue = forecasts.reduce((s, x) => s + x.projectedRevenue, 0),
       projectedExpense = forecasts.reduce((s, x) => s + x.projectedExpense, 0),
       committedFunding = funding.reduce((s, x) => s + x.committedAmount, 0),

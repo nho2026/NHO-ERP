@@ -1,5 +1,5 @@
 import { SearchableFilter } from "@/shared/components/ui/searchable-filter";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Printer } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
@@ -21,6 +21,7 @@ import {
   TableRow,
   TableCell,
 } from "@/shared/components/ui/table";
+import { apiErrorMessage } from "@/shared/api/client";
 import { inventoryApi, type RecordItem } from "../api/inventory.api";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 const headings = [
@@ -45,26 +46,6 @@ const dayNumber = (date: string) =>
   Date.parse(`${date.slice(0, 10)}T00:00:00Z`) / 86400000;
 export default function ExpireSoonPage() {
   const { t, i18n } = useTranslation();
-  const result = useApiResource(
-    useCallback(async () => {
-      const [products, warehouses, categories] = await Promise.all([
-        inventoryApi.all("products"),
-        inventoryApi.all("warehouses"),
-        inventoryApi.all("categories"),
-      ]);
-      return {
-        products: products.filter((p) => p.status === "active"),
-        warehouses,
-        categories,
-        today: new Intl.DateTimeFormat("en-CA", {
-          timeZone: "Asia/Baghdad",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        }).format(new Date()),
-      };
-    }, []),
-  );
   const [search, setSearch] = useState("");
   const [warehouse, setWarehouse] = useState("all");
   const [category, setCategory] = useState("all");
@@ -72,6 +53,20 @@ export default function ExpireSoonPage() {
   const [maximum, setMaximum] = useState("");
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+  const filters = useCallback(() => ({
+    search: debouncedSearch,
+    ...(warehouse !== "all" && { warehouseId: warehouse }),
+    ...(category !== "all" && { categoryId: category }),
+    status,
+    maximum,
+  }), [debouncedSearch, warehouse, category, status, maximum]);
+  const result = useApiResource(useCallback(() => inventoryApi.expiry(page, filters()), [page, filters]));
   const days = (p: RecordItem) =>
     p.expiryDate && result.data
       ? Math.round(dayNumber(p.expiryDate) - dayNumber(result.data.today))
@@ -92,25 +87,10 @@ export default function ExpireSoonPage() {
         (s: RecordItem) => warehouse === "all" || s.warehouseId === warehouse,
       )
       .reduce((sum: number, s: RecordItem) => sum + Number(s.quantity), 0);
-  const rows = (result.data?.products ?? [])
-    .filter(
-      (p) =>
-        (category === "all" || p.categoryId === category) &&
-        (warehouse === "all" ||
-          p.stocks?.some((s: RecordItem) => s.warehouseId === warehouse)) &&
-        `${p.name} ${p.sku} ${p.barcode ?? ""}`
-          .toLocaleLowerCase()
-          .includes(search.toLocaleLowerCase()) &&
-        (status === "all" || state(p) === status) &&
-        (maximum === "" || (days(p) !== null && days(p)! <= Number(maximum))),
-    )
-    .sort(
-      (a, b) =>
-        (days(a) ?? Infinity) - (days(b) ?? Infinity) ||
-        a.name.localeCompare(b.name),
-    );
-  const pages = Math.max(1, Math.ceil(rows.length / 10));
-  const current = Math.min(page, pages);
+  const rows = result.data?.items ?? [];
+  const pages = result.data?.pagination.totalPages ?? 1;
+  const current = result.data?.pagination.page ?? page;
+  const total = result.data?.pagination.total ?? 0;
   const cells = (p: RecordItem) => [
     p.name,
     p.size || "—",
@@ -128,15 +108,24 @@ export default function ExpireSoonPage() {
     ),
     t(`expiry.${state(p)}`),
   ];
-  function print() {
+  async function print() {
     const popup = window.open("", "_blank", "width=1100,height=800");
     if (!popup) {
       setError(t("buyHistory.popupBlocked"));
       return;
     }
     popup.opener = null;
+    setPrinting(true);
+    setError("");
+    try {
+      const first = await inventoryApi.expiry(1, { ...filters(), pageSize: "100" });
+      const printRows = [...first.items];
+      for (let next = 2; next <= first.pagination.totalPages; next++) {
+        const data = await inventoryApi.expiry(next, { ...filters(), pageSize: "100" });
+        printRows.push(...data.items);
+      }
     popup.document.write(
-      `<html dir="${i18n.dir()}"><head><meta charset="utf-8"><title>${escape(t("warehouseModule.expireSoon"))}</title><style>body{font:12px Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:start}@page{size:A4 landscape}</style></head><body><h1>${escape(t("warehouseModule.expireSoon"))}</h1><p>${escape(result.data?.today)}</p><table><thead><tr>${headings.map((k) => `<th>${escape(t(`expiry.${k}`))}</th>`).join("")}</tr></thead><tbody>${rows
+      `<html dir="${i18n.dir()}"><head><meta charset="utf-8"><title>${escape(t("warehouseModule.expireSoon"))}</title><style>body{font:12px Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:start}@page{size:A4 landscape}</style></head><body><h1>${escape(t("warehouseModule.expireSoon"))}</h1><p>${escape(result.data?.today)}</p><table><thead><tr>${headings.map((k) => `<th>${escape(t(`expiry.${k}`))}</th>`).join("")}</tr></thead><tbody>${printRows
         .map(
           (p) =>
             `<tr>${cells(p)
@@ -148,6 +137,10 @@ export default function ExpireSoonPage() {
     popup.document.close();
     popup.focus();
     popup.print();
+    } catch (cause) {
+      popup.close();
+      setError(apiErrorMessage(cause));
+    } finally { setPrinting(false); }
   }
   return (
     <div className="space-y-5" dir={i18n.dir()}>
@@ -255,7 +248,7 @@ export default function ExpireSoonPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              rows.slice((current - 1) * 10, current * 10).map((p) => (
+              rows.map((p) => (
                 <TableRow
                   key={p.id}
                   className={
@@ -283,9 +276,9 @@ export default function ExpireSoonPage() {
           </TableBody>
         </Table>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t p-4">
-          <Button
+          <Button permission="print"
             variant="outline"
-            disabled={!rows.length || result.isLoading}
+            disabled={!total || result.isLoading || printing}
             onClick={print}
           >
             <Printer className="size-4" />
@@ -293,18 +286,18 @@ export default function ExpireSoonPage() {
           </Button>
           <div className="flex items-center gap-3">
             <span className="text-sm">
-              {current} / {pages} · {rows.length}
+              {current} / {pages} · {total}
             </span>
             <Button
               variant="outline"
-              disabled={current <= 1}
+              disabled={result.isLoading || current <= 1}
               onClick={() => setPage(current - 1)}
             >
               {t("transferForm.previous")}
             </Button>
             <Button
               variant="outline"
-              disabled={current >= pages}
+              disabled={result.isLoading || current >= pages}
               onClick={() => setPage(current + 1)}
             >
               {t("transferForm.next")}

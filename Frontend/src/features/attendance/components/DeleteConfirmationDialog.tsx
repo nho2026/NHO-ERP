@@ -13,6 +13,7 @@ import {
 } from "@/shared/components/ui/dialog";
 
 export function DeleteConfirmationDialog({
+  permission = "delete",
   open,
   title,
   description,
@@ -20,6 +21,7 @@ export function DeleteConfirmationDialog({
   onConfirm,
   alwaysRequirePassword = false,
 }: {
+  permission?: string;
   alwaysRequirePassword?: boolean;
   open: boolean;
   title: string;
@@ -97,7 +99,7 @@ export function DeleteConfirmationDialog({
             >
               {t("common.cancel")}
             </Button>
-            <Button
+            <Button permission={permission}
               type="submit"
               variant="destructive"
               disabled={(requirePassword && !password) || busy}

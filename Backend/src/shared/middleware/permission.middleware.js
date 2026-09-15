@@ -1,64 +1,36 @@
-const pageKey = (req) => {
-  const path = req.originalUrl.split("?")[0].replace(/^\/api\//, "");
-  const parts = path.split("/");
-  if (parts[0] === "employees") {
-    if (parts[1] === "positions") return "hr.positions";
-    if (parts[1] === "records") return `hr.${parts[2]}`;
-    return "hr.employees";
-  }
-  if (parts[0] === "attendance")
-    return `attendance.${parts[1] === "people" ? "users" : parts[1]}`;
-  if (parts[0] === "healthcare") return `healthcare.${parts[1]}`;
-  if (parts[0] === "accounting") return `accounting.${parts[1]}`;
-  if (parts[0] === "billing") return `accounting.${parts[1]}`;
-  if (parts[0] === "advances")
-    return parts[1] === "service" ? "accounting.service_advances" : "hr.advances";
-  if (parts[0] === "finance") return `finance.${parts[1]}`;
-  if (parts[0] === "inventory") {
-    if (path.includes("/barcode")) return "inventory.barcodes";
-    const resource = parts[1] === "adjust" ? "stock" : parts[1];
-    return `inventory.${resource}`;
-  }
-  if (parts[0] === "pos") return parts[1] === "sales" && req.method === "GET" ? "pos.sales" : "pos.checkout";
-  if (parts[0] === "tasks") return parts[1] === "reports" ? "tasks.reports" : "tasks.list";
-  if (parts[0] === "feedback") return "healthcare.feedback";
-  return null;
-};
+import { missingRequestPermissions, requestPermission } from "../security/access-policy.js";
 
-const actionKey = (req) => {
-  if (/\/barcode\/new$/.test(req.originalUrl.split("?")[0])) return "create";
-  if (req.method === "GET") return "view";
-  if (req.method === "DELETE") return "delete";
-  if (["PATCH", "PUT"].includes(req.method)) return "update";
-  if (req.method === "POST") {
-    if (/\/post$/.test(req.path)) return "post";
-    if (/\/sync$|\/test$/.test(req.path)) return "manage";
-    return "create";
+/** Runs immediately after authentication, before uploads, validation or controllers. */
+export function requireRequestPermission(req, res, next) {
+  const missing = missingRequestPermissions(req.permissionKeys, req.method, req.originalUrl);
+  if (missing.length) return res.status(403).json({ message: `Missing permission: ${missing.join(", ")}` });
+  const path = new URL(req.originalUrl, "http://localhost").pathname.replace(/^\/api/, "");
+  const body = req.body ?? {};
+  if (!req.permissionKeys?.has("*")) {
+    const extra = [];
+    if (/^\/tasks\/[^/]+$/.test(path) && body.status === "completed") extra.push("tasks.list.approve");
+    if (/^\/tasks\/[^/]+$/.test(path) && body.adjustment) extra.push("hr.payroll-adjustments.view", "hr.payroll-adjustments.create");
+    if (/^\/targets\/[^/]+$/.test(path) && body.rewardAmount != null) extra.push("targets.reward");
+    if (/^\/roles(?:\/|$)/.test(path) && Object.hasOwn(body, "permissionIds") && (req.method !== "POST" || body.permissionIds?.length)) extra.push("roles.assign_permissions");
+    if (/^\/users(?:\/|$)/.test(path) && Object.hasOwn(body, "roleIds") && (req.method !== "POST" || body.roleIds?.length)) extra.push("users.assign_roles");
+    if (/^\/users\/[^/]+$/.test(path) && (Object.hasOwn(body, "password") || Object.hasOwn(body, "pin"))) extra.push("users.password");
+    if (/^\/roles(?:\/|$)/.test(path) && body.name === "Super Administrator") return res.status(403).json({ message: "Only a Super Administrator can create or rename the unrestricted role." });
+    const denied = extra.filter((key) => !req.permissionKeys?.has(key));
+    if (denied.length) return res.status(403).json({ message: `Missing permission: ${denied.join(", ")}` });
   }
-  return "view";
-};
+  next();
+}
 
-const hasGranularPermission = (req) => {
-  const page = pageKey(req);
-  return Boolean(page && req.permissionKeys?.has(`${page}.${actionKey(req)}`));
-};
-
+// Old route declarations use broad module keys. Resolve those to the exact
+// resource/action instead of allowing legacy manage/view grants to bypass it.
+const legacy = new Set(["employees.view", "employees.manage", "inventory.view", "inventory.manage", "inventory.adjust", "finance.view", "journal.create", "pos.use", "payroll.process"]);
 export const requirePermission = (permission) => (req, res, next) => {
-  if (!req.permissionKeys?.has("*") && !req.permissionKeys?.has(permission) && !hasGranularPermission(req))
-    return res
-      .status(403)
-      .json({ message: `Missing permission: ${permission}` });
-  next();
+  const required = legacy.has(permission) ? requestPermission(req.method, req.originalUrl) : permission;
+  if (req.permissionKeys?.has("*") || (required && req.permissionKeys?.has(required))) return next();
+  return res.status(403).json({ message: `Missing permission: ${required ?? permission}` });
 };
-
 export const requireAnyPermission = (...permissions) => (req, res, next) => {
-  if (
-    !req.permissionKeys?.has("*") &&
-    !permissions.some((permission) => req.permissionKeys?.has(permission)) &&
-    !hasGranularPermission(req)
-  )
-    return res.status(403).json({
-      message: `Missing one of permissions: ${permissions.join(", ")}`,
-    });
-  next();
+  const resolved = permissions.map((permission) => legacy.has(permission) ? requestPermission(req.method, req.originalUrl) : permission);
+  if (req.permissionKeys?.has("*") || resolved.some((permission) => permission && req.permissionKeys?.has(permission))) return next();
+  return res.status(403).json({ message: `Missing one of permissions: ${resolved.join(", ")}` });
 };

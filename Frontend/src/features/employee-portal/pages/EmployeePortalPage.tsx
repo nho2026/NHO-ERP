@@ -1,3 +1,4 @@
+import { hasPermission, storedUser } from "@/features/auth/access";
 import DepartmentRequests from "./DepartmentRequests";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -59,7 +60,7 @@ export default function EmployeePortalPage() {
           {t("employeePortal.subtitle")}
         </p>
       </div>
-      <DepartmentRequests />
+      {hasPermission(storedUser(), "inventory.department-requests.view") && <DepartmentRequests />}
       <div className="grid gap-5 xl:grid-cols-3">
         <Card>
           <CardHeader>
@@ -119,7 +120,7 @@ export default function EmployeePortalPage() {
                 rows={5}
                 required
               />
-              <Button className="w-full" disabled={saving}>
+              <Button permission="create" className="w-full" disabled={saving}>
                 {t("employeePortal.sendIdea")}
               </Button>
             </form>

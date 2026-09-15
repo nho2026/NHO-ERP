@@ -43,7 +43,7 @@ import defaultLogo from "../../../assets/icons/logo.png";
 import { apiClient } from "@/shared/api/client";
 import { useLogin } from "../hooks/useLogin";
 import type { LoginMethod } from "../types/auth.types";
-import { isCashier } from "../access";
+import { landingPage } from "../access";
 import { WindowControls } from "@/shared/components/WindowControls";
 
 function LoginPage() {
@@ -79,10 +79,10 @@ function LoginPage() {
         password: String(form.get("password") ?? ""),
         remember,
       });
-      if (user) navigate(isCashier(user) ? "/pos/checkout" : "/dashboard");
+      if (user) navigate(landingPage(user));
     } else {
       const user = await login({ method, pin });
-      if (user) navigate(isCashier(user) ? "/pos/checkout" : "/dashboard");
+      if (user) navigate(landingPage(user));
     }
   };
 

@@ -1,3 +1,4 @@
+import { hasPermission } from "@/features/auth/access";
 import {
   useCallback,
   useEffect,
@@ -9,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import { Plus, Search, Trash2, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { tasksApi, type TaskEmployee, type TaskItem } from "../api/tasks.api";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
@@ -62,11 +63,7 @@ const teams = [
 export default function TasksPage() {
   const { t } = useTranslation();
   const currentUser = storedUser();
-  const isHr =
-    hasPermission(currentUser, "employees.manage") ||
-    Boolean(
-      currentUser?.permissions?.some((key) => key.startsWith("hr.employees.")),
-    );
+  const isHr = hasPermission(currentUser, "tasks.list.manage_all");
   const canAssign = isHr || Boolean(currentUser?.employee?.isTeamLeader);
   const availableStatuses = isHr ? statuses : ["todo", "in_progress", "review"];
   const [items, setItems] = useState<TaskItem[]>([]),
@@ -145,7 +142,7 @@ export default function TasksPage() {
         {canAssign && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button permission="create">
                 <Plus /> {t("tasks.add")}
               </Button>
             </DialogTrigger>
@@ -243,7 +240,7 @@ export default function TasksPage() {
                     accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
                   />
                 </label>
-                <Button type="submit">{t("common.save")}</Button>
+                <Button permission="create" type="submit">{t("common.save")}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -358,7 +355,7 @@ export default function TasksPage() {
                     <Badge>{t(`tasks.priorities.${task.priority}`)}</Badge>
                   </TableCell>
                   <TableCell className="min-w-44">
-                    <Select
+                    <Select permission="update"
                       value={task.status}
                       onValueChange={async (value) => {
                         try {
@@ -425,7 +422,7 @@ export default function TasksPage() {
                               <AlertDialogCancel>
                                 {t("common.cancel")}
                               </AlertDialogCancel>
-                              <AlertDialogAction
+                              <AlertDialogAction permission="delete"
                                 onClick={async () => {
                                   await tasksApi.remove(task.id);
                                   await load();

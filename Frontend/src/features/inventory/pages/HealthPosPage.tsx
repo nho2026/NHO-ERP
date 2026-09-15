@@ -246,7 +246,7 @@ export default function HealthPosPage() {
             ))}
           </SelectContent>
         </Select>
-        <Button
+        <Button permission="pos.sales.return"
           className="border-primary/25 bg-primary/5 text-primary hover:bg-primary/12 hover:text-primary"
           variant="outline"
           onClick={() => setReturnOpen(true)}
@@ -530,7 +530,7 @@ export default function HealthPosPage() {
                   </small>
                 </div>
                 <div className="flex shrink-0 items-center gap-2 rounded-xl border border-primary/15 bg-primary/5 p-1 shadow-inner">
-                  <Button data-action="delete"
+                  <Button permission="view" data-action="delete"
                     className={`size-8 rounded-lg ${quantity === 1 ? "text-destructive hover:bg-destructive hover:text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
                     size="icon"
                     variant="ghost"
@@ -616,7 +616,7 @@ export default function HealthPosPage() {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <Button
+              <Button permission="pos.sales.print"
                 variant="outline"
                 size="icon"
                 disabled={!lastSale}
@@ -627,7 +627,7 @@ export default function HealthPosPage() {
               >
                 <Printer />
               </Button>
-              <Button
+              <Button permission="pos.checkout.create"
                 className="flex-1 shadow-md shadow-primary/20"
                 disabled={busy || !lines.length || !warehouseId || paid < total}
                 onClick={complete}
@@ -656,7 +656,7 @@ export default function HealthPosPage() {
               placeholder={t("pos.invoiceBarcode")}
             />
           </div>
-          <Button
+          <Button permission="pos.sales.return"
             disabled={!returnCode || busy}
             onClick={async () => {
               setBusy(true);

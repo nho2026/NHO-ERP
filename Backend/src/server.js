@@ -1,3 +1,4 @@
+import { syncPermissionCatalog } from "./shared/security/sync-permissions.js";
 import { startReminders } from "./modules/settings/settings.reminders.js";
 import { startBackupSchedule } from "./modules/settings/settings.backups.js";
 import { app } from "./app.js";
@@ -9,6 +10,8 @@ import {
   stopAttendanceStreams,
 } from "./modules/attendance/events/events.live.js";
 import { attachMeetingSignaling } from "./modules/meetings/meetings.signaling.js";
+
+await syncPermissionCatalog();
 
 const stopReminders = startReminders();
 const stopBackups = startBackupSchedule();

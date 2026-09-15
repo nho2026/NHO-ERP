@@ -153,7 +153,7 @@ export default function HrWarningsPage() {
                   ))}
                 </div>
               )}
-              <Button className="w-full" disabled={saving}>
+              <Button permission="create" className="w-full" disabled={saving}>
                 {t("hrWarnings.send")}
               </Button>
             </form>

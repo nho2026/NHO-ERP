@@ -4,6 +4,7 @@ import { BrowserRouter, HashRouter } from "react-router-dom";
 import "./index.css";
 import "./i18n";
 import App from "./App.tsx";
+import ConnectivityGate from "./shared/components/connectivity/ConnectivityGate";
 
 const Router =
   window.location.protocol === "file:" ? HashRouter : BrowserRouter;
@@ -11,7 +12,9 @@ const Router =
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Router>
-      <App />
+      <ConnectivityGate>
+        <App />
+      </ConnectivityGate>
     </Router>
   </StrictMode>,
 );

@@ -5,7 +5,7 @@ export type TargetEmployee = {
   firstName: string;
   lastName: string;
   employeeCode: string;
-  isTeamLeader: boolean;
+  ledTeams?: { id: string }[];
   position?: { name: string } | null;
   department?: { name: string } | null;
 };

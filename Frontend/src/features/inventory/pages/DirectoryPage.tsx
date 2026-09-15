@@ -1,8 +1,9 @@
+import { hasPagePermission } from "@/features/auth/access";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { apiClient } from "@/shared/api/client";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -53,7 +54,7 @@ export default function DirectoryPage({
   const [editing, setEditing] = useState<Retailer | "new" | null>(null);
   const [deleting, setDeleting] = useState<Retailer | null>(null);
   const [form, setForm] = useState(empty);
-  const manage = hasPermission(storedUser(), "inventory.manage");
+  const manage = hasPagePermission(storedUser(), "create", "update", "delete");
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -108,7 +109,7 @@ export default function DirectoryPage({
           )}
         </h1>
         {manage && (
-          <Button
+          <Button permission="create"
             onClick={() => {
               setForm(empty);
               setError("");
@@ -309,7 +310,7 @@ export default function DirectoryPage({
                 {error}
               </p>
             )}
-            <Button disabled={busy || !form.name.trim()}>
+            <Button permission={editing === "new" ? "create" : "update"} disabled={busy || !form.name.trim()}>
               {t("retailers.save")}
             </Button>
           </form>
@@ -339,7 +340,7 @@ export default function DirectoryPage({
             >
               {t("retailers.cancel")}
             </Button>
-            <Button
+            <Button permission="delete"
               variant="destructive"
               disabled={busy}
               onClick={async () => {

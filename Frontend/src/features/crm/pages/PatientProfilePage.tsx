@@ -1,3 +1,4 @@
+import { hasPermission } from "@/features/auth/access";
 import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -28,7 +29,7 @@ import {
   type CrmRecord,
   type FormTemplate,
 } from "../api/crm.api";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -79,8 +80,8 @@ export default function PatientProfilePage({
   const backPath =
     location.state?.from === "/crm/today-patients"
       ? "/crm/today-patients"
-      : "/crm/patients";
-  const canManage = hasPermission(storedUser(), "employees.manage");
+      : location.state?.from === "/crm/follow-up" ? "/crm/follow-up" : "/crm/patients";
+  const canManage = hasPermission(storedUser(), "crm.patients.update");
   const profile = useApiResource(
     useCallback(() => crmApi.patients.get(id), [id]),
   );
@@ -92,6 +93,10 @@ export default function PatientProfilePage({
   );
   const [showDetails, setShowDetails] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [sendingFollowUp, setSendingFollowUp] = useState(false);
+  const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState("");
+  const followUpLock = useRef(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const profileSaveLock = useRef(false);
   const [isMarried, setIsMarried] = useState(false);
@@ -301,7 +306,7 @@ export default function PatientProfilePage({
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-bold">{fullName(patient)}</h1>
                 <Badge className="border-emerald-300/30 bg-emerald-400/20 text-emerald-100">
-                  {text(patient.status, "active")}
+                  {String(patient.status).startsWith("post_discharge_follow_up") ? t(patient.status === "post_discharge_follow_up" ? "postDischargeFollowUp.active" : "postDischargeFollowUp.completed") : text(patient.status, "active")}
                 </Badge>
               </div>
               <p className="mt-1 text-sm text-teal-100">
@@ -321,7 +326,14 @@ export default function PatientProfilePage({
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => setFormOpen(true)}>
+            {canManage && patient.status !== "post_discharge_follow_up" && (
+              <Button permission="crm.patients.update" variant="secondary" disabled={sendingFollowUp} onClick={() => {
+                setFollowUpDate(patient.followUpDate ? String(patient.followUpDate).slice(0, 10) : "");
+                setFollowUpDialogOpen(true);
+              }}>{t("postDischargeFollowUp.send")}</Button>
+            )}
+            {patient.status === "post_discharge_follow_up" && <Button variant="secondary" permission="crm.patients.view" onClick={() => navigate("/crm/follow-up")}>{t("postDischargeFollowUp.title")}</Button>}
+            <Button permission="crm.forms.view" variant="secondary" onClick={() => setFormOpen(true)}>
               <ClipboardPlus /> Forms
             </Button>
             <Button
@@ -330,7 +342,7 @@ export default function PatientProfilePage({
             >
               <Stethoscope /> Surgical examination
             </Button>
-            <Button variant="secondary" onClick={exportPatientReport}>
+            <Button permission="export" variant="secondary" onClick={exportPatientReport}>
               <Download /> PDF report with charts
             </Button>
             {canManage && (
@@ -415,7 +427,7 @@ export default function PatientProfilePage({
         ))}
       </section>
 
-      <Button onClick={() => navigate(`/crm/patients/${id}/medications`)}><Pill className="size-4" />{t("prescription.viewMedications")}</Button>
+      <Button permission="crm.prescriptions.view" onClick={() => navigate(`/crm/patients/${id}/medications`)}><Pill className="size-4" />{t("prescription.viewMedications")}</Button>
       {compact && <Button variant="outline" onClick={() => setShowDetails(value => !value)}>{t(showDetails ? "todayPatients.hideDetails" : "todayPatients.showDetails")}</Button>}
       {(!compact || showDetails) && <>
 
@@ -525,7 +537,7 @@ export default function PatientProfilePage({
               <Pill className="size-4 text-emerald-600" />
               <h2 className="text-sm font-bold">{t("prescription.medications")}</h2>
             </div>
-            <div className="p-4"><Button variant="outline" onClick={() => navigate(`/crm/patients/${id}/medications`)}>{t("prescription.viewMedications")}</Button></div>
+            <div className="p-4"><Button permission="crm.prescriptions.view" variant="outline" onClick={() => navigate(`/crm/patients/${id}/medications`)}>{t("prescription.viewMedications")}</Button></div>
           </CardContent>
         </Card>
         <Card className="min-h-52">
@@ -556,7 +568,7 @@ export default function PatientProfilePage({
               </div>
             </div>
             {canManage && (
-              <Button
+              <Button permission="crm.forms.create"
                 onClick={() => setFormOpen(true)}
                 disabled={!templates.data?.length}
               >
@@ -757,6 +769,43 @@ export default function PatientProfilePage({
       </section>
 
       </>}
+      <Dialog open={followUpDialogOpen} onOpenChange={setFollowUpDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("postDischargeFollowUp.send")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="profile-follow-up-date">
+              {t("postDischargeFollowUp.followUpDate")}
+            </Label>
+            <Input
+              id="profile-follow-up-date"
+              type="date"
+              required
+              value={followUpDate}
+              onChange={(event) => setFollowUpDate(event.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setFollowUpDialogOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button permission="crm.patients.update" disabled={!followUpDate || sendingFollowUp} onClick={async () => {
+              if (followUpLock.current) return;
+              followUpLock.current = true;
+              setSendingFollowUp(true);
+              try {
+                await crmApi.patients.update(id, { status: "post_discharge_follow_up", followUpDate });
+                await profile.refresh();
+                setFollowUpDialogOpen(false);
+                toast.success(t("postDischargeFollowUp.sent"));
+              } catch (cause) { toast.error(apiErrorMessage(cause)); }
+              finally { followUpLock.current = false; setSendingFollowUp(false); }
+            }}>{t("postDischargeFollowUp.confirm")}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={editing && canManage} onOpenChange={value => { if (!profileSaveLock.current) setEditing(value); }}>
         <DialogContent className="flex max-h-[min(90vh,760px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
           <DialogHeader className="shrink-0 border-b px-6 py-5">
@@ -909,7 +958,7 @@ export default function PatientProfilePage({
             </div>
             <div className="flex shrink-0 justify-end border-t bg-background px-6 py-4">
               <Button type="button" variant="outline" className="me-2" disabled={savingProfile} onClick={() => setEditing(false)}>{t("patientBooking.cancel")}</Button>
-              <Button type="submit" disabled={savingProfile}>{savingProfile ? t("patientBooking.saving") : t("patientActions.saveProfile")}</Button>
+              <Button permission="crm.patients.update" type="submit" disabled={savingProfile}>{savingProfile ? t("patientBooking.saving") : t("patientActions.saveProfile")}</Button>
             </div>
           </form>
         </DialogContent>
@@ -1030,7 +1079,7 @@ export default function PatientProfilePage({
               </div>
             </ScrollArea>
             <div className="flex justify-end border-t p-4">
-              <Button type="submit" disabled={!selectedTemplate}>
+              <Button permission="crm.forms.create" type="submit" disabled={!selectedTemplate}>
                 Submit form
               </Button>
             </div>

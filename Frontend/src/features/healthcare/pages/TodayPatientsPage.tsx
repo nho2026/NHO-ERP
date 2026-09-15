@@ -11,6 +11,7 @@ import {
   AlertDialogAction,
 } from "@/shared/components/ui/alert-dialog";
 import PatientProfilePage from "@/features/crm/pages/PatientProfilePage";
+import { PermissionScope } from "@/features/auth/permission-context";
 import { hasPermission, storedUser } from "@/features/auth/access";
 import {
   Dialog,
@@ -98,7 +99,7 @@ export default function TodayPatientsPage() {
   const [serveError, setServeError] = useState("");
   const [profileId, setProfileId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const canViewProfile = hasPermission(storedUser(), "employees.view");
+  const canViewProfile = hasPermission(storedUser(), "crm.patients.view");
   const profiles = useApiResource(
     useCallback(async () => {
       if (!selectedId || !canViewProfile) return [];
@@ -162,7 +163,7 @@ export default function TodayPatientsPage() {
     if (
       !confirmVisit ||
       serveLock.current ||
-      !hasPermission(storedUser(), "employees.manage")
+      !hasPermission(storedUser(), "healthcare.appointments.update")
     )
       return;
     serveLock.current = true;
@@ -186,7 +187,7 @@ export default function TodayPatientsPage() {
   }
   const servedButton =
     visit &&
-    hasPermission(storedUser(), "employees.manage") &&
+    hasPermission(storedUser(), "healthcare.appointments.update") &&
     !["completed", "cancelled", "no_show"].includes(visit.status) ? (
       <div className="flex flex-col items-end gap-2 border-t pt-4">
         {serveError && (
@@ -194,7 +195,7 @@ export default function TodayPatientsPage() {
             {serveError}
           </p>
         )}
-        <Button
+        <Button permission="update"
           size="lg"
           disabled={serving || resource.isLoading || !!resource.error}
           onClick={() => {
@@ -344,12 +345,12 @@ export default function TodayPatientsPage() {
       )}
       {!tvMode && shownProfileId && canViewProfile && (
         <div className="space-y-4">
-          <PatientProfilePage
+          <PermissionScope.Provider value="crm.patients"><PatientProfilePage
             compact
             key={shownProfileId}
             patientId={shownProfileId}
             onBack={() => setProfileId("")}
-          />
+          /></PermissionScope.Provider>
           {servedButton}
         </div>
       )}
@@ -622,7 +623,7 @@ export default function TodayPatientsPage() {
             <AlertDialogCancel className="border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white" disabled={serving}>
               {t("common.cancel")}
             </AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogAction permission="healthcare.appointments.update"
               className="bg-teal-700 text-white hover:bg-teal-800 hover:text-white"
               disabled={serving}
               onClick={(event) => {

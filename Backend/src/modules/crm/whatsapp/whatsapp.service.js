@@ -1,3 +1,4 @@
+import { prepareMedia } from "./whatsapp.media.js";
 import { randomBytes } from "node:crypto";
 import { prisma } from "../../../shared/database/client.js";
 import { env } from "../../../config/environment.js";
@@ -20,9 +21,14 @@ const textFromMessage = (message) => {
 
 async function ensureConversation(tx, phoneValue, profileName) {
   const phone = normalizePhone(phoneValue);
-  if (!phone) throw Object.assign(new Error("WhatsApp phone is missing."), { status: 400 });
+  if (!phone)
+    throw Object.assign(new Error("WhatsApp phone is missing."), {
+      status: 400,
+    });
   let lead = await tx.crmLead.findFirst({
-    where: { OR: [{ whatsappPhone: phone }, { phone }, { phone: `+${phone}` }] },
+    where: {
+      OR: [{ whatsappPhone: phone }, { phone }, { phone: `+${phone}` }],
+    },
   });
   if (!lead) {
     lead = await tx.crmLead.create({
@@ -40,7 +46,10 @@ async function ensureConversation(tx, phoneValue, profileName) {
     await tx.crmLeadStatusHistory.create({
       data: { leadId: lead.id, toStatus: "new" },
     });
-  } else if (!lead.whatsappPhone || (profileName && lead.name.startsWith("WhatsApp "))) {
+  } else if (
+    !lead.whatsappPhone ||
+    (profileName && lead.name.startsWith("WhatsApp "))
+  ) {
     lead = await tx.crmLead.update({
       where: { id: lead.id },
       data: {
@@ -64,12 +73,20 @@ async function ensureConversation(tx, phoneValue, profileName) {
 
 export const whatsappService = {
   verify(mode, token, challenge) {
-    if (mode === "subscribe" && env.whatsapp.verifyToken && token === env.whatsapp.verifyToken)
+    if (
+      mode === "subscribe" &&
+      env.whatsapp.verifyToken &&
+      token === env.whatsapp.verifyToken
+    )
       return challenge;
-    throw Object.assign(new Error("WhatsApp webhook verification failed."), { status: 403 });
+    throw Object.assign(new Error("WhatsApp webhook verification failed."), {
+      status: 403,
+    });
   },
   async receive(payload) {
-    const changes = (payload.entry ?? []).flatMap((entry) => entry.changes ?? []);
+    const changes = (payload.entry ?? []).flatMap(
+      (entry) => entry.changes ?? [],
+    );
     for (const change of changes) {
       const value = change.value ?? {};
       for (const status of value.statuses ?? []) {
@@ -111,7 +128,15 @@ export const whatsappService = {
   list: () =>
     prisma.crmWhatsappConversation.findMany({
       include: {
-        lead: { select: { id: true, code: true, name: true, phone: true, status: true } },
+        lead: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            phone: true,
+            status: true,
+          },
+        },
         messages: { orderBy: { sentAt: "desc" }, take: 1 },
       },
       orderBy: { lastMessageAt: "desc" },
@@ -120,19 +145,67 @@ export const whatsappService = {
     prisma.crmWhatsappConversation.findUniqueOrThrow({
       where: { id },
       include: {
-        lead: { select: { id: true, code: true, name: true, phone: true, status: true } },
+        lead: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            phone: true,
+            status: true,
+          },
+        },
         messages: { orderBy: { sentAt: "asc" }, take: 500 },
       },
     }),
   status: () => ({
-    configured: Boolean(env.whatsapp.accessToken && env.whatsapp.phoneNumberId && env.whatsapp.verifyToken),
+    configured: Boolean(
+      env.whatsapp.accessToken &&
+      env.whatsapp.phoneNumberId &&
+      env.whatsapp.verifyToken,
+    ),
     phoneNumberId: env.whatsapp.phoneNumberId || null,
     graphVersion: env.whatsapp.graphVersion,
   }),
+  async sendMedia(conversationId, file, voice = false, caption = "") {
+    if (!env.whatsapp.accessToken || !env.whatsapp.phoneNumberId) throw Object.assign(new Error("WhatsApp Cloud API is not configured."), { status: 503 });
+    const conversation = await prisma.crmWhatsappConversation.findUniqueOrThrow({ where: { id: conversationId } });
+    const media = await prepareMedia(file, voice);
+    const headers = { Authorization: `Bearer ${env.whatsapp.accessToken}` };
+    const base = `https://graph.facebook.com/${env.whatsapp.graphVersion}`;
+    const form = new FormData();
+    form.set("messaging_product", "whatsapp"); form.set("type", media.mime);
+    form.set("file", new Blob([media.buffer], {type:media.mime}), media.filename);
+    const upload = await fetch(`${base}/${env.whatsapp.phoneNumberId}/media`, { method:"POST", headers, body:form, signal:AbortSignal.timeout(60000) });
+    const uploaded = await upload.json();
+    if (!upload.ok || !uploaded.id) throw Object.assign(new Error(uploaded.error?.message || "Media upload failed."), { status:502 });
+    const payload = { id: uploaded.id, ...(media.type === "document" ? { filename:media.filename } : {}), ...(["image","video","document"].includes(media.type) && caption ? {caption} : {}) };
+    const response = await fetch(`${base}/${env.whatsapp.phoneNumberId}/messages`, {method:"POST",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify({messaging_product:"whatsapp",to:conversation.phone,type:media.type,[media.type]:payload}),signal:AbortSignal.timeout(30000)});
+    const result = await response.json();
+    if (!response.ok) throw Object.assign(new Error(result.error?.message || "Media message failed."), {status:502});
+    const message = await prisma.crmWhatsappMessage.create({data:{conversationId,externalId:result.messages?.[0]?.id,direction:"outbound",messageType:media.type,body:caption || media.filename,status:"sent",rawPayload:{[media.type]:{id:uploaded.id,mime_type:media.mime,filename:media.filename},voice}}});
+    await prisma.crmWhatsappConversation.update({where:{id:conversationId},data:{lastMessageAt:new Date()}});
+    return message;
+  },
+  async media(messageId) {
+    const message = await prisma.crmWhatsappMessage.findUniqueOrThrow({where:{id:messageId}});
+    const media = message.rawPayload?.[message.messageType];
+    if (!media?.id) throw Object.assign(new Error("This attachment is unavailable."), {status:404});
+    const headers = {Authorization:`Bearer ${env.whatsapp.accessToken}`};
+    const lookup = await fetch(`https://graph.facebook.com/${env.whatsapp.graphVersion}/${encodeURIComponent(media.id)}`,{headers,signal:AbortSignal.timeout(15000)});
+    const data = await lookup.json();
+    if (!lookup.ok || !data.url) throw Object.assign(new Error("The attachment is no longer available from WhatsApp."),{status:502});
+    const response = await fetch(data.url,{headers,signal:AbortSignal.timeout(30000)});
+    if (!response.ok) throw Object.assign(new Error("Attachment download failed."),{status:502});
+    return {buffer:Buffer.from(await response.arrayBuffer()),mime:media.mime_type || data.mime_type || "application/octet-stream"};
+  },
   async send(conversationId, body) {
     if (!env.whatsapp.accessToken || !env.whatsapp.phoneNumberId)
-      throw Object.assign(new Error("WhatsApp Cloud API is not configured."), { status: 503 });
-    const conversation = await prisma.crmWhatsappConversation.findUniqueOrThrow({ where: { id: conversationId } });
+      throw Object.assign(new Error("WhatsApp Cloud API is not configured."), {
+        status: 503,
+      });
+    const conversation = await prisma.crmWhatsappConversation.findUniqueOrThrow(
+      { where: { id: conversationId } },
+    );
     const response = await fetch(
       `https://graph.facebook.com/${env.whatsapp.graphVersion}/${env.whatsapp.phoneNumberId}/messages`,
       {
@@ -152,7 +225,10 @@ export const whatsappService = {
     );
     const result = await response.json();
     if (!response.ok)
-      throw Object.assign(new Error(result.error?.message || "WhatsApp message failed."), { status: 502 });
+      throw Object.assign(
+        new Error(result.error?.message || "WhatsApp message failed."),
+        { status: 502 },
+      );
     const message = await prisma.crmWhatsappMessage.create({
       data: {
         externalId: result.messages?.[0]?.id,
@@ -163,7 +239,10 @@ export const whatsappService = {
         status: "sent",
       },
     });
-    await prisma.crmWhatsappConversation.update({ where: { id: conversationId }, data: { lastMessageAt: new Date() } });
+    await prisma.crmWhatsappConversation.update({
+      where: { id: conversationId },
+      data: { lastMessageAt: new Date() },
+    });
     return message;
   },
 };

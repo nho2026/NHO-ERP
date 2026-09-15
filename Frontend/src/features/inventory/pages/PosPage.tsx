@@ -164,7 +164,7 @@ export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
                     <TableCell>{s.totalAmount.toLocaleString()} IQD</TableCell>
                     <TableCell>{t(`pos.values.${s.status}`)}</TableCell>
                     <TableCell>
-                      <Button
+                      <Button permission="print"
                         size="icon"
                         variant="ghost"
                         title={t("pos.print")}
@@ -173,7 +173,7 @@ export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
                         <Printer />
                       </Button>
                       {canCancelSales && s.status !== "cancelled" && (
-                        <Button
+                        <Button permission="cancel"
                           size="sm"
                           variant="destructive"
                           onClick={() => setCancelTarget(s)}
@@ -236,7 +236,7 @@ export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-              <AlertDialogAction
+              <AlertDialogAction permission="pos.sales.cancel"
                 disabled={!cancelPassword || isCancelling}
                 onClick={async (event) => {
                   event.preventDefault();
@@ -395,7 +395,7 @@ export default function PosPage({ mode }: { mode: "checkout" | "sales" }) {
               label={t("pos.change")}
               value={Math.max(0, paid - total)}
             />
-            <Button
+            <Button permission="pos.checkout.create"
               className="w-full"
               disabled={busy || !lines.length || !warehouseId || paid < total}
               onClick={complete}

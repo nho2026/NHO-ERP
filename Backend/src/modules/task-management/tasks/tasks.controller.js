@@ -34,7 +34,7 @@ export const taskController = {
     ),
   ),
   remove: run(async (req, res) => {
-    await taskService.remove(req.params.id);
+    await taskService.remove(req.params.id, req.user, req.permissionKeys);
     res.status(204).end();
   }),
   upload: run(async (req, res) => {

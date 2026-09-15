@@ -1,3 +1,4 @@
+import { hasPagePermission } from "@/features/auth/access";
 import { randomId } from "@/shared/lib/random-id";
 import {
   Dialog,
@@ -30,7 +31,7 @@ import {
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { inventoryApi } from "../api/inventory.api";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 type Variant = {
   id: string;
   code: string;
@@ -111,7 +112,7 @@ function SpecialProductForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const lock = useRef(false);
-  const canManage = hasPermission(storedUser(), "inventory.manage");
+  const canManage = hasPagePermission(storedUser(), "create", "update", "delete");
   const change = (id: string, patch: Partial<Variant>) =>
     setVariants((rows) =>
       rows.map((row) => (row.id === id ? { ...row, ...patch } : row)),
@@ -330,7 +331,7 @@ function SpecialProductForm({
         >
           {t("common.cancel")}
         </Button>
-        <Button
+        <Button permission={product ? "update" : "create"}
           type="submit"
           disabled={
             busy || !canManage || categories.isLoading || !!categories.error
@@ -350,7 +351,7 @@ export default function AddSpecialProductPage() {
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<SpecialProduct | null>(null);
-  const canManage = hasPermission(storedUser(), "inventory.manage");
+  const canManage = hasPagePermission(storedUser(), "create", "update", "delete");
   const result = useApiResource(
     useCallback(
       () =>
@@ -359,7 +360,14 @@ export default function AddSpecialProductPage() {
             items: SpecialProduct[];
             pagination: { totalPages: number; total: number };
           }>("/inventory/products", {
-            params: { isSpecial: "true", search: query, page, pageSize: 10 },
+            params: {
+              isSpecial: "true",
+              search: query,
+              page,
+              pageSize: 10,
+              compact: "true",
+              includeStocks: "false",
+            },
           })
           .then((r) => r.data),
       [query, page],
@@ -376,7 +384,7 @@ export default function AddSpecialProductPage() {
         <h1 className="text-xl font-semibold">{t("specialProduct.list")}</h1>
         <div className="flex gap-2">
           {canManage && (
-            <Button
+            <Button permission="create"
               onClick={() => {
                 setEditing(null);
                 setOpen(true);

@@ -1,13 +1,12 @@
 import { Router } from "express";
 import { requireAuth } from "../../shared/middleware/auth.middleware.js";
-import { requirePermission } from "../../shared/middleware/permission.middleware.js";
 import budgets from "./budgets/budgets.routes.js";
 import cashFlow from "./cash-flow/cash-flow.routes.js";
 import forecasts from "./forecasts/forecasts.routes.js";
 import funding from "./funding/funding.routes.js";
 import { financeController } from "./finance.controller.js";
 const router = Router();
-router.use(requireAuth, requirePermission("finance.view"));
+router.use(requireAuth);
 router.use("/budgets", budgets);
 router.use("/cash-flow", cashFlow);
 router.use("/forecasts", forecasts);

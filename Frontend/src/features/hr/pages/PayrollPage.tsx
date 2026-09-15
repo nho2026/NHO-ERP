@@ -2,7 +2,9 @@ import { useCallback, useMemo, useState } from "react";
 import { Printer } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { attendancePermissionsApi, hrApi } from "../api/hr.api";
-import { attendanceApi } from "@/features/attendance/api/attendance.api";
+import type { AttendanceEvent } from "@/features/attendance/api/attendance.api";
+import { apiClient } from "@/shared/api/client";
+import { TableResourceState } from "@/shared/components/ui/table-resource-state";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
@@ -56,10 +58,9 @@ export default function PayrollPage() {
       [month],
     ),
   );
-  const people = useApiResource(useCallback(() => attendanceApi.people(), []));
   const events = useApiResource(
     useCallback(
-      () => attendanceApi.events({ from: `${month}-01`, to: `${month}-31` }),
+      () => apiClient.get<AttendanceEvent[]>("/employees/records/payrolls/attendance-events", { params: { month } }).then(({ data }) => data),
       [month],
     ),
   );
@@ -67,11 +68,11 @@ export default function PayrollPage() {
     () =>
       deviceAttendanceRecords(
         events.data ?? [],
-        people.data ?? [],
+        [],
         employees.data ?? [],
         month,
       ),
-    [events.data, people.data, employees.data, month],
+    [events.data, employees.data, month],
   );
   const rows = useMemo(
     () =>
@@ -126,6 +127,9 @@ export default function PayrollPage() {
   );
   const money = (value: number, currency?: unknown) =>
     `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${String(currency ?? "")}`.trim();
+  const resources = [employees, salaries, adjustments, permissions, events];
+  const loadError = resources.find((resource) => resource.error)?.error;
+  const isLoading = resources.some((resource) => resource.isLoading);
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -149,9 +153,11 @@ export default function PayrollPage() {
             className="flex-1 sm:flex-none"
           />
           <Button
+            permission="print"
             type="button"
             variant="outline"
             className="h-11 gap-2 px-4"
+            disabled={isLoading || Boolean(loadError)}
             onClick={printDocument}
           >
             <Printer className="size-4" />
@@ -162,13 +168,11 @@ export default function PayrollPage() {
       {(employees.error ||
         salaries.error ||
         adjustments.error ||
-        people.error ||
         events.error) && (
         <p className="text-sm text-destructive">
           {employees.error ||
             salaries.error ||
             adjustments.error ||
-            people.error ||
             events.error}
         </p>
       )}
@@ -193,7 +197,8 @@ export default function PayrollPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row, index) => (
+                <TableResourceState isLoading={isLoading} error={loadError ?? null} isEmpty={!rows.length} colSpan={10} />
+                {!isLoading && !loadError && rows.map((row, index) => (
                   <TableRow key={row.employee.id}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>

@@ -1,3 +1,4 @@
+import { hasPermission } from "@/features/auth/access";
 import { DeleteConfirmationDialog } from "@/features/attendance/components/DeleteConfirmationDialog";
 import { useCallback, useMemo, useState } from "react";
 import {
@@ -42,7 +43,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { toast } from "sonner";
-import { hasPermission, storedUser } from "@/features/auth/access";
+import { storedUser } from "@/features/auth/access";
 import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
@@ -69,6 +70,9 @@ const time = (value: unknown) =>
       }).format(new Date(String(value)))
     : "—";
 
+const deviceUserCount = (employee: HrRecord) =>
+  Number((employee._count as { devicePeople?: number } | undefined)?.devicePeople ?? 0);
+
 export default function HrAttendancePage() {
   const { t, i18n } = useTranslation();
   const tx = (key: string, fallback: string) =>
@@ -79,7 +83,7 @@ export default function HrAttendancePage() {
   const [deletingPermission, setDeletingPermission] = useState<HrRecord | null>(
     null,
   );
-  const canManage = hasPermission(storedUser(), "employees.manage");
+  const canManage = hasPermission(storedUser(), "hr.attendance-permissions.create");
   const [month, setMonth] = useState(monthValue());
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
@@ -91,7 +95,6 @@ export default function HrAttendancePage() {
   const employees = useApiResource(
     useCallback(() => hrApi.employees.list(), []),
   );
-  const people = useApiResource(useCallback(() => attendanceApi.people(), []));
   const events = useApiResource(
     useCallback(
       () => attendanceApi.events({ from: `${month}-01`, to: `${month}-31` }),
@@ -112,11 +115,11 @@ export default function HrAttendancePage() {
     () =>
       deviceAttendanceRecords(
         events.data ?? [],
-        people.data ?? [],
+        [],
         employees.data ?? [],
         month,
       ),
-    [events.data, people.data, employees.data, month],
+    [events.data, employees.data, month],
   );
   const departmentOptions = Array.from(
     new Map(
@@ -175,15 +178,15 @@ export default function HrAttendancePage() {
     0,
   );
   const linkedEmployees = new Set(
-    (people.data ?? []).flatMap((person) =>
-      person.employeeId ? [person.employeeId] : [],
+    (employees.data ?? []).flatMap((employee) =>
+      deviceUserCount(employee) > 0 ? [employee.id] : [],
     ),
   );
   const totalLost = monthRecords.reduce(
     (total, record) => total + lostMinutes(record, permissions.data ?? []),
     0,
   );
-  const isLoading = employees.isLoading || people.isLoading || events.isLoading;
+  const isLoading = employees.isLoading || events.isLoading;
   const grantPermission = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selected) return;
@@ -412,9 +415,9 @@ export default function HrAttendancePage() {
           </div>
         </div>
       </div>
-      {(employees.error || people.error || events.error) && (
+      {(employees.error || events.error) && (
         <p className="text-sm text-destructive">
-          {employees.error || people.error || events.error}
+          {employees.error || events.error}
         </p>
       )}
       {directoryView === "grid" ? (
@@ -469,9 +472,7 @@ export default function HrAttendancePage() {
                       </p>
                       <p className="mt-1 text-[10px] font-medium text-muted-foreground">
                         {String(employee.employeeCode)} ·{" "}
-                        {people.data?.filter(
-                          (person) => person.employeeId === employee.id,
-                        ).length ?? 0}{" "}
+                        {deviceUserCount(employee)}{" "}
                         {tx("deviceUsers", "device users")}
                       </p>
                     </div>
@@ -540,9 +541,7 @@ export default function HrAttendancePage() {
                         : tx("noSystemUser", "No system user")}
                     </TableCell>
                     <TableCell>
-                      {people.data?.filter(
-                        (person) => person.employeeId === employee.id,
-                      ).length ?? 0}
+                      {deviceUserCount(employee)}
                     </TableCell>
                     <TableCell className="text-end font-bold text-destructive">
                       {duration(lost)}
@@ -596,7 +595,7 @@ export default function HrAttendancePage() {
               </DialogTitle>
             </DialogHeader>
             {canManage && (
-              <Button
+              <Button permission="hr.attendance-permissions.create"
                 className="absolute end-16 top-6"
                 onClick={() => setPermissionOpen(true)}
               >
@@ -657,14 +656,14 @@ export default function HrAttendancePage() {
                           String(permission.toDate).slice(0, 10) &&
                           ` — ${String(permission.toDate).slice(0, 10)}`}
                         {canDeletePermission && (
-                          <button
-                            data-action="delete"
+                          <Button variant="ghost" size="icon" className="size-5"
+                            permission="hr.attendance-permissions.delete" data-action="delete"
                             type="button"
                             aria-label={t("common.delete")}
                             onClick={() => setDeletingPermission(permission)}
                           >
                             <Trash2 className="size-3.5 text-destructive" />
-                          </button>
+                          </Button>
                         )}
                       </Badge>
                     ))}
@@ -786,7 +785,7 @@ export default function HrAttendancePage() {
           </div>
         </DialogContent>
       </Dialog>
-      <DeleteConfirmationDialog
+      <DeleteConfirmationDialog permission="hr.attendance-permissions.delete"
         alwaysRequirePassword
         key={deletingPermission?.id ?? "no-permission"}
         open={!!deletingPermission}
@@ -851,7 +850,7 @@ export default function HrAttendancePage() {
               {tx("reason", "Reason")}
               <Textarea name="reason" />
             </Label>
-            <Button type="submit">
+            <Button permission="hr.attendance-permissions.create" type="submit">
               <ShieldCheck />
               {tx("savePermission", "Save permission")}
             </Button>
