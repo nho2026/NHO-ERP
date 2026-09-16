@@ -1,10 +1,11 @@
+import { paginate } from "../../../shared/database/paginate.js";
 import { prisma } from "../../../shared/database/client.js";
 const include = { roles: { include: { role: true } } };
 export const userModel = {
   hasSuperadminRole: (roleIds) => prisma.role.count({ where: { id: { in: roleIds }, name: "Super Administrator" } }).then(count => count > 0),
   findById: id => prisma.user.findUniqueOrThrow({ where: { id }, include }),
-  findAll: () =>
-    prisma.user.findMany({ include, orderBy: { createdAt: "desc" } }),
+  findAll: (query = {}) =>
+    paginate("user", query, { include, orderBy: { createdAt: "desc" } }, ["name","username","email"]),
   create: (data) => prisma.user.create({ data, include }),
   update: (id, data) => prisma.user.update({ where: { id }, data, include }),
   remove: (id, replacementUserId) =>

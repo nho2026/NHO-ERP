@@ -26,7 +26,9 @@ export const leadService = {
       }),
     };
     const [items, total] = await leadModel.findAll(skip, take, where);
-    return pageResult(items, total, page, pageSize);
+    const result = pageResult(items, total, page, pageSize);
+    if (query.summary === "true") result.counts = Object.fromEntries((await leadModel.counts()).map(row => [row.status, row._count._all]));
+    return result;
   },
   get: (id) => leadModel.findById(id),
   create: (data) =>

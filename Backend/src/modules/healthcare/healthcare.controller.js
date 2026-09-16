@@ -3,7 +3,7 @@ const run = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res)).catch(next);
 export const healthcareController = {
   departments: run(async (_q, res) =>
-    res.json(await service.listDepartments()),
+    res.json(await service.listDepartments(_q.query)),
   ),
   createDepartment: run(async (req, res) =>
     res.status(201).json(await service.createDepartment(req.validatedBody)),

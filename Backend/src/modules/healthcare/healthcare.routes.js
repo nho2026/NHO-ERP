@@ -1,8 +1,9 @@
+import { paginate } from "../../shared/database/paginate.js";
 import { z } from "zod";
 import { prisma } from "../../shared/database/client.js";
 import { createCrudController } from "../../shared/controllers/crud.controller.js";
 const specializations = createCrudController({
-  list: () => prisma.doctorSpecialization.findMany({ orderBy: { name: "asc" } }),
+  list: (query) => paginate("doctorSpecialization", query, { orderBy: { name: "asc" } }, ["name"]),
   create: (data) => prisma.doctorSpecialization.create({ data }),
   update: (id, data) => prisma.doctorSpecialization.update({ where: { id }, data }),
   remove: (id) => prisma.doctorSpecialization.delete({ where: { id } }),

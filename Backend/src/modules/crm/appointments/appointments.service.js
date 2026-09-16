@@ -1,3 +1,4 @@
+import { paginateRows } from "../../../shared/database/paginate.js";
 import { hospitalDate, todayWindow } from "./today.js";
 import { getSettings } from "../../settings/settings.service.js";
 import { appointmentsModel } from "./appointments.model.js";
@@ -32,7 +33,7 @@ const ensureDoctor = async (data) => {
 export const appointmentsService = {
   serve: id => appointmentsModel.serve(id),
   profileCandidates: (id) => appointmentsModel.profileCandidates(id),
-  async today() {
+  async today(query = {}) {
     const system = await getSettings("system");
     const timezone = system.timezone || "Asia/Baghdad";
     const { date, start, end } = todayWindow(new Date(), timezone);
@@ -47,7 +48,12 @@ export const appointmentsService = {
         durationMinutes: item.surgery.durationMinutes, operatingRoom: item.operatingRoom,
       })),
     ].sort((a, b) => a.scheduledAt - b.scheduledAt);
-    return { date, timezone, items };
+    if (query.page === undefined) return { date, timezone, items };
+    const pending = ["pending", "confirmed", "scheduled", "in_progress"];
+    const search = String(query.search ?? "").trim().toLocaleLowerCase();
+    const filtered = items.filter(item => (!query.status || query.status === "all" || (query.status === "current" ? pending.includes(item.status) : item.status === query.status)) && (!query.doctor || query.doctor === "all" || item.doctorId === query.doctor) && (item.patientName + " " + item.patientPhone).toLocaleLowerCase().includes(search));
+    const doctors = [...new Map(items.filter(item => item.doctorId).map(item => [item.doctorId, item.doctor ? item.doctor.employee.firstName + " " + item.doctor.employee.lastName : "—"])).entries()];
+    return { date, timezone, ...paginateRows(filtered, query), doctors, totals: { total: items.length, current: items.filter(item => pending.includes(item.status)).length, completed: items.filter(item => item.status === "completed").length } };
   },
   list: (query) => appointmentsModel.list(query),
   async create(data) {

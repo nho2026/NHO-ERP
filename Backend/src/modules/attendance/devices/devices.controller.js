@@ -2,7 +2,7 @@ import { deviceService as service } from "./devices.service.js";
 const run = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res)).catch(next);
 export const deviceController = {
-  list: run(async (_q, res) => res.json(await service.list())),
+  list: run(async (req, res) => res.json(await service.list(req.query))),
   create: run(async (req, res) =>
     res.status(201).json(await service.create(req.validatedBody)),
   ),

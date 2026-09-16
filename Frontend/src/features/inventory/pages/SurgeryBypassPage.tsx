@@ -1,5 +1,6 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { hasPagePermission } from "@/features/auth/access";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { storedUser } from "@/features/auth/access";
@@ -32,35 +33,19 @@ type Row = {
 };
 export default function SurgeryBypassPage() {
   const { t, i18n } = useTranslation();
-  const [rows, setRows] = useState<Row[]>([]),
-    [search, setSearch] = useState(""),
-    [loading, setLoading] = useState(true),
+  const [search, setSearch] = useState(""),
     [error, setError] = useState(""),
     [selected, setSelected] = useState<Row | null>(null),
     [busy, setBusy] = useState(false);
   const manage = hasPagePermission(storedUser(), "create", "update", "delete");
-  useEffect(() => {
-    const c = new AbortController();
-    apiClient
-      .get<Row[]>("/inventory/surgery-bypass", { signal: c.signal })
-      .then((r) => setRows(r.data))
-      .catch((e) => {
-        if (!c.signal.aborted) setError(apiErrorMessage(e));
-      })
-      .finally(() => {
-        if (!c.signal.aborted) setLoading(false);
-      });
-    return () => c.abort();
-  }, []);
-  const filtered = rows.filter((row) =>
-    row.patientName.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
-  );
+  const table = useServerTable<Row>("/inventory/surgery-bypass", { search });
+  const filtered = table.data ?? [], loading = table.isLoading;
   return (
     <div className="space-y-4" dir={i18n.dir()}>
       <h1 className="text-xl font-bold">{t("bypass.title")}</h1>
-      {error && !selected && (
+      {(error || table.error) && !selected && (
         <p role="alert" className="text-destructive">
-          {error}
+          {error || table.error}
         </p>
       )}
       <Card className="p-4">
@@ -81,7 +66,7 @@ export default function SurgeryBypassPage() {
               {manage && <TableHead>{t("icu.actions")}</TableHead>}
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody {...table.tableProps}>
             {loading ? (
               <TableRow>
                 <TableCell
@@ -175,11 +160,7 @@ export default function SurgeryBypassPage() {
                       `/inventory/surgery-bypass/${selected.id}`,
                       { isBypass: selected.isBypass },
                     );
-                    setRows(
-                      rows.map((row) =>
-                        row.id === selected.id ? selected : row,
-                      ),
-                    );
+                    await table.refresh();
                     setSelected(null);
                   } catch (e) {
                     setError(apiErrorMessage(e));

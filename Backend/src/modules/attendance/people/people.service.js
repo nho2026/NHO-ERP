@@ -55,8 +55,8 @@ const admin = async (user, password) => {
     fail("Super Administrator password is incorrect.", 403);
 };
 export const peopleService = {
-  async list(deviceId) {
-    return model.findAll(deviceId);
+  async list(deviceId, query) {
+    return model.findAll(deviceId, query);
   },
   async sync(deviceId) {
     let synced = 0;

@@ -1,3 +1,4 @@
+import { mapPage } from "../../../shared/database/paginate.js";
 import { hashSecret, verifySecret } from "../../../shared/security/password.js";
 import { createPinLookup } from "../../../shared/security/token.js";
 import { presentUser } from "../../auth/auth.presenter.js";
@@ -5,8 +6,8 @@ import { userModel } from "./users.model.js";
 const forbidden = (message, status = 400) =>
   Object.assign(new Error(message), { status });
 export const userService = {
-  async list() {
-    return (await userModel.findAll()).map(presentUser);
+  async list(query) {
+    return mapPage(await userModel.findAll(query), presentUser);
   },
   async create({ roleIds, pin, password, ...data }) {
     if (pin && !(await userModel.hasSuperadminRole(roleIds))) throw forbidden("Only superadmins can have a login PIN.");

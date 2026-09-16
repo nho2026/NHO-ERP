@@ -1,3 +1,5 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
+import type { AttendanceEvent } from "@/features/attendance/api/attendance.api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -35,7 +37,6 @@ import {
 import {
   changeOwnPassword,
   getProfile,
-  getProfileEvents,
   updateProfile,
 } from "../api/auth.api";
 import type { AuthUser } from "../types/auth.types";
@@ -44,7 +45,7 @@ import { employeePortalApi } from "@/features/employee-portal/api/employee-porta
 export default function ProfilePage() {
   const { t, i18n } = useTranslation();
   const profile = useApiResource(useCallback(() => getProfile(), []));
-  const events = useApiResource(useCallback(() => getProfileEvents(), []));
+  const events = useServerTable<AttendanceEvent>("/auth/profile/events");
   const warnings = useApiResource(
     useCallback(() => employeePortalApi.warnings(), []),
   );
@@ -208,7 +209,7 @@ export default function ProfilePage() {
                     <TableHead>{t("profile.dateTime")}</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody {...events.tableProps}>
                   <TableResourceState
                     isLoading={events.isLoading}
                     error={events.error}

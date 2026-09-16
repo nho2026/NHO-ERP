@@ -14,7 +14,7 @@ export const authController = {
   login: handle(async (req, res) => {
     const { user, token, maxAge } = await withLoginLockout(
       req.validatedBody, req.ip ?? req.socket.remoteAddress ?? "unknown",
-      () => authService.login(req.validatedBody),
+      (tx) => authService.login(req.validatedBody, tx),
     );
     req.auditUser = user;
     res.cookie("access_token", token, {
@@ -36,7 +36,7 @@ export const authController = {
     }),
   ),
   profileEvents: handle(async (req, res) =>
-    res.json(await authService.profileEvents(req.user.id)),
+    res.json(await authService.profileEvents(req.user.id, req.query)),
   ),
   logout: (_req, res) => {
     res.clearCookie("access_token", { path: "/" });

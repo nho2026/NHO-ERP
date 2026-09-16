@@ -1,3 +1,4 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { useSearchParams } from "react-router-dom";
 import { Monitor, ArrowLeft } from "lucide-react";
 import {
@@ -71,7 +72,6 @@ type PatientMatch = {
   lastName: string;
   phone: string;
 };
-type Today = { date: string; timezone: string; items: Appointment[] };
 const doctorName = (item: Appointment) =>
   item.doctor
     ? `${item.doctor.employee.firstName} ${item.doctor.employee.lastName}`
@@ -86,12 +86,6 @@ export default function TodayPatientsPage() {
     setSearchParams(next);
   };
   const tr = (key: string) => t(`todayPatients.${key}`);
-  const resource = useApiResource(
-    useCallback(
-      () => apiClient.get<Today>("/crm/appointments/today").then((r) => r.data),
-      [],
-    ),
-  );
   const [visitId, setVisitId] = useState<string | null>(null);
   const [confirmVisit, setConfirmVisit] = useState<Appointment | null>(null);
   const serveLock = useRef(false);
@@ -113,6 +107,8 @@ export default function TodayPatientsPage() {
   const [search, setSearch] = useState("");
   const [doctor, setDoctor] = useState("all");
   const [status, setStatus] = useState("current");
+  const table = useServerTable<Appointment, { date: string; timezone: string; doctors: [string,string][]; totals: { total: number; current: number; completed: number } }>("/crm/appointments/today", {search, doctor, status});
+  const resource = { ...table, data: table.pageData };
   const refreshAppointments = resource.refresh;
   useEffect(() => {
     const refresh = () => {
@@ -127,29 +123,8 @@ export default function TodayPatientsPage() {
   }, [refreshAppointments]);
   const items = resource.data?.items ?? [];
   const selected = items.find((item) => item.id === selectedId);
-  const current = items.filter((item) =>
-    ["pending", "confirmed", "scheduled", "in_progress"].includes(item.status),
-  );
-  const rows = items.filter(
-    (item) =>
-      (status === "all" ||
-        (status === "current"
-          ? ["pending", "confirmed", "scheduled", "in_progress"].includes(
-              item.status,
-            )
-          : item.status === status)) &&
-      (doctor === "all" || item.doctorId === doctor) &&
-      `${item.patientName} ${item.patientPhone}`
-        .toLocaleLowerCase()
-        .includes(search.trim().toLocaleLowerCase()),
-  );
-  const doctors = [
-    ...new Map(
-      items
-        .filter((item) => item.doctorId)
-        .map((item) => [item.doctorId!, doctorName(item)]),
-    ).entries(),
-  ];
+  const rows = items;
+  const doctors = resource.data?.doctors ?? [];
   const active = rows.filter(
     (item) => item.status === "in_progress" && item.patientId,
   );
@@ -268,21 +243,21 @@ export default function TodayPatientsPage() {
         {[
           {
             key: "total",
-            value: items.length,
+            value: resource.data?.totals.total ?? 0,
             Icon: CalendarDays,
             tone: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
             accent: "bg-sky-500",
           },
           {
             key: "current",
-            value: current.length,
+            value: resource.data?.totals.current ?? 0,
             Icon: Clock3,
             tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
             accent: "bg-amber-500",
           },
           {
             key: "completed",
-            value: items.filter((item) => item.status === "completed").length,
+            value: resource.data?.totals.completed ?? 0,
             Icon: CircleCheck,
             tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
             accent: "bg-emerald-500",
@@ -415,7 +390,7 @@ export default function TodayPatientsPage() {
               ))}
             </TableRow>
           </TableHeader>
-          <TableBody autoPaginate={!tvMode}>
+          <TableBody {...table.tableProps}>
             {resource.isLoading && !resource.data ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">

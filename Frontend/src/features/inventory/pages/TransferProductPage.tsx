@@ -8,11 +8,12 @@ import {
 } from "@/shared/components/ui/dialog";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, SlidersHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { FormDatePicker } from "@/shared/components/ui/form-date-picker";
 import {
   Select,
   SelectContent,
@@ -47,12 +48,19 @@ const emptyLine = (): Line => ({
 export default function TransferProductPage() {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [destination, setDestination] = useState("");
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState({ search: "", fromWarehouseId: "", toWarehouseId: "", from: "", to: "" });
+  const filter = (key: keyof typeof filters, value: string) => {
+    setFilters(current => ({ ...current, [key]: value }));
+    setPage(1);
+  };
+  const invalidRange = Boolean(filters.from && filters.to && filters.from > filters.to);
   const lock = useRef(false);
   const canManage = hasPermission(storedUser(), "inventory.transfers.create");
   const resources = useApiResource(
@@ -71,8 +79,18 @@ export default function TransferProductPage() {
   );
   const history = useApiResource(
     useCallback(
-      () => inventoryApi.list("transfers", page, { pageSize: "10" }),
-      [page],
+      () => {
+        if (invalidRange) return Promise.resolve({ items: [], pagination: { page: 1, pageSize: 10, total: 0, totalPages: 1 } });
+        const end = filters.to ? new Date(`${filters.to}T00:00:00`) : null;
+        if (end) end.setDate(end.getDate() + 1);
+        return inventoryApi.list("transfers", page, {
+          pageSize: "10", search: filters.search,
+          fromWarehouseId: filters.fromWarehouseId, toWarehouseId: filters.toWarehouseId,
+          startAt: filters.from ? new Date(`${filters.from}T00:00:00`).toISOString() : "",
+          endAt: end?.toISOString() ?? "",
+        });
+      },
+      [page, filters, invalidRange],
     ),
   );
   const money = (value: number) =>
@@ -379,9 +397,53 @@ export default function TransferProductPage() {
         </DialogContent>
       </Dialog>
       <Card className="overflow-hidden">
-        <div className="p-5">
+        <div className="flex items-center justify-between gap-3 p-5">
           <h2 className="font-semibold">{t("transferForm.latest")}</h2>
+          <Button variant="outline" onClick={() => setFilterOpen(true)}>
+            <SlidersHorizontal className="size-4" />
+            {t("inventory.filters")}
+            {Object.values(filters).filter(Boolean).length > 0 && (
+              <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+                {Object.values(filters).filter(Boolean).length}
+              </span>
+            )}
+          </Button>
         </div>
+        <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+          <DialogContent dir={i18n.dir()} className="max-h-[85dvh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <SlidersHorizontal className="size-4" />
+                {t("inventory.filters")}
+              </DialogTitle>
+            </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="transfer-search">{t("transferForm.searchHistory")}</Label>
+              <Input id="transfer-search" value={filters.search} onChange={event => filter("search", event.target.value)} placeholder={t("transferForm.searchHistory")} />
+            </div>
+            {(["fromWarehouseId", "toWarehouseId"] as const).map(key => (
+              <div key={key} className="space-y-2">
+                <Label>{t(key === "fromWarehouseId" ? "transferForm.from" : "transferForm.to")}</Label>
+                {selector(filters[key] || "all", value => filter(key, value === "all" ? "" : value), [{ id: "all", name: t("incomeExpenses.all") }, ...(resources.data?.warehouses ?? [])], t(key === "fromWarehouseId" ? "transferForm.from" : "transferForm.to"))}
+              </div>
+            ))}
+            <div className="space-y-2">
+              <Label>{t("incomeExpenses.from")}</Label>
+              <FormDatePicker value={filters.from} onValueChange={value => filter("from", value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("incomeExpenses.to")}</Label>
+              <FormDatePicker value={filters.to} onValueChange={value => filter("to", value)} />
+            </div>
+          </div>
+          {invalidRange && <p role="alert" className="mt-2 text-sm text-destructive">{t("transferForm.invalidDateRange")}</p>}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setFilters({ search: "", fromWarehouseId: "", toWarehouseId: "", from: "", to: "" }); setPage(1); }}>{t("inventory.clearFilters")}</Button>
+              <Button disabled={invalidRange} onClick={() => setFilterOpen(false)}>{t("incomeExpenses.done")}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Table>
           <TableHeader>
             <TableRow>

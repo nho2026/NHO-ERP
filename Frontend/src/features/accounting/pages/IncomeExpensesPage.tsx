@@ -1,3 +1,4 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { Link } from "react-router-dom";
 import FinanceHistory from "./FinanceHistory";
 import { useCallback, useRef, useState } from "react";
@@ -128,12 +129,15 @@ export default function IncomeExpensesPage() {
       return { records: records.data, report: report.data };
     }, [filters, page]),
   );
+  const reportFilters = Object.fromEntries(Object.entries(filters).filter(([,v]) => v && v !== "all"));
+  const departmentRows = useServerTable<Report["departments"][number]>(endpoint + "/report/rows", { ...reportFilters, section: "departments" });
+  const breakdownRows = useServerTable<Report["breakdown"][number]>(endpoint + "/report/rows", { ...reportFilters, section: "breakdown" });
   const changeFilter = (key: keyof typeof filters, value: string) => {
     setFilters((current) => ({ ...current, [key]: value }));
     setPage(1);
   };
   const refresh = async () => {
-    await Promise.all([data.refresh(), options.refresh()]);
+    await Promise.all([data.refresh(), options.refresh(), departmentRows.refresh(), breakdownRows.refresh()]);
   };
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -392,13 +396,13 @@ export default function IncomeExpensesPage() {
                   )}
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody {...departmentRows.tableProps}>
                 <TableResourceState
-                  isLoading={false}
-                  isEmpty={!ready.report.departments.length}
+                  isLoading={departmentRows.isLoading} error={departmentRows.error}
+                  isEmpty={!departmentRows.data?.length}
                   colSpan={5}
                 />
-                {ready.report.departments.map((row) => (
+                {(departmentRows.data ?? []).map((row) => (
                   <TableRow
                     key={JSON.stringify([row.departmentId, row.currency])}
                   >
@@ -433,13 +437,13 @@ export default function IncomeExpensesPage() {
                   ))}
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody {...breakdownRows.tableProps}>
                 <TableResourceState
-                  isLoading={false}
-                  isEmpty={!ready.report.breakdown.length}
+                  isLoading={breakdownRows.isLoading} error={breakdownRows.error}
+                  isEmpty={!breakdownRows.data?.length}
                   colSpan={6}
                 />
-                {ready.report.breakdown.map((row) => (
+                {(breakdownRows.data ?? []).map((row) => (
                   <TableRow
                     key={JSON.stringify([
                       row.departmentId,

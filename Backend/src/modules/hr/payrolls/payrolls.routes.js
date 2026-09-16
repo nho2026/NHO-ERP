@@ -4,9 +4,13 @@ import { validate } from "../../../shared/middleware/validation.middleware.js";
 import { requirePermission } from "../../../shared/middleware/permission.middleware.js";
 import { payrollController } from "./payrolls.controller.js";
 import { payrollSchema } from "./payrolls.schema.js";
+import { monthlyReport } from "../reports/monthly-report.js";
 const router = Router();
 const view = requirePermission("employees.view"),
   process = requirePermission("payroll.process");
+router.get("/monthly-report", view, requirePermission("hr.employees.view"), requirePermission("hr.salaries.view"), requirePermission("hr.payroll-adjustments.view"), requirePermission("hr.attendance-permissions.view"), async (req, res, next) => {
+  try { res.json(await monthlyReport(req.query, true)); } catch(error) { next(error); }
+});
 router.get("/attendance-events", view, async (req, res, next) => {
   try {
     const month = String(req.query.month ?? "");

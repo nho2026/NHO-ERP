@@ -27,6 +27,8 @@ export type Journal = {
   lines: JournalLine[];
 };
 export type AccountingReport = {
+  totals: { debit: number; credit: number };
+  pagination?: import("@/shared/api/pagination").Pagination;
   trialBalance: Array<Account & { debit: number; credit: number }>;
   profitLoss: { revenue: number; expenses: number; netIncome: number };
   balanceSheet: { assets: number; liabilities: number; equity: number };

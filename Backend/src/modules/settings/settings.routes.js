@@ -8,8 +8,8 @@ const run = (fn) => (req, res, next) =>
 router.get(
   "/logo",
   run(async (_req, res) => {
-    const { logo } = await getSettings("organization");
-    res.set("Cache-Control", "no-store").json({ logo });
+    const { logo, name } = await getSettings("organization");
+    res.set("Cache-Control", "no-store").json({ logo, name });
   }),
 );
 router.use(requireAuth);

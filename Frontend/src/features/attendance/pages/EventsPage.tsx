@@ -1,3 +1,5 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
+import type { AttendanceEvent } from "../api/attendance.api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { addMonths, format, subMonths } from "date-fns";
 import {
@@ -348,15 +350,7 @@ export default function EventsPage() {
     () => ({ ...filters, deviceId: selectedDeviceId }),
     [filters, selectedDeviceId],
   );
-  const events = useApiResource(
-      useCallback(
-        () =>
-          selectedDeviceId
-            ? attendanceApi.events(deviceFilters)
-            : Promise.resolve([]),
-        [deviceFilters, selectedDeviceId],
-      ),
-    ),
+  const events = useServerTable<AttendanceEvent>("/attendance/events", { ...deviceFilters, sort: dateSort }, Boolean(selectedDeviceId)),
     people = useApiResource(
       useCallback(
         () =>
@@ -409,11 +403,19 @@ export default function EventsPage() {
     return "—";
   };
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = events.refresh;
     const stream = new EventSource(attendanceEventsStreamUrl(), {
       withCredentials: true,
     });
-    stream.addEventListener("attendance", () => void events.refresh());
-    return () => stream.close();
+    stream.addEventListener("attendance", () => {
+      if (timer !== undefined) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        void refresh();
+      }, 300);
+    });
+    return () => { clearTimeout(timer); stream.close(); };
   }, [events.refresh]);
   const chooseDateRange = (range?: DateRange) => {
     setDateRange(range);
@@ -547,7 +549,7 @@ export default function EventsPage() {
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody {...events.tableProps}>
             <TableResourceState
               isLoading={events.isLoading}
               error={events.error}

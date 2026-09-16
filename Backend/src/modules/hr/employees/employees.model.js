@@ -1,3 +1,4 @@
+import { paginate } from "../../../shared/database/paginate.js";
 import { createWithCode, withoutCode } from "../../../shared/database/automatic-code.js";
 import { getSettings } from "../../settings/settings.service.js";
 import { prisma } from "../../../shared/database/client.js";
@@ -51,10 +52,11 @@ const validateSchedule = (data) => {
 
 export const employeeModel = {
   findAll: (query = {}) =>
-    prisma.employee.findMany({
+    paginate("employee", query, {
+      where: { ...(query.departmentId && { departmentId: String(query.departmentId) }), ...(query.positionId && { positionId: String(query.positionId) }), ...(query.status && { status: String(query.status) }) },
       include: recordInclude,
       orderBy: { createdAt: "desc" },
-    }),
+    }, ["firstName","lastName","employeeCode"]),
   create: async (data) => {
     const settings = await getSettings("hr");
     data = {

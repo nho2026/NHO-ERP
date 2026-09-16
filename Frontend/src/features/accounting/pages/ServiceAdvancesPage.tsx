@@ -1,3 +1,4 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -37,9 +38,7 @@ const number = (value: number) =>
   new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
 export default function ServiceAdvancesPage() {
   const { t } = useTranslation(),
-    advances = useApiResource(
-      useCallback(() => billingApi.serviceAdvances.list(), []),
-    ),
+    advances = useServerTable<ServiceAdvance>("/advances/service"),
     departments = useApiResource(
       useCallback(() => healthcareApi.departments.list(), []),
     ),
@@ -113,7 +112,7 @@ export default function ServiceAdvancesPage() {
                 ))}
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody {...advances.tableProps}>
               <TableResourceState
                 isLoading={advances.isLoading}
                 error={advances.error}

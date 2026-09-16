@@ -3,9 +3,30 @@ import { prisma } from "../../../shared/database/client.js";
 import { paginate } from "../shared/pagination.model.js";
 const conflict = (message) => Object.assign(new Error(message), { status: 409 });
 export const transfersModel = {
-  async list(query) {
+  async list(query = {}) {
+    const where = { movementType: "transfer_out" };
+    if (query.fromWarehouseId) where.warehouseId = String(query.fromWarehouseId);
+    const search = String(query.search ?? "").trim().replace(/[\\%_]/g, "\\$&");
+    if (search) where.OR = [
+      { reference: { contains: search } },
+      { product: { name: { contains: search } } },
+      { product: { sku: { contains: search } } },
+      { product: { barcode: { contains: search } } },
+    ];
+    const start = query.startAt ? new Date(String(query.startAt)) : null;
+    const end = query.endAt ? new Date(String(query.endAt)) : null;
+    if ((start && !Number.isFinite(start.getTime())) || (end && !Number.isFinite(end.getTime())) || (start && end && start >= end))
+      throw Object.assign(new Error("Invalid transfer date range."), { status: 400 });
+    if (start || end) where.occurredAt = { ...(start && { gte: start }), ...(end && { lt: end }) };
+    if (query.toWarehouseId) {
+      const destinations = await prisma.inventoryMovement.findMany({
+        where: { movementType: "transfer_in", warehouseId: String(query.toWarehouseId), ...(where.occurredAt && { occurredAt: where.occurredAt }) },
+        select: { reference: true },
+      });
+      where.reference = { in: destinations.map(item => item.reference).filter(Boolean) };
+    }
     const result = await paginate(query, "inventoryMovement", {
-      where: { movementType: "transfer_out" },
+      where,
       include: { product: true, warehouse: true },
       orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
     });

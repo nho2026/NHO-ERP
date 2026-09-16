@@ -1,11 +1,11 @@
-import { useCallback, useMemo, useState } from "react";
+import { useFullReportPrint } from "@/shared/hooks/useFullReportPrint";
+import { apiClient } from "@/shared/api/client";
+import { useServerTable } from "@/shared/hooks/useServerTable";
+import type { HrRecord } from "../api/hr.api";
+import { useState } from "react";
 import { Printer } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { attendancePermissionsApi, hrApi } from "../api/hr.api";
-import type { AttendanceEvent } from "@/features/attendance/api/attendance.api";
-import { apiClient } from "@/shared/api/client";
 import { TableResourceState } from "@/shared/components/ui/table-resource-state";
-import { useApiResource } from "@/shared/hooks/useApiResource";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { MonthPicker } from "@/shared/components/ui/month-picker";
@@ -17,16 +17,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { printDocument } from "@/features/accounting/components/print-document";
+
 import {
-  activeSalaryFor,
-  deviceAttendanceRecords,
   duration,
   employeeLabel,
-  lostMinutes,
   monthValue,
-  payrollAmounts,
-  scheduledMinutes,
 } from "./monthly-hr";
 
 export default function PayrollPage() {
@@ -34,102 +29,12 @@ export default function PayrollPage() {
   const tx = (key: string, fallback: string) =>
     t(`hrMonthly.${key}`, { defaultValue: fallback });
   const [month, setMonth] = useState(monthValue());
-  const employees = useApiResource(
-    useCallback(() => hrApi.employees.list(), []),
-  );
-  const salaries = useApiResource(useCallback(() => hrApi.salaries.list(), []));
-  const adjustments = useApiResource(
-    useCallback(() => {
-      const [year, selectedMonth] = month.split("-");
-      return hrApi.adjustments.list({
-        year: Number(year),
-        month: Number(selectedMonth),
-      });
-    }, [month]),
-  );
-  const permissions = useApiResource(
-    useCallback(
-      () =>
-        attendancePermissionsApi.list({
-          from: `${month}-01`,
-          to: `${month}-31`,
-          status: "approved",
-        }),
-      [month],
-    ),
-  );
-  const events = useApiResource(
-    useCallback(
-      () => apiClient.get<AttendanceEvent[]>("/employees/records/payrolls/attendance-events", { params: { month } }).then(({ data }) => data),
-      [month],
-    ),
-  );
-  const deviceRecords = useMemo(
-    () =>
-      deviceAttendanceRecords(
-        events.data ?? [],
-        [],
-        employees.data ?? [],
-        month,
-      ),
-    [events.data, employees.data, month],
-  );
-  const rows = useMemo(
-    () =>
-      (employees.data ?? [])
-        .filter((employee) =>
-          Boolean(activeSalaryFor(employee.id, salaries.data ?? [], month)),
-        )
-        .map((employee) => {
-          const salary = activeSalaryFor(
-            employee.id,
-            salaries.data ?? [],
-            month,
-          );
-          const records = deviceRecords.filter(
-            (record) => record.employeeId === employee.id,
-          );
-          const minutesLost = records.reduce(
-            (sum, row) => sum + lostMinutes(row, permissions.data ?? []),
-            0,
-          );
-          const employeeAdjustments = (adjustments.data ?? []).filter(
-            (adjustment) => adjustment.employeeId === employee.id,
-          );
-          const rewardAmount = employeeAdjustments
-            .filter((adjustment) => adjustment.type === "reward")
-            .reduce((sum, adjustment) => sum + Number(adjustment.amount), 0);
-          const punishmentAmount = employeeAdjustments
-            .filter((adjustment) => adjustment.type === "punishment")
-            .reduce((sum, adjustment) => sum + Number(adjustment.amount), 0);
-          return {
-            employee,
-            salary,
-            minutesLost,
-            adjustments: employeeAdjustments,
-            ...payrollAmounts(
-              Number(salary?.baseSalary ?? 0),
-              minutesLost,
-              scheduledMinutes(employee) / 60,
-              rewardAmount,
-              punishmentAmount,
-            ),
-          };
-        }),
-    [
-      adjustments.data,
-      employees.data,
-      salaries.data,
-      deviceRecords,
-      month,
-      permissions.data,
-    ],
-  );
+  const table = useServerTable<{ employee: HrRecord; salary: HrRecord; minutesLost: number; hourlyRate: number; adjustments: HrRecord[]; deduction: number; netSalary: number; rewardAmount: number; punishmentAmount: number }>("/employees/records/payrolls/monthly-report", { month });
+  const fullPrint = useFullReportPrint(() => apiClient.get<NonNullable<typeof table.data>>("/employees/records/payrolls/monthly-report", { params: { month, export: "true" } }).then(r => r.data));
+  const rows = fullPrint.printData ?? table.data ?? [];
   const money = (value: number, currency?: unknown) =>
     `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${String(currency ?? "")}`.trim();
-  const resources = [employees, salaries, adjustments, permissions, events];
-  const loadError = resources.find((resource) => resource.error)?.error;
-  const isLoading = resources.some((resource) => resource.isLoading);
+  const loadError = table.error, isLoading = table.isLoading;
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -157,25 +62,15 @@ export default function PayrollPage() {
             type="button"
             variant="outline"
             className="h-11 gap-2 px-4"
-            disabled={isLoading || Boolean(loadError)}
-            onClick={printDocument}
+            disabled={isLoading || Boolean(loadError) || fullPrint.printing}
+            onClick={() => void fullPrint.print()}
           >
             <Printer className="size-4" />
             {tx("print", "Print")}
           </Button>
         </div>
       </div>
-      {(employees.error ||
-        salaries.error ||
-        adjustments.error ||
-        events.error) && (
-        <p className="text-sm text-destructive">
-          {employees.error ||
-            salaries.error ||
-            adjustments.error ||
-            events.error}
-        </p>
-      )}
+      {loadError && <p className="text-sm text-destructive">{loadError}</p>}
       <Card className="print-document print-document-visible salary-list-print">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -196,7 +91,7 @@ export default function PayrollPage() {
                   <TableHead>{t("hr.net")}</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody autoPaginate={false} pagination={fullPrint.printData ? undefined : table.pagination}>
                 <TableResourceState isLoading={isLoading} error={loadError ?? null} isEmpty={!rows.length} colSpan={10} />
                 {!isLoading && !loadError && rows.map((row, index) => (
                   <TableRow key={row.employee.id}>

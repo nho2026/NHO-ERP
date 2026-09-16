@@ -8,7 +8,7 @@ const handle = (handler) => async (req, res, next) => {
 };
 export const accountingController = {
   listAccounts: handle(async (_req, res) =>
-    res.json(await accountingService.listAccounts()),
+    res.json(await accountingService.listAccounts(_req.query)),
   ),
   createAccount: handle(async (req, res) =>
     res
@@ -25,7 +25,7 @@ export const accountingController = {
     res.status(204).end();
   }),
   listJournals: handle(async (_req, res) =>
-    res.json(await accountingService.listJournals()),
+    res.json(await accountingService.listJournals(_req.query)),
   ),
   createJournal: handle(async (req, res) =>
     res

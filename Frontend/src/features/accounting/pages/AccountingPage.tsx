@@ -1,13 +1,17 @@
+import { useFullReportPrint } from "@/shared/hooks/useFullReportPrint";
+import type { AccountingReport } from "../api/accounting.api";
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckCircle2, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 import {
   accountingApi,
   type Account,
+  type Journal,
   type JournalLine,
 } from "../api/accounting.api";
-import { printDocument } from "../components/print-document";
-import { apiErrorMessage } from "@/shared/api/client";
+
+import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { TableResourceState } from "@/shared/components/ui/table-resource-state";
 import { FormDatePicker } from "@/shared/components/ui/form-date-picker";
@@ -57,12 +61,10 @@ export default function AccountingPage({
   const accounts = useApiResource(
     useCallback(() => accountingApi.accounts.list(), []),
   );
-  const journals = useApiResource(
-    useCallback(() => accountingApi.journals.list(), []),
-  );
-  const reports = useApiResource(
-    useCallback(() => accountingApi.reports(), []),
-  );
+  const journals = useServerTable<Journal>("/accounting/journals", {}, resource === "journals");
+  const accountRows = useServerTable<Account>("/accounting/accounts", {}, resource === "accounts");
+  const [reportPage, setReportPage] = useState(1);
+  const reports = useApiResource(useCallback(() => apiClient.get<AccountingReport & { pagination: import("@/shared/api/pagination").Pagination }>("/accounting/reports", { params: { page: reportPage, pageSize: 20 } }).then(r => r.data), [reportPage]));
   const [dialog, setDialog] = useState<"account" | "journal" | null>(null);
   const [editing, setEditing] = useState<Account | null>(null);
   const [lines, setLines] = useState<JournalLine[]>([
@@ -85,7 +87,7 @@ export default function AccountingPage({
       if (editing) await accountingApi.accounts.update(editing.id, data);
       else await accountingApi.accounts.create(data);
       setDialog(null);
-      await accounts.refresh();
+      await Promise.all([accounts.refresh(), accountRows.refresh()]);
     } catch (cause) {
       setError(apiErrorMessage(cause));
     } finally {
@@ -107,8 +109,9 @@ export default function AccountingPage({
       setBusy(false);
     }
   };
+  const fullPrint = useFullReportPrint(() => accountingApi.reports());
   if (resource === "reports") {
-    const report = reports.data;
+    const report = fullPrint.printData ?? reports.data;
     const summaries = [
       ["assets", report?.balanceSheet.assets],
       ["liabilities", report?.balanceSheet.liabilities],
@@ -120,9 +123,9 @@ export default function AccountingPage({
     const accountName = (code: string, fallback: string) =>
       t(`accounting.seedAccounts.${code}`, { defaultValue: fallback });
     const totalDebit =
-      report?.trialBalance.reduce((sum, row) => sum + row.debit, 0) ?? 0;
+      report?.totals?.debit ?? 0;
     const totalCredit =
-      report?.trialBalance.reduce((sum, row) => sum + row.credit, 0) ?? 0;
+      report?.totals?.credit ?? 0;
     const generatedDate = new Date().toISOString().slice(0, 10);
     return (
       <div className="space-y-5">
@@ -133,7 +136,7 @@ export default function AccountingPage({
               {t("accounting.reportDescription")}
             </p>
           </div>
-          <Button permission="accounting.reports.print" variant="outline" onClick={printDocument}>
+          <Button permission="accounting.reports.print" variant="outline" disabled={fullPrint.printing || reports.isLoading} onClick={() => void fullPrint.print()}>
             <Printer />
             {t("accounting.printReport")}
           </Button>
@@ -169,7 +172,7 @@ export default function AccountingPage({
                   <TableHead>{t("accounting.credit")}</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody autoPaginate={false} pagination={{ page: report?.pagination?.page ?? reportPage, totalPages: report?.pagination?.totalPages ?? 1, total: report?.pagination?.total ?? 0, onPageChange: setReportPage, disabled: reports.isLoading }}>
                 <TableResourceState
                   isLoading={reports.isLoading}
                   error={reports.error}
@@ -352,16 +355,16 @@ export default function AccountingPage({
                 ))}
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody {...(resource === "accounts" ? accountRows.tableProps : journals.tableProps)}>
               {resource === "accounts" ? (
                 <>
                   <TableResourceState
                     isLoading={accounts.isLoading}
                     error={accounts.error}
-                    isEmpty={!accounts.data?.length}
+                    isEmpty={!accountRows.data?.length}
                     colSpan={6}
                   />
-                  {accounts.data?.map((row) => (
+                  {accountRows.data?.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell>{row.code}</TableCell>
                       <TableCell>{row.name}</TableCell>
@@ -388,7 +391,7 @@ export default function AccountingPage({
                             description={t("accounting.deleteConfirm")}
                             onConfirm={async () => {
                               await accountingApi.accounts.remove(row.id);
-                              await accounts.refresh();
+                              await Promise.all([accounts.refresh(), accountRows.refresh()]);
                             }}
                           >
                             <Button data-action="delete"

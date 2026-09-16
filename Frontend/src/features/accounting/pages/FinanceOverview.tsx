@@ -1,3 +1,4 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { useCallback, useState } from "react";
 import { FinanceBarChart } from "../components/FinanceBarChart";
 import { useTranslation } from "react-i18next";
@@ -89,6 +90,9 @@ export default function FinanceOverview() {
       [],
     ),
   );
+  const debts = useServerTable<Overview["debts"][number]>("/finance/cash-flow/overview/rows", {year, section: "debts"});
+  const months = useServerTable<Total & {month:number}>("/finance/cash-flow/overview/rows", {year, section:"months"});
+  const departments = useServerTable<Total & {month:number;departmentId:string|null}>("/finance/cash-flow/overview/rows", {year, section:"departments"});
   const ready = !data.isLoading && !data.error && data.data;
   const money = (v: string) =>
     Number(v).toLocaleString(undefined, {
@@ -163,6 +167,7 @@ export default function FinanceOverview() {
           {l("refresh")}
         </Button>
       </div>
+      {(debts.error || months.error || departments.error) && <p role="alert" className="text-destructive">{debts.error || months.error || departments.error}</p>}
       <ResourceState
         isLoading={data.isLoading}
         error={data.error}
@@ -262,8 +267,8 @@ export default function FinanceOverview() {
                     )}
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {ready.debts.map((row) => (
+                <TableBody {...debts.tableProps}>
+                  {(debts.data ?? []).map((row) => (
                     <TableRow key={`${row.type}:${row.id}`}>
                       <TableCell>{l(row.type)}</TableCell>
                       <TableCell>{row.name}</TableCell>
@@ -321,20 +326,18 @@ export default function FinanceOverview() {
                     )}
                   </TableRow>
                 </TableHeader>
-                <TableBody autoPaginate={false}>
-                  {ready.months.flatMap((month) =>
-                    month.totals.map((row) => (
-                      <TableRow key={`${month.month}:${row.currency}`}>
+                <TableBody {...months.tableProps}>
+                  {(months.data ?? []).map((row) => (
+                      <TableRow key={`${row.month}:${row.currency}`}>
                         <TableCell>
-                          {year}-{String(month.month).padStart(2, "0")}
+                          {year}-{String(row.month).padStart(2, "0")}
                         </TableCell>
                         <TableCell>{row.currency}</TableCell>
                         <TableCell>{money(row.income)}</TableCell>
                         <TableCell>{money(row.expense)}</TableCell>
                         <TableCell>{money(row.net)}</TableCell>
                       </TableRow>
-                    )),
-                  )}
+                    ))}
                 </TableBody>
               </Table>
             </details>
@@ -382,14 +385,13 @@ export default function FinanceOverview() {
                     ))}
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {ready.months.flatMap((month) =>
-                    month.departments.map((row) => (
+                <TableBody {...departments.tableProps}>
+                  {(departments.data ?? []).map((row) => (
                       <TableRow
-                        key={`${month.month}:${row.departmentId}:${row.currency}`}
+                        key={`${row.month}:${row.departmentId}:${row.currency}`}
                       >
                         <TableCell>
-                          {year}-{String(month.month).padStart(2, "0")}
+                          {year}-{String(row.month).padStart(2, "0")}
                         </TableCell>
                         <TableCell>
                           {options.data?.departments.find(
@@ -403,8 +405,7 @@ export default function FinanceOverview() {
                         <TableCell>{money(row.expense)}</TableCell>
                         <TableCell>{money(row.net)}</TableCell>
                       </TableRow>
-                    )),
-                  )}
+                    ))}
                 </TableBody>
               </Table>
             </details>

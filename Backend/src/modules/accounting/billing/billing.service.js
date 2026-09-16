@@ -31,8 +31,8 @@ export const billingService = {
   updateCustomer: (id, data) =>
     billingModel.updateCustomer(id, cleanCustomer(data)),
   deleteCustomer: billingModel.deleteCustomer,
-  listInvoices: (status) =>
-    billingModel.listInvoices(status ? String(status) : undefined),
+  listInvoices: (status, query) =>
+    billingModel.listInvoices(status ? String(status) : undefined, query),
   createInvoice: async (input) => {
     const policy = await getSettings("finance");
     const calculated = totals(input);

@@ -6,7 +6,7 @@ const run = (handler) => (req, res, next) =>
 export const appointmentsController = {
   serve: run(async (req, res) => res.json(await appointmentsService.serve(req.params.id))),
   profileCandidates: run(async (req, res) => res.json(await appointmentsService.profileCandidates(req.params.id))),
-  today: run(async (req, res) => res.json(await appointmentsService.today())),
+  today: run(async (req, res) => res.json(await appointmentsService.today(req.query))),
   list: run(async (req, res) =>
     res.json(await appointmentsService.list(req.query)),
   ),

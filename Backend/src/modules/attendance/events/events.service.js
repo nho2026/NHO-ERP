@@ -19,27 +19,37 @@ export const eventsService = {
           }),
         },
       }),
-    });
+    }, q);
   },
   async sync(input) {
     // Use the attendance site's Baghdad calendar month, independent of the
     // server timezone. Keep one cutoff for every device in this sync.
-    const to = new Date();
+    const now = new Date();
     const parts = new Intl.DateTimeFormat("en-US", {
       timeZone: "Asia/Baghdad",
       year: "numeric",
       month: "2-digit",
-    }).formatToParts(to);
+    }).formatToParts(now);
     const year = parts.find((part) => part.type === "year").value;
     const month = parts.find((part) => part.type === "month").value;
-    const from = new Date(`${year}-${month}-01T00:00:00+03:00`);
-    const peopleResult = await peopleService.sync(input.deviceId);
+    const parseBoundary = (value, end) => {
+      const text = String(value);
+      const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(text);
+      if (dateOnly && (Number.isNaN(Date.parse(text)) || new Date(text).toISOString().slice(0, 10) !== text))
+        throw Object.assign(new Error("Invalid attendance date range."), { status: 400 });
+      return new Date(dateOnly ? `${text}T${end ? "23:59:59.999" : "00:00:00"}+03:00` : text);
+    };
+    const from = input.from ? parseBoundary(input.from, false) : new Date(`${year}-${month}-01T00:00:00+03:00`);
+    const to = input.to ? parseBoundary(input.to, true) : now;
+    if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from > to)
+      throw Object.assign(new Error("Invalid attendance date range."), { status: 400 });
+    const peopleResult = { synced: 0, errors: [] };
     const devices = await m.devices(input.deviceId);
     const results = await Promise.all(
       devices.map(async (d) => {
         let synced = 0;
         try {
-          // Import this month's events without modifying the terminal.
+          // Import only the requested range without modifying the terminal.
           const api = new HikvisionClient(d),
             searchID = crypto.randomUUID().replaceAll("-", ""),
             people = new Map(
@@ -50,10 +60,20 @@ export const eventsService = {
             );
           let position = 0;
           let complete = false;
+          let peopleRefreshed = false;
           for (let page = 0; page < 5000; page++) {
             const info =
                 (await api.events(from, to, position, searchID)).AcsEvent ?? {},
               list = info.InfoList ?? [];
+            const eventId = (event, employeeNo, occurredAt) => {
+              const serial = event.serialNo ?? event.serialNumber;
+              return serial != null ? String(serial)
+                : `${employeeNo}:${occurredAt.toISOString()}:${event.major ?? 0}:${event.minor ?? 0}`;
+            };
+            const candidates = list.filter(event => Number.isFinite(new Date(event.time).getTime()));
+            const existing = new Map((await m.existingEvents(d.id, candidates.map(event =>
+              eventId(event, String(event.employeeNoString ?? event.employeeNo ?? "").trim(), new Date(event.time))
+            ))).map(event => [event.deviceEventId, event]));
             for (const event of list.sort(
               (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
             )) {
@@ -71,12 +91,20 @@ export const eventsService = {
                 (d.eventsClearedAt && occurredAt <= d.eventsClearedAt)
               )
                 continue;
-              const p = people.get(employeeNo),
-                serial = event.serialNo ?? event.serialNumber,
-                deviceEventId =
-                  serial != null
-                    ? String(serial)
-                    : `${employeeNo}:${occurredAt.toISOString()}:${event.major ?? 0}:${event.minor ?? 0}`;
+              const deviceEventId = eventId(event, employeeNo, occurredAt);
+              const saved = existing.get(deviceEventId);
+              // Only skip exact matches: terminals can reuse serial numbers.
+              if (saved && saved.employeeNo === employeeNo && saved.eventType === attendance.eventType && saved.occurredAt.getTime() === occurredAt.getTime()) continue;
+              // Most syncs only need events. Import users/cards once, and only
+              // when an unseen employee needs a local person/employee link.
+              if (!people.has(employeeNo) && !peopleRefreshed) {
+                peopleRefreshed = true;
+                const imported = await peopleService.sync(d.id);
+                peopleResult.synced += imported.synced;
+                peopleResult.errors.push(...imported.errors);
+                for (const person of await m.people(d.id)) people.set(person.employeeNo, person);
+              }
+              const p = people.get(employeeNo);
               const result = await m.saveUnique(d.id, deviceEventId, {
                 personId: p?.id,
                 employeeNo,

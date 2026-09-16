@@ -1,3 +1,5 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
+import type { RecordItem } from "../api/inventory.api";
 import { Card } from "@/shared/components/ui/card";
 import { Label } from "@/shared/components/ui/label";
 import {
@@ -56,6 +58,7 @@ export default function WarehouseDashboardPage() {
       return { warehouses, stock, products, movements };
     }, [canStock, canProducts, canMovements]),
   );
+  const alertTable = useServerTable<RecordItem>("/inventory/stock", { onlyLow: "true", warehouseId: location === "all" ? undefined : location }, canStock);
   const d = resource.data;
   const number = (value: number) =>
     new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 2 }).format(
@@ -392,8 +395,8 @@ export default function WarehouseDashboardPage() {
                       )}
                     </TableRow>
                   </TableHeader>
-                  <TableBody autoPaginate={false}>
-                    {alerts.slice(0, 5).map((row) => (
+                  <TableBody {...alertTable.tableProps}>
+                    {(alertTable.data ?? []).map((row) => (
                       <TableRow key={row.id} className="border-t">
                         <TableCell className="px-5 py-3 font-medium">
                           {row.product?.name}

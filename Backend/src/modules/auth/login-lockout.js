@@ -33,7 +33,9 @@ export async function withLoginLockout(input, source, login) {
     const blocked = rows.find(row => row.attempts >= MAX_LOGIN_FAILURES && row.expiresAt > now);
     if (blocked) return { error: lockedError(blocked.expiresAt) };
     try {
-      const value = await login();
+      // Reuse the transaction connection so login cannot wait for a second
+      // pool connection while holding the lockout rows locked.
+      const value = await login(tx);
       for (const key of keys) await tx.$executeRaw`DELETE FROM auth_LoginAttempt WHERE id = ${key}`;
       return { value };
     } catch (error) {

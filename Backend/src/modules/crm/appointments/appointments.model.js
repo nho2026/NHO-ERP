@@ -1,3 +1,4 @@
+import { paginate } from "../../../shared/database/paginate.js";
 import { bookWithProgress } from "../patient/book-with-progress.js";
 import { prisma } from "../../../shared/database/client.js";
 
@@ -36,8 +37,8 @@ export const appointmentsModel = {
     },
     orderBy: [{ scheduledAt: "asc" }, { id: "asc" }],
   }),
-  list: (query) =>
-    prisma.appointment.findMany({
+  list: (query = {}) =>
+    paginate("appointment", query, {
       where: {
         ...(query.status && { status: String(query.status) }),
         ...(query.departmentId && { departmentId: String(query.departmentId) }),
@@ -46,7 +47,7 @@ export const appointmentsModel = {
       include: appointmentInclude,
       orderBy: { scheduledAt: "desc" },
       take: 1000,
-    }),
+    }, ["patientName", "patientPhone", "reason"]),
   findById: (id) => prisma.appointment.findUniqueOrThrow({ where: { id } }),
   create: (data, publicBooking = false) => {
     const { patientId, ...fields } = data;

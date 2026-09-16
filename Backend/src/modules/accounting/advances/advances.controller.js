@@ -8,7 +8,7 @@ const handle = (handler) => async (req, res, next) => {
 };
 export const advancesController = {
   listSalary: handle(async (_req, res) =>
-    res.json(await advancesService.listSalary()),
+    res.json(await advancesService.listSalary(_req.query)),
   ),
   createSalary: handle(async (req, res) =>
     res.status(201).json(await advancesService.createSalary(req.validatedBody)),
@@ -23,7 +23,7 @@ export const advancesController = {
     res.status(204).end();
   }),
   listService: handle(async (_req, res) =>
-    res.json(await advancesService.listService()),
+    res.json(await advancesService.listService(_req.query)),
   ),
   createService: handle(async (req, res) =>
     res

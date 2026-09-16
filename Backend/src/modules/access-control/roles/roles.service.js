@@ -1,8 +1,9 @@
+import { mapPage } from "../../../shared/database/paginate.js";
 import { roleModel } from "./roles.model.js";
 import { presentRole } from "./roles.presenter.js";
-const presentAll = async (promise) => (await promise).map(presentRole);
+const presentAll = async (promise) => mapPage(await promise, presentRole);
 export const roleService = {
-  list: () => presentAll(roleModel.findAll()),
+  list: (query) => presentAll(roleModel.findAll(query)),
   create: async (data) => presentRole(await roleModel.create(data)),
   update: async (id, data) => presentRole(await roleModel.update(id, data)),
   assignPermissions: async (id, ids) =>

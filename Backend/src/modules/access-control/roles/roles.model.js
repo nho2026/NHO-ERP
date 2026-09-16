@@ -1,3 +1,4 @@
+import { paginate } from "../../../shared/database/paginate.js";
 import { prisma } from "../../../shared/database/client.js";
 const include = {
   _count: { select: { users: true, permissions: true } },
@@ -8,7 +9,8 @@ const permissionWrite = (ids) => ({
   create: ids.map((permissionId) => ({ permissionId })),
 });
 export const roleModel = {
-  findAll: () => prisma.role.findMany({ include, orderBy: { name: "asc" } }),
+  findAll: (query = {}) =>
+    paginate("role", query, { include, orderBy: { name: "asc" } }, ["name","description"]),
   findById: (id) => prisma.role.findUnique({ where: { id } }),
   create: ({ permissionIds = [], ...data }) =>
     prisma.role.create({

@@ -2,7 +2,7 @@ import { userService } from "./users.service.js";
 const run = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res)).catch(next);
 export const userController = {
-  list: run(async (_q, res) => res.json(await userService.list())),
+  list: run(async (_q, res) => res.json(await userService.list(_q.query))),
   create: run(async (req, res) =>
     res.status(201).json(await userService.create(req.validatedBody)),
   ),

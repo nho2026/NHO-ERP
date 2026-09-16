@@ -1,9 +1,10 @@
+import { paginate } from "../../../shared/database/paginate.js";
 import { prisma } from "../../../shared/database/client.js";
 
 const include = { employee: { include: { position: true } } };
 export const attendancePermissionModel = {
   findAll: (query = {}) =>
-    prisma.attendancePermission.findMany({
+    paginate("attendancePermission", query, {
       where: {
         ...(query.employeeId && { employeeId: query.employeeId }),
         ...(query.status && { status: query.status }),
@@ -14,7 +15,7 @@ export const attendancePermissionModel = {
       },
       include,
       orderBy: { fromDate: "desc" },
-    }),
+    }, ["employee.firstName", "employee.lastName", "employee.employeeCode"]),
   create: (data) => prisma.attendancePermission.create({ data, include }),
   update: (id, data) =>
     prisma.attendancePermission.update({ where: { id }, data, include }),

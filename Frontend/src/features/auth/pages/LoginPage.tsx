@@ -50,12 +50,18 @@ function LoginPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [logo, setLogo] = useState(defaultLogo);
+  const [organizationName, setOrganizationName] = useState("");
   useEffect(() => {
     const controller = new AbortController();
     void apiClient
-      .get<{ logo: string }>("/settings/logo", { signal: controller.signal })
+      .get<{ logo: string; name: string }>("/settings/logo", { signal: controller.signal })
       .then(({ data }) => {
-        if (!controller.signal.aborted) setLogo(data.logo || defaultLogo);
+        if (!controller.signal.aborted) {
+          setLogo(data.logo || defaultLogo);
+          const name = data.name?.trim() || "";
+          setOrganizationName(name);
+          if (name) document.title = name;
+        }
       })
       .catch(() => {
         // Keep the bundled logo available if the server cannot be reached.
@@ -135,15 +141,12 @@ function LoginPage() {
               <img
                 className="size-14"
                 src={logo}
-                alt="Nadir Health Organization"
+                alt={organizationName}
               />
               <div className="flex flex-col">
-                <strong className="text-sm tracking-[0.16em] text-[#0f766e] dark:text-teal-300">
-                  NADIR
+                <strong className="break-words text-sm text-[#0f766e] dark:text-teal-300">
+                  {organizationName}
                 </strong>
-                <span className="text-[8px] font-semibold uppercase tracking-[0.15em] text-[#0d9488]">
-                  Health Organization
-                </span>
               </div>
             </div>
           </header>
@@ -351,7 +354,7 @@ function LoginPage() {
               </Tabs>
             </CardContent>
             <CardFooter className="mt-8 justify-between px-1 pb-0 text-[10px] text-slate-400">
-              <span>{t("footer.copyright")}</span>
+              <span>{organizationName ? `© ${new Date().getFullYear()} ${organizationName}` : ""}</span>
               <span>{t("footer.privacy")}</span>
             </CardFooter>
           </Card>
@@ -362,7 +365,7 @@ function LoginPage() {
           <div className="absolute -bottom-44 -inset-32 size-96 rounded-full bg-[#0d9488]/20" />
           <div className="relative z-10 mt-12">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-200">
-              {t("brand.system")}
+              {organizationName}
             </p>
             <h2 className="mt-4 max-w-md text-5xl font-semibold leading-[1.05] tracking-tight text-white">
               {t("brand.headlineLine1")}

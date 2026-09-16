@@ -1,3 +1,5 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
+import { PaginationControls } from "@/shared/components/ui/pagination-controls";
 import { Card } from "@/shared/components/ui/card";
 import {
   Table,
@@ -76,17 +78,17 @@ export default function HealthPosPage() {
   const [printFormat, setPrintFormat] = useState<"a4" | "receipt">("a4");
   const [catalogView, setCatalogView] = useState<"grid" | "table">("grid");
   const scanner = useRef({ value: "", at: 0 });
-  const load = () =>
-    Promise.all([
-      inventoryApi.all("products"),
-      inventoryApi.all("warehouses"),
-    ]).then(([p, w]) => {
-      setProducts(p.filter((x) => x.status === "active"));
-      setWarehouses(w.filter((x) => x.status === "active"));
-      setWarehouse((v) => v || w[0]?.id || "");
-    });
+  const [categories, setCategories] = useState<RecordItem[]>([]);
+  const catalog = useServerTable<RecordItem>("/inventory/products", { search, categoryId: category === "all" ? undefined : category, warehouseId: warehouseId || undefined, status: "active" });
+  const load = catalog.refresh;
   useEffect(() => {
-    void load();
+    let active = true;
+    void Promise.all([inventoryApi.all("warehouses"), inventoryApi.all("categories")]).then(([w,c]) => {
+      if(!active) return;
+      setWarehouses(w.filter(x => x.status === "active"));
+      setCategories(c); setWarehouse(v => v || w[0]?.id || "");
+    }).catch(error => toast.error(apiErrorMessage(error)));
+    return () => { active = false; };
   }, []);
   const stock = (p: RecordItem) =>
     p.stocks?.find((s: RecordItem) => s.warehouseId === warehouseId)
@@ -109,15 +111,18 @@ export default function HealthPosPage() {
     p.images?.find((image: RecordItem) => image.isMain)?.imageUrl ??
     p.images?.[0]?.imageUrl;
   const add = (p: RecordItem) => {
+    setProducts(current => [...current.filter(item => item.id !== p.id), p]);
     if (!stock(p)) return toast.error(t("pos.outOfStock"));
     setCart((c) => ({ ...c, [p.id]: Math.min((c[p.id] ?? 0) + 1, stock(p)) }));
   };
-  const scan = (code: string) => {
-    const p = products.find((x) => x.barcode === code || x.sku === code);
-    if (p) {
-      add(p);
-      toast.success(t("pos.scanned", { name: p.name }));
-    } else if (code) toast.error(t("pos.barcodeNotFound"));
+  const scan = async (code: string) => {
+    if(!code) return;
+    try {
+      const result = await inventoryApi.list("products", 1, { exactCode: code, status: "active", warehouseId });
+      const p = result.items.find(x => x.barcode === code || x.sku === code);
+      if(p) { add(p); toast.success(t("pos.scanned", {name:p.name})); }
+      else toast.error(t("pos.barcodeNotFound"));
+    } catch(error) { toast.error(apiErrorMessage(error)); }
   };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -153,20 +158,7 @@ export default function HealthPosPage() {
   useEffect(() => {
     setPaid(total);
   }, [total, payment]);
-  const categories = [
-    ...new Map(
-      products
-        .filter((p) => p.category)
-        .map((p) => [p.category.id, p.category]),
-    ).values(),
-  ];
-  const visible = products.filter(
-    (p) =>
-      (category === "all" || p.categoryId === category) &&
-      `${p.name} ${p.sku} ${p.barcode ?? ""}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-  );
+  const visible = catalog.data ?? [];
   const complete = async () => {
     const printWindow = window.open("", "_blank", "width=900,height=1000");
     setBusy(true);
@@ -427,7 +419,7 @@ export default function HealthPosPage() {
                     </TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody autoPaginate={false}>
                   {visible.map((p) => (
                     <TableRow
                       key={p.id}
@@ -488,6 +480,8 @@ export default function HealthPosPage() {
               </Table>
             </Card>
           )}
+          {catalog.error && <p role="alert" className="text-destructive">{catalog.error}</p>}
+          <PaginationControls {...catalog.pagination} />
         </section>
         <aside className="flex min-h-0 flex-col border-s border-primary/20 bg-card shadow-[-8px_0_24px_-24px_var(--primary)]">
           <div className="border-b border-primary/15 bg-gradient-to-e from-primary/10 to-card p-5">

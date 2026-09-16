@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { Button } from "./button";
 
 const Table = React.forwardRef<
   HTMLTableElement,
@@ -104,8 +105,8 @@ const TableBody = React.forwardRef<
             </td>
           </tr>
         )}
-        {dataRows.length > 0 && (pagination || autoPaginate) && (
-          <tr className="border-t bg-card hover:bg-card">
+        {(pagination || (dataRows.length > 0 && autoPaginate)) && (
+          <tr className="border-t bg-card hover:bg-card print:hidden">
             <td colSpan={100} className="p-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs text-muted-foreground">
@@ -116,7 +117,9 @@ const TableBody = React.forwardRef<
                   })}
                 </span>
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     type="button"
                     className="h-8 rounded-md border bg-background px-3 text-xs font-medium disabled:opacity-50"
                     disabled={pagination?.disabled || activePage <= 1}
@@ -127,8 +130,10 @@ const TableBody = React.forwardRef<
                     }
                   >
                     {t("pagination.previous")}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     type="button"
                     className="h-8 rounded-md border bg-background px-3 text-xs font-medium disabled:opacity-50"
                     disabled={pagination?.disabled || activePage >= totalPages}
@@ -139,7 +144,7 @@ const TableBody = React.forwardRef<
                     }
                   >
                     {t("pagination.next")}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </td>

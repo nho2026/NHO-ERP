@@ -68,6 +68,13 @@ export const productsService = {
       ...(query.inStock === "true" && { quantity: { gt: 0 } }),
     };
     const where = {
+      ...(query.exactCode && { AND: [{ OR: [{ barcode: String(query.exactCode) }, { sku: String(query.exactCode) }] }] }),
+      ...(query.hasBarcode === "true" && {
+        AND: [{ barcode: { not: null } }, { barcode: { not: "" } }],
+      }),
+      ...(query.hasBarcode === "false" && {
+        AND: [{ OR: [{ barcode: null }, { barcode: "" }] }],
+      }),
       ...(query.isSpecial === "true" && { isSpecial: true }),
       ...(query.search && {
         OR: [

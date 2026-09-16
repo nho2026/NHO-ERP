@@ -1,3 +1,4 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -71,27 +72,8 @@ export default function DeviceUsersPage() {
   const [syncing, setSyncing] = useState(false);
   const [employeeFilter, setEmployeeFilter] = useState("all");
   const [employeeSearch, setEmployeeSearch] = useState("");
-  const filteredPeople = useMemo(() => {
-    const search = employeeSearch.trim().toLocaleLowerCase();
-    return (people.data ?? []).filter((person) => {
-      const matchesEmployee =
-        employeeFilter === "all" ||
-        (employeeFilter === "unlinked"
-          ? !person.employeeId
-          : person.employeeId === employeeFilter);
-      const text = [
-        person.name,
-        person.employeeNo,
-        person.employee?.employeeCode,
-        person.employee?.firstName,
-        person.employee?.lastName,
-        person.employee?.user?.username,
-      ]
-        .join(" ")
-        .toLocaleLowerCase();
-      return matchesEmployee && text.includes(search);
-    });
-  }, [people.data, employeeFilter, employeeSearch]);
+  const pagedPeople = useServerTable<Person>("/attendance/people", { deviceId: selectedDeviceId, search: employeeSearch, employeeId: employeeFilter === "all" ? undefined : employeeFilter }, Boolean(selectedDeviceId));
+  const filteredPeople = pagedPeople.data ?? [];
   const employees = useApiResource(
     useCallback(() => hrApi.employees.list(), []),
   );
@@ -168,7 +150,7 @@ export default function DeviceUsersPage() {
       });
       setOpen(false);
       setEmployeeNo("");
-      await people.refresh();
+      await Promise.all([people.refresh(), pagedPeople.refresh()]);
     } catch (cause) {
       setError(apiErrorMessage(cause));
     } finally {
@@ -196,7 +178,7 @@ export default function DeviceUsersPage() {
             : {},
       );
       setCredential(null);
-      await people.refresh();
+      await Promise.all([people.refresh(), pagedPeople.refresh()]);
     } catch (cause) {
       setCredentialError(apiErrorMessage(cause));
     } finally {
@@ -216,7 +198,7 @@ export default function DeviceUsersPage() {
         cardNo: String(form.get("cardNo") ?? "").trim() || null,
       });
       setEditing(null);
-      await people.refresh();
+      await Promise.all([people.refresh(), pagedPeople.refresh()]);
     } catch (cause) {
       setEditError(apiErrorMessage(cause));
     } finally {
@@ -257,7 +239,7 @@ export default function DeviceUsersPage() {
               setSyncing(true);
               try {
                 const result = await attendanceApi.syncPeople(selectedDeviceId);
-                await people.refresh();
+                await Promise.all([people.refresh(), pagedPeople.refresh()]);
                 if (result.errors.length) {
                   toast.warning(t("attendanceFilters.syncPartial"), {
                     description: result.errors
@@ -420,10 +402,10 @@ export default function DeviceUsersPage() {
               <TableHead className="text-end">{t("table.actions")}</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody {...pagedPeople.tableProps}>
             <TableResourceState
-              isLoading={people.isLoading}
-              error={people.error}
+              isLoading={pagedPeople.isLoading}
+              error={pagedPeople.error}
               isEmpty={!filteredPeople.length}
               colSpan={5}
             />
@@ -706,7 +688,7 @@ export default function DeviceUsersPage() {
           onConfirm={async (password) => {
             if (!deleting) return;
             await attendanceApi.deletePerson(deleting.id, password);
-            await people.refresh();
+            await Promise.all([people.refresh(), pagedPeople.refresh()]);
           }}
         />
         <Dialog
@@ -757,7 +739,7 @@ export default function DeviceUsersPage() {
                       removingCredential.method,
                     );
                     setRemovingCredential(null);
-                    await people.refresh();
+                    await Promise.all([people.refresh(), pagedPeople.refresh()]);
                   } catch (cause) {
                     setRemoveError(apiErrorMessage(cause));
                   } finally {

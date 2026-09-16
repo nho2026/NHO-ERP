@@ -1,6 +1,8 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
+import { PaginationControls } from "@/shared/components/ui/pagination-controls";
 import { hasPermission } from "@/features/auth/access";
 import { DeleteConfirmationDialog } from "@/features/attendance/components/DeleteConfirmationDialog";
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import {
   CalendarDays,
   Clock3,
@@ -17,9 +19,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { attendancePermissionsApi, hrApi, type HrRecord } from "../api/hr.api";
-import { attendanceApi } from "@/features/attendance/api/attendance.api";
-import { useApiResource } from "@/shared/hooks/useApiResource";
+import { attendancePermissionsApi, type HrRecord } from "../api/hr.api";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Button } from "@/shared/components/ui/button";
@@ -54,7 +54,6 @@ import {
 } from "@/shared/components/ui/dialog";
 import {
   duration,
-  deviceAttendanceRecords,
   employeeLabel,
   lostMinutes,
   monthValue,
@@ -92,74 +91,12 @@ export default function HrAttendancePage() {
   const [selected, setSelected] = useState<HrRecord>();
   const [permissionOpen, setPermissionOpen] = useState(false);
   const [permissionType, setPermissionType] = useState("full_day");
-  const employees = useApiResource(
-    useCallback(() => hrApi.employees.list(), []),
-  );
-  const events = useApiResource(
-    useCallback(
-      () => attendanceApi.events({ from: `${month}-01`, to: `${month}-31` }),
-      [month],
-    ),
-  );
-  const permissions = useApiResource(
-    useCallback(
-      () =>
-        attendancePermissionsApi.list({
-          from: `${month}-01`,
-          to: `${month}-31`,
-        }),
-      [month],
-    ),
-  );
-  const monthRecords = useMemo(
-    () =>
-      deviceAttendanceRecords(
-        events.data ?? [],
-        [],
-        employees.data ?? [],
-        month,
-      ),
-    [events.data, employees.data, month],
-  );
-  const departmentOptions = Array.from(
-    new Map(
-      (employees.data ?? []).flatMap((employee) => {
-        const department = employee.department as {
-          id: string;
-          name: string;
-        } | null;
-        return department ? [[department.id, department.name] as const] : [];
-      }),
-    ).entries(),
-  ).sort((a, b) => a[1].localeCompare(b[1], i18n.resolvedLanguage));
-  const visible = (employees.data ?? []).filter((employee) => {
-    const matchesSearch =
-      employeeLabel(employee)
-        .toLowerCase()
-        .includes(search.trim().toLowerCase()) ||
-      String(employee.employeeCode)
-        .toLowerCase()
-        .includes(search.trim().toLowerCase());
-    const department = employee.department as { id: string } | null;
-    const departmentId = employee.departmentId ?? department?.id;
-    if (
-      !matchesSearch ||
-      (departmentFilter === "none"
-        ? Boolean(departmentId)
-        : departmentFilter !== "all" && departmentId !== departmentFilter)
-    )
-      return false;
-    const records = monthRecords.filter(
-      (record) => record.employeeId === employee.id,
-    );
-    if (attendanceFilter === "recorded") return records.length > 0;
-    if (attendanceFilter === "noRecords") return records.length === 0;
-    if (attendanceFilter === "late")
-      return records.some((record) => Number(record.lateMinutes ?? 0) > 0);
-    if (attendanceFilter === "missingCheckout")
-      return records.some((record) => record.checkIn && !record.checkOut);
-    return true;
-  });
+  const table = useServerTable<HrRecord, { records: HrRecord[]; permissions: HrRecord[]; departments: [string,string][]; totals: { employees: number; linked: number; lost: number } }>("/employees/records/attendance/monthly-report", { month, search, departmentId: departmentFilter, attendance: attendanceFilter, selectedId: selected?.id });
+  const visible = table.data ?? [];
+  const linkedEmployees = new Set(visible.filter(employee => deviceUserCount(employee) > 0).map(employee => employee.id));
+  const monthRecords = table.pageData?.records ?? [];
+  const permissions = { data: table.pageData?.permissions ?? [], refresh: table.refresh };
+  const departmentOptions = table.pageData?.departments ?? [];
   const recordsFor = (id: string) =>
     monthRecords.filter((x) => x.employeeId === id);
   const [year, monthNumber] = month.split("-").map(Number);
@@ -177,16 +114,8 @@ export default function HrAttendancePage() {
     (total, record) => total + lostMinutes(record, permissions.data ?? []),
     0,
   );
-  const linkedEmployees = new Set(
-    (employees.data ?? []).flatMap((employee) =>
-      deviceUserCount(employee) > 0 ? [employee.id] : [],
-    ),
-  );
-  const totalLost = monthRecords.reduce(
-    (total, record) => total + lostMinutes(record, permissions.data ?? []),
-    0,
-  );
-  const isLoading = employees.isLoading || events.isLoading;
+  const totalLost = table.pageData?.totals.lost ?? 0;
+  const isLoading = table.isLoading;
   const grantPermission = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selected) return;
@@ -262,7 +191,7 @@ export default function HrAttendancePage() {
               <p className="text-xs text-muted-foreground">
                 {tx("totalEmployees", "Employees")}
               </p>
-              <p className="text-xl font-bold">{employees.data?.length ?? 0}</p>
+              <p className="text-xl font-bold">{table.pageData?.totals.employees ?? 0}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-2xl border bg-background/80 p-4 backdrop-blur">
@@ -273,7 +202,7 @@ export default function HrAttendancePage() {
               <p className="text-xs text-muted-foreground">
                 {tx("linkedEmployees", "Device linked")}
               </p>
-              <p className="text-xl font-bold">{linkedEmployees.size}</p>
+              <p className="text-xl font-bold">{table.pageData?.totals.linked ?? 0}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-2xl border bg-background/80 p-4 backdrop-blur">
@@ -367,8 +296,8 @@ export default function HrAttendancePage() {
           </Button>
           <p className="text-sm text-muted-foreground" role="status">
             {t("hrMonthly.filteredEmployees", {
-              count: visible.length,
-              total: employees.data?.length ?? 0,
+              count: table.pagination.total,
+              total: table.pageData?.totals.employees ?? 0,
             })}
           </p>
         </CardContent>
@@ -415,9 +344,9 @@ export default function HrAttendancePage() {
           </div>
         </div>
       </div>
-      {(employees.error || events.error) && (
+      {(table.error) && (
         <p className="text-sm text-destructive">
-          {employees.error || events.error}
+          {table.error}
         </p>
       )}
       {directoryView === "grid" ? (
@@ -505,7 +434,7 @@ export default function HrAttendancePage() {
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody autoPaginate={false}>
               {visible.map((employee) => {
                 const lost = recordsFor(employee.id).reduce(
                   (sum, row) => sum + lostMinutes(row, permissions.data ?? []),
@@ -553,6 +482,7 @@ export default function HrAttendancePage() {
           </Table>
         </div>
       )}
+      <PaginationControls {...table.pagination} />
       {!isLoading && !visible.length && (
         <div className="rounded-3xl border border-dashed py-16 text-center">
           <Search className="mx-auto mb-3 size-8 text-muted-foreground" />

@@ -4,6 +4,7 @@ import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
 import { getSettings } from "./settings.service.js";
+import { resolveBackupTool } from "./backup-tool.js";
 const directory = path.resolve(process.env.NHO_BACKUP_DIRECTORY || "backups");
 let busy = false;
 export async function listBackups() {
@@ -31,6 +32,7 @@ export async function createBackup() {
   busy = true;
   let temporary;
   try {
+    const executable = await resolveBackupTool();
     await mkdir(directory, { recursive: true, mode: 0o700 });
     const name = `nho-${new Date().toISOString().replaceAll(":", "-")}.sql`;
     temporary = path.join(directory, `${name}.partial`);
@@ -43,22 +45,27 @@ export async function createBackup() {
       "--triggers",
       "--events",
       "--hex-blob",
+      "--default-character-set=utf8mb4",
       "--host",
       url.hostname,
       "--port",
       url.port || "3306",
       "--user",
       decodeURIComponent(url.username),
+      // Include CREATE DATABASE and USE as well as every table/view and its
+      // data. No table selection or row filter is applied to this dump.
+      "--databases",
       decodeURIComponent(url.pathname.slice(1)),
     ];
-    const child = spawn("mysqldump", args, {
+    const child = spawn(executable, args, {
+      windowsHide: true,
       env: { ...process.env, MYSQL_PWD: decodeURIComponent(url.password) },
       stdio: ["ignore", "pipe", "pipe"],
     });
     child.stderr.resume();
     const completion = new Promise((resolve, reject) => {
-      child.on("error", () =>
-        reject(new Error("Database backup tool could not start.")),
+      child.on("error", (error) =>
+        reject(new Error(`Database backup tool could not start (${error.code || "unknown error"}). Check NHO_MYSQLDUMP_PATH and executable permissions.`)),
       );
       child.on("close", (code) =>
         code === 0
@@ -70,10 +77,13 @@ export async function createBackup() {
             ),
       );
     });
-    await Promise.all([
+    // Wait for the output file to close before cleanup, including spawn failures.
+    const results = await Promise.allSettled([
       pipeline(child.stdout, createWriteStream(temporary, { mode: 0o600 })),
       completion,
     ]);
+    const failure = results[1].status === "rejected" ? results[1] : results.find(result => result.status === "rejected");
+    if (failure) throw failure.reason;
     await rename(temporary, path.join(directory, name));
     const settings = await getSettings("system");
     for (const file of await listBackups())

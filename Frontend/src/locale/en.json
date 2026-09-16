@@ -91,7 +91,7 @@
     "check_out": "Check out"
   },
   "footer": {
-    "copyright": "© 2026 Nadir Health Organization",
+    "copyright": "© 2026 ",
     "privacy": "Privacy policy"
   },
   "navigation": {
@@ -654,7 +654,7 @@
     "printReport": "Print report",
     "trialBalance": "Trial balance",
     "total": "Total",
-    "organizationName": "Nadir Health Organization",
+    "organizationName": "Health Organization",
     "organizationSubtitle": "Integrated healthcare management",
     "generatedAt": "Generated",
     "currencyLabel": "Currency",
@@ -1195,7 +1195,7 @@
   },
   "collapseSidebar": "Collapse sidebar",
   "expandSidebar": "Expand sidebar",
-  "loading": "Loading Nadir Health Organization system",
+  "loading": "Loading Health Organization system",
   "inventory": {
     "units": {
       "item": "Item",
@@ -1334,7 +1334,7 @@
     "customerDetails": "Customer details",
     "walkInCustomer": "Walk-in customer",
     "returnBarcodeHelp": "Scan this barcode to find and return this sale.",
-    "thankYou": "Thank you for choosing Nadir Health Organization.",
+    "thankYou": "Thank you for choosing Health Organization.",
     "returnSale": "Return sale",
     "returnDescription": "Scan or enter the unique invoice barcode. Confirming returns all invoice products to stock.",
     "invoiceBarcode": "Invoice barcode",
@@ -2139,6 +2139,8 @@
     "noPermission": "Inventory management permission is required to add products."
   },
   "transferForm": {
+    "searchHistory": "Search product, code, barcode or reference",
+    "invalidDateRange": "The end date must be on or after the start date.",
     "select": "Select…",
     "to": "To storage",
     "from": "From storage",

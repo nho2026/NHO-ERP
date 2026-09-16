@@ -1,8 +1,7 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { hasPermission } from "@/features/auth/access";
 import {
-  useCallback,
   useEffect,
-  useMemo,
   useState,
   type FormEvent,
 } from "react";
@@ -66,44 +65,16 @@ export default function TasksPage() {
   const isHr = hasPermission(currentUser, "tasks.list.manage_all");
   const canAssign = isHr || Boolean(currentUser?.employee?.isTeamLeader);
   const availableStatuses = isHr ? statuses : ["todo", "in_progress", "review"];
-  const [items, setItems] = useState<TaskItem[]>([]),
-    [employees, setEmployees] = useState<TaskEmployee[]>([]),
-    [loading, setLoading] = useState(true),
+  const [employees, setEmployees] = useState<TaskEmployee[]>([]),
     [open, setOpen] = useState(false),
     [search, setSearch] = useState(""),
     [status, setStatus] = useState(""),
     [team, setTeam] = useState("");
-  const load = useCallback(async () => {
-    try {
-      const [data, staff] = await Promise.all([
-        tasksApi.list({
-          search,
-          status: status || undefined,
-          team: team || undefined,
-          pageSize: 100,
-        }),
-        canAssign ? tasksApi.employees() : Promise.resolve([]),
-      ]);
-      setItems(data.items);
-      setEmployees(staff);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("tasks.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [canAssign, search, status, t, team]);
-  useEffect(() => {
-    // Refresh the server-backed list whenever its filters change.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load();
-  }, [load]);
-  const counts = useMemo(
-    () =>
-      statuses.map(
-        (x) => [x, items.filter((i) => i.status === x).length] as const,
-      ),
-    [items],
-  );
+  const table = useServerTable<TaskItem, { counts: Record<string, number> }>("/tasks", { search, status: status || undefined, team: team || undefined });
+  const items = table.data ?? [], loading = table.isLoading;
+  const load = table.refresh;
+  useEffect(() => { let active = true; if (canAssign) void tasksApi.employees().then(staff => { if (active) setEmployees(staff); }).catch(() => toast.error(t("tasks.loadFailed"))); return () => { active = false; }; }, [canAssign, t]);
+  const counts = statuses.map(x => [x, table.pageData?.counts?.[x] ?? 0] as const);
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget,
@@ -322,7 +293,7 @@ export default function TasksPage() {
                 <TableHead>{t("tasks.actions")}</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody pageSize={15}>
+            <TableBody {...table.tableProps}>
               {items.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell className="min-w-52">

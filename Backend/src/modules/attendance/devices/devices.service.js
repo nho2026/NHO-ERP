@@ -1,3 +1,4 @@
+import { mapPage } from "../../../shared/database/paginate.js";
 import { getSettings } from "../../settings/settings.service.js";
 import { verifySecret } from "../../../shared/security/password.js";
 import { HikvisionClient } from "../hikvision/hikvision.client.js";
@@ -13,8 +14,8 @@ const authorize = async (user, password) => {
     fail("Super Administrator password is incorrect.", 403);
 };
 export const deviceService = {
-  async list() {
-    return (await deviceModel.findAll()).map(safe);
+  async list(query = {}) {
+    return mapPage(await deviceModel.findAll(query), safe);
   },
   async create(data) {
     const info = await new HikvisionClient(data).info(),

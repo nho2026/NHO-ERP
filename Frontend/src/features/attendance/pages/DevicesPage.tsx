@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useServerTable } from "@/shared/hooks/useServerTable";
+import { useState } from "react";
 import {
   CalendarX2,
   Plus,
@@ -10,7 +11,6 @@ import {
 } from "lucide-react";
 import { attendanceApi, type Device } from "../api/attendance.api";
 import { DeleteConfirmationDialog } from "../components/DeleteConfirmationDialog";
-import { useApiResource } from "@/shared/hooks/useApiResource";
 import { apiErrorMessage } from "@/shared/api/client";
 import { ResourceState } from "@/shared/components/ui/table-resource-state";
 import { Button } from "@/shared/components/ui/button";
@@ -28,14 +28,11 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   PaginationControls,
-  usePaginatedItems,
 } from "@/shared/components/ui/pagination-controls";
 export default function DevicesPage() {
   const { t } = useTranslation();
-  const devices = useApiResource(
-    useCallback(() => attendanceApi.devices(), []),
-  );
-  const pagination = usePaginatedItems(devices.data ?? undefined);
+  const devices = useServerTable<Device>("/attendance/devices");
+  const pagination = devices.pagination;
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -154,7 +151,7 @@ export default function DevicesPage() {
           error={devices.error}
           isEmpty={!devices.data?.length}
         />
-        {pagination.pageItems.map((d) => (
+        {(devices.data ?? []).map((d) => (
           <Card key={d.id}>
             <CardContent className="p-5">
               <div className="flex justify-between">
@@ -235,7 +232,7 @@ export default function DevicesPage() {
         page={pagination.page}
         totalPages={pagination.totalPages}
         total={pagination.total}
-        onPageChange={pagination.setPage}
+        onPageChange={pagination.onPageChange}
       />
       <Dialog
         open={!!managing}

@@ -1,3 +1,4 @@
+import { paginate } from "../../../shared/database/paginate.js";
 import { prisma } from "../../../shared/database/client.js";
 export const peopleModel = {
   devices: (id) =>
@@ -9,9 +10,9 @@ export const peopleModel = {
         select: { id: true },
       })
     )?.id,
-  findAll: (deviceId) =>
-    prisma.attendancePerson.findMany({
-      where: deviceId ? { deviceId } : {},
+  findAll: (deviceId, query = {}) =>
+    paginate("attendancePerson", query, {
+      where: { ...(deviceId && { deviceId }), ...(query.employeeId && { employeeId: query.employeeId === "unlinked" ? null : String(query.employeeId) }) },
       include: {
         device: { select: { name: true } },
         employee: {
@@ -25,7 +26,7 @@ export const peopleModel = {
         },
       },
       orderBy: { createdAt: "desc" },
-    }),
+    }, ["name", "employeeNo", "employee.employeeCode", "employee.firstName", "employee.lastName", "employee.user.username"]),
   find: (id) =>
     prisma.attendancePerson.findUniqueOrThrow({
       where: { id },

@@ -1,5 +1,8 @@
+import { PaginationControls } from "@/shared/components/ui/pagination-controls";
+import { useServerTable } from "@/shared/hooks/useServerTable";
+import type { CrmRecord } from "../api/crm.api";
 import { hasPagePermission } from "@/features/auth/access";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import {
   CircleX,
   Clock3,
@@ -19,7 +22,6 @@ import { useTranslation } from "react-i18next";
 import { crmApi } from "../api/crm.api";
 import { storedUser } from "@/features/auth/access";
 import { toast } from "sonner";
-import { useApiResource } from "@/shared/hooks/useApiResource";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
@@ -173,37 +175,14 @@ export default function LeadProgressPage() {
     gender: "",
   });
   const [draft, setDraft] = useState(filters);
-  const overview = useApiResource(
-    useCallback(() => crmApi.leads.list(1, 100), []),
-  );
-  const leads = useApiResource(
-    useCallback(
-      () =>
-        crmApi.leads.list(
-          1,
-          100,
-          Object.fromEntries(
-            Object.entries(filters).filter(([, value]) => value),
-          ),
-        ),
-      [filters],
-    ),
-  );
-  const rows = (leads.data?.items ?? []).filter((lead) =>
-    JSON.stringify(lead).toLowerCase().includes(search.toLowerCase()),
-  );
+  const leads = useServerTable<CrmRecord, { counts: Record<string, number> }>("/crm/leads", { summary: "true", ...Object.fromEntries(Object.entries(filters).filter(([, value]) => value)), search });
+  const rows = leads.data ?? [];
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
-  const totals = Object.fromEntries(
-    [...stages, "lost"].map((status) => [
-      status,
-      (overview.data?.items ?? []).filter((lead) => lead.status === status)
-        .length,
-    ]),
-  );
+  const totals = leads.pageData?.counts ?? {};
   const markAsLost = async (id: string) => {
     try {
       await crmApi.leads.update(id, { status: "lost" });
-      await Promise.all([leads.refresh(), overview.refresh()]);
+      await leads.refresh();
       toast.success("Lead marked as lost.");
     } catch (error) {
       toast.error(t("crm.errors.markLost"));
@@ -394,7 +373,7 @@ export default function LeadProgressPage() {
                 <TableHead />
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody autoPaginate={false}>
               {rows.map((lead) => (
                 <TableRow key={lead.id}>
                   <TableCell>
@@ -509,6 +488,7 @@ export default function LeadProgressPage() {
           ))}
         </div>
       )}
+      <PaginationControls {...leads.pagination} />
     </div>
   );
 }

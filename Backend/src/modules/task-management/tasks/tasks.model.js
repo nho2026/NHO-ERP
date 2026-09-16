@@ -29,18 +29,20 @@ const include = {
 export const taskModel = {
   include,
   async findPage(where, page, pageSize) {
-    const [items, total] = await prisma.$transaction([
+    const [items, total, groups] = await prisma.$transaction([
       prisma.task.findMany({
         where,
         include,
-        orderBy: [{ createdAt: "desc" }],
+        orderBy: [{ createdAt: "desc" }, { id: "asc" }],
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
       prisma.task.count({ where }),
+      prisma.task.groupBy({ by: ["status"], where, _count: { _all: true } }),
     ]);
     return {
       items,
+      counts: Object.fromEntries(groups.map(row => [row.status, row._count._all])),
       pagination: {
         page,
         pageSize,

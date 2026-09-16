@@ -1,3 +1,4 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { hasPagePermission } from "@/features/auth/access";
 import {
   Select,
@@ -71,8 +72,7 @@ export default function IcuPage({
       });
     return () => c.abort();
   }, []);
-  const [rows, setRows] = useState<Case[]>([]),
-    [search, setSearch] = useState(""),
+  const [search, setSearch] = useState(""),
     [start, setStart] = useState(""),
     [end, setEnd] = useState(""),
     [category, setCategory] = useState("all");
@@ -80,21 +80,9 @@ export default function IcuPage({
     [deleting, setDeleting] = useState<Case | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [loading, setLoading] = useState(true),
     [version, setVersion] = useState(0);
-  useEffect(() => {
-    const c = new AbortController();
-    apiClient
-      .get<Case[]>(endpoint, { signal: c.signal })
-      .then((r) => setRows(r.data))
-      .catch((e) => {
-        if (!c.signal.aborted) setError(apiErrorMessage(e));
-      })
-      .finally(() => {
-        if (!c.signal.aborted) setLoading(false);
-      });
-    return () => c.abort();
-  }, [version, endpoint]);
+  const table = useServerTable<Case, { totals: { count: number; price: number; cost: number } }>(endpoint, { search, start, end, category, part, version });
+  const loading = table.isLoading;
   const money = (value: number) =>
     new Intl.NumberFormat(i18n.language, {
       style: "currency",
@@ -102,33 +90,9 @@ export default function IcuPage({
     }).format(value);
   const sum = (items: Item[], key: "price" | "cost") =>
     items.reduce((v, item) => v + item.quantity * item[key], 0);
-  const filtered = rows.filter((row) =>
-    `${row.id} ${row.patientName}`
-      .toLocaleLowerCase()
-      .includes(search.toLocaleLowerCase()),
-  );
+  const filtered = table.data ?? [];
   const rangeInvalid = !!(start && end && start > end);
-  const aggregate = rows
-    .filter(
-      (row) =>
-        !rangeInvalid &&
-        (!start || new Date(row.entry) >= new Date(`${start}T00:00:00`)) &&
-        (!end || new Date(row.entry) <= new Date(`${end}T23:59:59.999`)),
-    )
-    .map((row) => ({
-      ...row,
-      items: row.items.filter(
-        (item) =>
-          (category === "all" || item.category.toLowerCase() === category) &&
-          (!isOp || part === "all" || item.part === part),
-      ),
-    }))
-    .filter(
-      (row) =>
-        (category === "all" && (!isOp || part === "all")) || row.items.length,
-    );
-  const price = aggregate.reduce((v, row) => v + sum(row.items, "price"), 0),
-    cost = aggregate.reduce((v, row) => v + sum(row.items, "cost"), 0);
+  const price = table.pageData?.totals.price ?? 0, cost = table.pageData?.totals.cost ?? 0;
   const esc = (v: unknown) =>
     String(v ?? "").replace(
       /[&<>"']/g,
@@ -175,7 +139,7 @@ export default function IcuPage({
           </Button>
         )}
       </div>
-      {error && !selected && !deleting && (
+      {(error || table.error) && !selected && !deleting && (
         <p role="alert" className="text-destructive">
           {error}
         </p>
@@ -205,7 +169,7 @@ export default function IcuPage({
               ))}
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody {...table.tableProps}>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={isOp ? 10 : 7} className="h-24 text-center">
@@ -345,7 +309,7 @@ export default function IcuPage({
         )}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {[
-            ["count", aggregate.length],
+            ["count", table.pageData?.totals.count ?? 0],
             ["totalPrice", money(price)],
             ["totalCost", money(cost)],
             ["profit", money(price - cost)],

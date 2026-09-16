@@ -2,8 +2,8 @@ import { prisma } from "../../shared/database/client.js";
 import { defaults, schemas } from "./settings.schema.js";
 export const isSuperAdmin = (user) =>
   user?.roles?.some(({ role }) => role.name === "Super Administrator");
-export async function getSettings(category) {
-  const row = await prisma.systemSetting.findUnique({ where: { category } });
+export async function getSettings(category, db = prisma) {
+  const row = await db.systemSetting.findUnique({ where: { category } });
   return { ...defaults[category], ...(row?.value ?? {}) };
 }
 export async function allSettings() {

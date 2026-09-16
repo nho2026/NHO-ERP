@@ -1,3 +1,4 @@
+import { paginateRows } from "../../../shared/database/paginate.js";
 import { taskService } from "./tasks.service.js";
 const run = (handler) => (req, res, next) =>
   Promise.resolve(handler(req, res)).catch(next);
@@ -78,6 +79,11 @@ export const taskController = {
       ),
   ),
   monthlyReport: run(async (req, res) =>
-    res.json(await taskService.monthlyReport(req.validatedBody.month)),
+    res.json(await (async () => {
+      const report = await taskService.monthlyReport(req.validatedBody.month);
+      if (req.query.page === undefined) return report;
+      const section = req.query.section === "teams" ? "teams" : "employees";
+      return { ...paginateRows(report[section], req.query), summary: report.summary, month: report.month };
+    })()),
   ),
 };

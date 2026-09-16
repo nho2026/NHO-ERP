@@ -2,7 +2,7 @@ import { roleService } from "./roles.service.js";
 const run = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res)).catch(next);
 export const roleController = {
-  list: run(async (_q, res) => res.json(await roleService.list())),
+  list: run(async (_q, res) => res.json(await roleService.list(_q.query))),
   create: run(async (req, res) =>
     res.status(201).json(await roleService.create(req.validatedBody)),
   ),

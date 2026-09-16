@@ -1,3 +1,4 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import {
   settingsSnapshot,
   formatSystemDate,
@@ -5,7 +6,7 @@ import {
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Printer, Trash2 } from "lucide-react";
-import { billingApi, type Invoice } from "../api/billing.api";
+import { billingApi, type Invoice, type Customer, type Payment } from "../api/billing.api";
 import { printDocument } from "../components/print-document";
 import { apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
@@ -55,9 +56,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
     invoices = useApiResource(
       useCallback(() => billingApi.invoices.list(), []),
     ),
-    payments = useApiResource(
-      useCallback(() => billingApi.payments.list(), []),
-    );
+    payments = useServerTable<Payment>("/billing/payments", {}, resource === "payments");
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -69,12 +68,9 @@ export default function BillingPage({ resource }: { resource: Resource }) {
     setPrintInvoice(invoice);
     window.setTimeout(printDocument, 0);
   };
-  const rows =
-    resource === "customers"
-      ? customers
-      : resource === "invoices"
-        ? invoices
-        : payments;
+  const customerRows = useServerTable<Customer>("/billing/customers", {}, resource === "customers");
+  const invoiceRows = useServerTable<Invoice>("/billing/invoices", {}, resource === "invoices");
+  const rows = resource === "customers" ? customerRows : resource === "invoices" ? invoiceRows : payments;
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setBusy(true);
@@ -95,6 +91,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
         });
       setOpen(false);
       await Promise.all([
+        rows.refresh(),
         customers.refresh(),
         invoices.refresh(),
         payments.refresh(),
@@ -165,7 +162,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                 ))}
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody {...rows.tableProps}>
               <TableResourceState
                 isLoading={rows.isLoading}
                 error={rows.error}
@@ -173,7 +170,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                 colSpan={headers.length}
               />
               {resource === "customers" &&
-                customers.data?.map((x) => (
+                customerRows.data?.map((x) => (
                   <TableRow key={x.id}>
                     <TableCell>{x.code}</TableCell>
                     <TableCell>{x.name}</TableCell>
@@ -188,7 +185,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                   </TableRow>
                 ))}
               {resource === "invoices" &&
-                invoices.data?.map((x) => (
+                invoiceRows.data?.map((x) => (
                   <TableRow key={x.id}>
                     <TableCell>{x.invoiceNumber}</TableCell>
                     <TableCell>{x.customer.name}</TableCell>
@@ -220,7 +217,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                               variant="outline"
                               onClick={async () => {
                                 await billingApi.invoices.status(x.id, "sent");
-                                await invoices.refresh();
+                                await Promise.all([invoices.refresh(), invoiceRows.refresh()]);
                               }}
                             >
                               {t("billing.send")}
@@ -232,7 +229,7 @@ export default function BillingPage({ resource }: { resource: Resource }) {
                               className="text-destructive"
                               onClick={async () => {
                                 await billingApi.invoices.remove(x.id);
-                                await invoices.refresh();
+                                await Promise.all([invoices.refresh(), invoiceRows.refresh()]);
                               }}
                             >
                               <Trash2 className="size-4 text-white" />

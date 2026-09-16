@@ -1,3 +1,4 @@
+import { paginate } from "../../shared/database/paginate.js";
 import { prisma } from "../../shared/database/client.js";
 const departmentInclude = {
     manager: {
@@ -15,11 +16,11 @@ const departmentInclude = {
 export const healthcareModel = {
   getDepartment: id => prisma.department.findUnique({ where: { id }, include: { _count: { select: { healthStaff: true, appointments: true } } } }),
   getStaff: id => prisma.healthStaff.findUniqueOrThrow({ where: { id } }),
-  listDepartments: () =>
-    prisma.department.findMany({
+  listDepartments: (query = {}) =>
+    paginate("department", query, {
       include: departmentInclude,
       orderBy: { name: "asc" },
-    }),
+    }, ["code","name"]),
   createDepartment: async (data) => {
     for (let attempt = 0; attempt < 10; attempt++) {
       const departments = await prisma.department.findMany({ select: { code: true } });
@@ -44,15 +45,15 @@ export const healthcareModel = {
       where: { id: employeeId },
       data: { departmentId },
     }),
-  listStaff: (q) =>
-    prisma.healthStaff.findMany({
+  listStaff: (q = {}) =>
+    paginate("healthStaff", q, {
       where: {
         ...(q.staffType && { staffType: String(q.staffType) }),
         ...(q.departmentId && { departmentId: String(q.departmentId) }),
       },
       include: staffInclude,
       orderBy: { createdAt: "desc" },
-    }),
+    }, ["employee.firstName", "employee.lastName", "employee.employeeCode"]),
   createStaff: (input) => prisma.$transaction(async tx => {
     const { positionId, ...data } = input;
     await setStaffPosition(tx, data.employeeId, positionId);

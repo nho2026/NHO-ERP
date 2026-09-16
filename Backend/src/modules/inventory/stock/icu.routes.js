@@ -1,3 +1,5 @@
+import { listIcuCases } from "./icu-list.js";
+import { paginate } from "../../../shared/database/paginate.js";
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../../shared/database/client.js';
@@ -14,11 +16,11 @@ async function caseData(body) {
  if (!patient) throw Object.assign(new Error('Select an existing patient.'),{status:400});
  return {...input,patientName:[patient.firstName,patient.lastName].filter(Boolean).join(' ')};
 }
-router.get('/surgery-bypass',requirePermission('inventory.view'),action(()=>prisma.inventoryIcuCase.findMany({where:{unit:'cardiac-surgery'},select:{id:true,patientName:true,entry:true,exit:true,isBypass:true},orderBy:[{entry:'desc'},{id:'desc'}]})));
+router.get('/surgery-bypass',requirePermission('inventory.view'),action(({query})=>paginate('inventoryIcuCase',query,{where:{unit:'cardiac-surgery'},select:{id:true,patientName:true,entry:true,exit:true,isBypass:true},orderBy:[{entry:'desc'},{id:'desc'}]},['patientName'])));
 router.patch('/surgery-bypass/:id',manage,action(({id,body})=>prisma.inventoryIcuCase.update({where:{id,unit:'cardiac-surgery'},data:z.object({isBypass:z.boolean()}).parse(body)})));
 for (const unit of ['icu', 'picu', 'cardiac-sw', 'cardiac-surgery', 'cardiology']) {
  const path = `/${unit}-cases`;
- router.get(path,requirePermission('inventory.view'),action(()=>prisma.inventoryIcuCase.findMany({where:{unit},orderBy:[{entry:'desc'},{id:'desc'}]})));
+ router.get(path,requirePermission('inventory.view'),action(({query})=>listIcuCases(unit,query)));
  router.post(path,manage,action(async({body})=>prisma.inventoryIcuCase.create({data:{...await caseData(body),unit}}),201));
  router.patch(`${path}/:id`,manage,action(async({body,id})=>prisma.inventoryIcuCase.update({where:{id,unit},data:await caseData(body)})));
  router.delete(`${path}/:id`,manage,action(async({id})=>{await prisma.inventoryIcuCase.delete({where:{id,unit}});}));

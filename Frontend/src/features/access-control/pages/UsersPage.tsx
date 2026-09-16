@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useServerTable } from "@/shared/hooks/useServerTable";
+import { useCallback, useState } from "react";
 import { Eye, EyeOff, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { usersApi, rolesApi } from "../api/access.api";
 import type { User } from "../types/access.types";
@@ -46,7 +47,8 @@ export default function UsersPage() {
   const canDelete = hasPermission(currentUser, "users.delete");
   const canViewRoles = hasPermission(currentUser, "roles.view");
   const canEditUsers = canCreate || canUpdate;
-  const users = useApiResource(useCallback(() => usersApi.list(), [])),
+  const [search, setSearch] = useState("");
+  const users = useServerTable<User>("/users", { search }),
     roles = useApiResource(
       useCallback(
         () => (canViewRoles ? rolesApi.list() : Promise.resolve([])),
@@ -60,22 +62,13 @@ export default function UsersPage() {
         [canEditUsers],
       ),
     );
-  const [search, setSearch] = useState(""),
-    [editing, setEditing] = useState<User | null | undefined>(undefined),
+  const [editing, setEditing] = useState<User | null | undefined>(undefined),
     [roleId, setRoleId] = useState(""),
     [department, setDepartment] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const filtered = useMemo(
-    () =>
-      users.data?.filter((u) =>
-        `${u.name} ${u.username} ${u.email}`
-          .toLowerCase()
-          .includes(search.toLowerCase()),
-      ) ?? [],
-    [users.data, search],
-  );
+  const filtered = users.data ?? [];
   const openEditor = (user: User | null) => {
     setShowPassword(false);
     setEditing(user);
@@ -148,7 +141,7 @@ export default function UsersPage() {
                 <TableHead />
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody {...users.tableProps}>
               <TableResourceState
                 isLoading={users.isLoading}
                 error={users.error}

@@ -1,3 +1,4 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { assignablePermissionCatalog } from "@/features/auth/permission-policy";
 import { useCallback, useMemo, useState, type FormEvent } from "react";
 import { Pencil, Plus, Trash2, LayoutGrid, List } from "lucide-react";
@@ -36,7 +37,6 @@ import { DeleteConfirmationDialog } from "@/shared/components/ui/confirmation-di
 import { ResourceState } from "@/shared/components/ui/table-resource-state";
 import {
   PaginationControls,
-  usePaginatedItems,
 } from "@/shared/components/ui/pagination-controls";
 
 export default function RolesPage() {
@@ -46,7 +46,7 @@ export default function RolesPage() {
   const canUpdate = hasPermission(user, "roles.update");
   const canAssign = hasPermission(user, "roles.assign_permissions");
   const canDelete = hasPermission(user, "roles.delete");
-  const roles = useApiResource(useCallback(() => rolesApi.list(), []));
+  const roles = useServerTable<Role>("/roles");
   const permissions = useApiResource(
     useCallback(
       () =>
@@ -56,7 +56,7 @@ export default function RolesPage() {
       [],
     ),
   );
-  const pagination = usePaginatedItems(roles.data ?? undefined);
+  const pagination = roles.pagination;
   const [editing, setEditing] = useState<Role | null | undefined>();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"table" | "cards">("table");
@@ -168,7 +168,7 @@ export default function RolesPage() {
               </TableRow>
             </TableHeader>
             <TableBody autoPaginate={false}>
-              {pagination.pageItems.map((role) => (
+              {(roles.data ?? []).map((role) => (
                 <TableRow key={role.id}>
                   <TableCell className="whitespace-nowrap font-medium">
                     {role.name}
@@ -238,7 +238,7 @@ export default function RolesPage() {
       )}
       {!roles.isLoading && !roles.error && view === "cards" && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {pagination.pageItems.map((role) => (
+          {(roles.data ?? []).map((role) => (
             <Card key={role.id}>
               <CardHeader>
                 <CardTitle className="text-base">{role.name}</CardTitle>
@@ -303,7 +303,7 @@ export default function RolesPage() {
         page={pagination.page}
         totalPages={pagination.totalPages}
         total={pagination.total}
-        onPageChange={pagination.setPage}
+        onPageChange={pagination.onPageChange}
       />
       <Dialog
         open={editing !== undefined}

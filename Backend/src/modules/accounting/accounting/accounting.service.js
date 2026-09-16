@@ -1,3 +1,4 @@
+import { paginateRows } from "../../../shared/database/paginate.js";
 import { accountingModel } from "./accounting.model.js";
 const httpError = (message, status) =>
   Object.assign(new Error(message), { status });
@@ -36,7 +37,9 @@ export const accountingService = {
         .filter((x) => x.type === type)
         .reduce((s, x) => s + x.credit - x.debit, 0);
     return {
-      trialBalance,
+      totals: { debit: trialBalance.reduce((sum,row) => sum + row.debit,0), credit: trialBalance.reduce((sum,row) => sum + row.credit,0) },
+      trialBalance: query.page === undefined ? trialBalance : paginateRows(trialBalance, query).items,
+      ...(query.page !== undefined && { pagination: paginateRows(trialBalance, query).pagination }),
       profitLoss: {
         revenue: total("revenue"),
         expenses: -total("expense"),

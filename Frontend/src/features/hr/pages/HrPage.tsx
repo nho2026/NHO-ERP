@@ -1,12 +1,14 @@
+import { useFullReportPrint } from "@/shared/hooks/useFullReportPrint";
+import { apiClient } from "@/shared/api/client";
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { hasPermission, storedUser } from "@/features/auth/access";
 import { settingsSnapshot } from "@/features/settings/settings";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Gift, Pencil, Plus, Printer, Search, Trash2 } from "lucide-react";
 import { hrApi, type HrRecord } from "../api/hr.api";
 import { usersApi } from "@/features/access-control/api/access.api";
 import { healthcareApi } from "@/features/healthcare/api/healthcare.api";
-import { printDocument } from "@/features/accounting/components/print-document";
 import { apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { TableResourceState } from "@/shared/components/ui/table-resource-state";
@@ -434,38 +436,14 @@ export default function HrPage({ resource }: { resource?: Resource }) {
   const departments = useApiResource(
     useCallback(() => hasPermission(storedUser(), "healthcare.departments.view") ? healthcareApi.departments.list() : Promise.resolve([]), []),
   );
-  const resources = {
-    teams,
-    positions,
-    employees,
-    salaries,
-    attendance: useApiResource(useCallback(() => hasPermission(storedUser(), "hr.attendance.view") ? hrApi.attendance.list() : Promise.resolve([]), [])),
-    payrolls: useApiResource(useCallback(() => hasPermission(storedUser(), "hr.payrolls.view") ? hrApi.payrolls.list() : Promise.resolve([]), [])),
-    adjustments: useApiResource(
-      useCallback(() => hasPermission(storedUser(), "hr.payroll-adjustments.view") ? hrApi.adjustments.list() : Promise.resolve([]), []),
-    ),
-    advances: useApiResource(useCallback(() => hasPermission(storedUser(), "hr.advances.view") ? hrApi.advances.list() : Promise.resolve([]), [])),
-  };
-  const current = resources[tab];
-  const rows = useMemo(
-    () =>
-      (current.data ?? []).filter((row) => {
-        if (
-          !JSON.stringify(row)
-            .toLowerCase()
-            .includes(search.trim().toLowerCase())
-        )
-          return false;
-        return (
-          tab !== "employees" ||
-          ((departmentFilter === "all" ||
-            row.departmentId === departmentFilter) &&
-            (positionFilter === "all" || row.positionId === positionFilter) &&
-            (statusFilter === "all" || row.status === statusFilter))
-        );
-      }),
-    [current.data, search, tab, departmentFilter, positionFilter, statusFilter],
-  );
+  const endpoints: Record<Resource, string> = { employees: "/employees", teams: "/employees/teams", positions: "/employees/positions", salaries: "/employees/records/salaries", attendance: "/employees/records/attendance", payrolls: "/employees/records/payrolls", adjustments: "/employees/records/payroll-adjustments", advances: "/advances/salary" };
+  const current = useServerTable<HrRecord>(endpoints[tab], { search,
+    ...(tab === "employees" ? { departmentId: departmentFilter === "all" ? undefined : departmentFilter, positionId: positionFilter === "all" ? undefined : positionFilter, status: statusFilter === "all" ? undefined : statusFilter } : {}) });
+  const fullPrint = useFullReportPrint(async () => {
+    const all = (await apiClient.get<HrRecord[]>(endpoints[tab])).data;
+    return all.filter(row => JSON.stringify(row).toLowerCase().includes(search.trim().toLowerCase()));
+  });
+  const rows = fullPrint.printData ?? current.data ?? [];
   const options = (field: Field) =>
     field.type === "systemUser"
       ? users.data?.map((user) => [user.id, `${user.name} — @${user.username}`])
@@ -592,7 +570,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                   </div>
                   <div className="flex items-center gap-2">
                     {key === "salaries" && (
-                      <Button permission="hr.salaries.print" variant="outline" onClick={printDocument}>
+                      <Button permission="hr.salaries.print" variant="outline" disabled={fullPrint.printing} onClick={() => void fullPrint.print()}>
                         <Printer className="size-4" />
                         {t("hr.printSalaryList")}
                       </Button>
@@ -701,7 +679,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                         <TableHead>{t("hr.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody autoPaginate={false} pagination={fullPrint.printData ? undefined : current.pagination}>
                       <TableResourceState
                         isLoading={current.isLoading}
                         error={current.error}
@@ -956,7 +934,7 @@ export default function HrPage({ resource }: { resource?: Resource }) {
                   reason: form.get("reason"),
                 });
                 setAdjustmentEmployee(null);
-                await resources.adjustments.refresh();
+                await current.refresh();
               } catch (cause) {
                 setError(apiErrorMessage(cause));
               } finally {

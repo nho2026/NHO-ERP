@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useServerTable } from "@/shared/hooks/useServerTable";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/shared/components/ui/table";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { tasksApi, type TaskReport } from "../api/tasks.api";
+import { type TaskReport } from "../api/tasks.api";
 import { FormDatePicker } from "@/shared/components/ui/form-date-picker";
 import {
   Card,
@@ -12,13 +14,10 @@ const hours = (minutes: number) =>
   (minutes / 60).toLocaleString(undefined, { maximumFractionDigits: 1 });
 export default function TaskReportsPage() {
   const { t } = useTranslation();
-  const [month, setMonth] = useState(() =>
-      new Date().toISOString().slice(0, 7),
-    ),
-    [report, setReport] = useState<TaskReport | null>(null);
-  useEffect(() => {
-    tasksApi.report(month).then(setReport);
-  }, [month]);
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0,7));
+  const employees = useServerTable<TaskReport["employees"][number], {summary: TaskReport["summary"]}>("/tasks/reports/monthly", {month, section: "employees"});
+  const teams = useServerTable<TaskReport["teams"][number]>("/tasks/reports/monthly", {month, section: "teams"});
+  const report = employees.pageData ? { summary: employees.pageData.summary, employees: employees.data ?? [], teams: teams.data ?? [] } : null;
   return (
     <div className="space-y-5 p-4 md:p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -33,6 +32,7 @@ export default function TaskReportsPage() {
           <FormDatePicker mode="month" value={month} onValueChange={setMonth} />
         </label>
       </header>
+      {(employees.error || teams.error) && <p role="alert" className="text-destructive">{employees.error || teams.error}</p>}
       {report && (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
@@ -62,40 +62,40 @@ export default function TaskReportsPage() {
                 {t("tasks.report.employeePerformance")}
               </h2>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-start">
-                      <th className="p-3 text-start">
+                <Table className="w-full text-sm">
+                  <TableHeader>
+                    <TableRow className="border-b text-start">
+                      <TableHead className="p-3 text-start">
                         {t("navigation.employees")}
-                      </th>
-                      <th className="p-3 text-start">
+                      </TableHead>
+                      <TableHead className="p-3 text-start">
                         {t("tasks.report.hours")}
-                      </th>
-                      <th className="p-3 text-start">
+                      </TableHead>
+                      <TableHead className="p-3 text-start">
                         {t("tasks.report.entries")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody {...employees.tableProps}>
                     {report.employees.length === 0 && (
-                      <tr>
-                        <td
+                      <TableRow>
+                        <TableCell
                           colSpan={3}
                           className="h-24 text-center text-muted-foreground"
                         >
                           {t("tasks.report.noData")}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     )}
                     {report.employees.map((x) => (
-                      <tr key={x.employeeId} className="border-b last:border-0">
-                        <td className="p-3">{x.employeeName}</td>
-                        <td className="p-3">{hours(x.minutes)}</td>
-                        <td className="p-3">{x.entries}</td>
-                      </tr>
+                      <TableRow key={x.employeeId} className="border-b last:border-0">
+                        <TableCell className="p-3">{x.employeeName}</TableCell>
+                        <TableCell className="p-3">{hours(x.minutes)}</TableCell>
+                        <TableCell className="p-3">{x.entries}</TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </section>
             <section className="overflow-hidden rounded-xl border bg-card">
@@ -103,44 +103,44 @@ export default function TaskReportsPage() {
                 {t("tasks.report.teamPerformance")}
               </h2>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="p-3 text-start">
+                <Table className="w-full text-sm">
+                  <TableHeader>
+                    <TableRow className="border-b">
+                      <TableHead className="p-3 text-start">
                         {t("tasks.fields.team")}
-                      </th>
-                      <th className="p-3 text-start">
+                      </TableHead>
+                      <TableHead className="p-3 text-start">
                         {t("tasks.report.assigned")}
-                      </th>
-                      <th className="p-3 text-start">
+                      </TableHead>
+                      <TableHead className="p-3 text-start">
                         {t("tasks.report.completed")}
-                      </th>
-                      <th className="p-3 text-start">
+                      </TableHead>
+                      <TableHead className="p-3 text-start">
                         {t("tasks.report.hours")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody {...teams.tableProps}>
                     {report.teams.length === 0 && (
-                      <tr>
-                        <td
+                      <TableRow>
+                        <TableCell
                           colSpan={4}
                           className="h-24 text-center text-muted-foreground"
                         >
                           {t("tasks.report.noData")}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     )}
                     {report.teams.map((x) => (
-                      <tr key={x.team} className="border-b last:border-0">
-                        <td className="p-3">{t(`tasks.teams.${x.team}`)}</td>
-                        <td className="p-3">{x.assigned}</td>
-                        <td className="p-3">{x.completed}</td>
-                        <td className="p-3">{hours(x.minutes)}</td>
-                      </tr>
+                      <TableRow key={x.team} className="border-b last:border-0">
+                        <TableCell className="p-3">{t(`tasks.teams.${x.team}`)}</TableCell>
+                        <TableCell className="p-3">{x.assigned}</TableCell>
+                        <TableCell className="p-3">{x.completed}</TableCell>
+                        <TableCell className="p-3">{hours(x.minutes)}</TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </section>
           </div>

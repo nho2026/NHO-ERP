@@ -8,7 +8,7 @@ const handle = (handler) => async (req, res, next) => {
 };
 export const billingController = {
   listCustomers: handle(async (_req, res) =>
-    res.json(await billingService.listCustomers()),
+    res.json(await billingService.listCustomers(_req.query)),
   ),
   createCustomer: handle(async (req, res) =>
     res
@@ -25,7 +25,7 @@ export const billingController = {
     res.status(204).end();
   }),
   listInvoices: handle(async (req, res) =>
-    res.json(await billingService.listInvoices(req.query.status)),
+    res.json(await billingService.listInvoices(req.query.status, req.query)),
   ),
   createInvoice: handle(async (req, res) =>
     res.status(201).json(await billingService.createInvoice(req.validatedBody)),
@@ -43,7 +43,7 @@ export const billingController = {
     res.status(204).end();
   }),
   listPayments: handle(async (_req, res) =>
-    res.json(await billingService.listPayments()),
+    res.json(await billingService.listPayments(_req.query)),
   ),
   createPayment: handle(async (req, res) =>
     res.status(201).json(await billingService.recordPayment(req.validatedBody)),

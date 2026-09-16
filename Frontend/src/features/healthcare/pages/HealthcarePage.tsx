@@ -1,5 +1,6 @@
+import { useServerTable } from "@/shared/hooks/useServerTable";
 import { settingsSnapshot } from "@/features/settings/settings";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -704,10 +705,11 @@ export default function HealthcarePage({
       );
     return t(`healthcareAdmin.${key}`, { defaultValue: text });
   };
+  const [search, setSearch] = useState("");
   const config = configs[resource];
-  const data = useApiResource(
-    useCallback(() => healthcareApi[resource].list(), [resource]),
-  );
+  const table = useServerTable<HealthcareRecord>(resource === "appointments" ? "/crm/appointments" : `/healthcare/${resource}`, { search });
+  const data = table;
+  const calendar = useApiResource(useCallback(() => resource === "appointments" ? healthcareApi.appointments.list() : Promise.resolve([]), [resource]));
   const employees = useApiResource(
     useCallback(() => hrApi.employees.list(), []),
   );
@@ -722,7 +724,6 @@ export default function HealthcarePage({
     useCallback(() => healthcareApi.staff.list(), []),
   );
   const [editing, setEditing] = useState<HealthcareRecord | null | undefined>();
-  const [search, setSearch] = useState("");
   const [appointmentView, setAppointmentView] = useState<"calendar" | "list">(
     "calendar",
   );
@@ -744,13 +745,7 @@ export default function HealthcarePage({
     setEditing(null);
     setSearchParams({}, { replace: true });
   }, [resource, searchParams, setSearchParams]);
-  const rows = useMemo(
-    () =>
-      (data.data ?? []).filter((row) =>
-        JSON.stringify(row).toLowerCase().includes(search.toLowerCase()),
-      ),
-    [data.data, search],
-  );
+  const rows = data.data ?? [];
   const options = (field: Field) =>
     field.type === "position"
       ? (positions.data ?? []).filter(position => position.status === "active" || position.id === (editing?.employee as HealthcareRecord | undefined)?.positionId).map(position => [position.id, String(position.name)])
@@ -808,6 +803,7 @@ export default function HealthcarePage({
       setQuickAppointment({});
       await Promise.all([
         data.refresh(),
+        calendar.refresh(),
         departments.refresh(),
         staff.refresh(),
         specializations.refresh(),
@@ -880,7 +876,7 @@ export default function HealthcarePage({
           </div>
           {resource === "appointments" && appointmentView === "calendar" ? (
             <AppointmentCalendar
-              appointments={rows}
+              appointments={(calendar.data ?? []).filter(row => JSON.stringify(row).toLowerCase().includes(search.toLowerCase()))}
               onCreate={(day) => {
                 setError("");
                 setAppointmentDraftAt(`${format(day, "yyyy-MM-dd")}T09:00`);
@@ -903,7 +899,7 @@ export default function HealthcarePage({
                     <TableHead>{t("healthcareAdmin.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody {...table.tableProps}>
                   <TableResourceState
                     isLoading={data.isLoading}
                     error={data.error}

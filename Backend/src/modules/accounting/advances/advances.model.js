@@ -1,13 +1,14 @@
+import { paginate } from "../../../shared/database/paginate.js";
 import { prisma } from "../../../shared/database/client.js";
 
 const serviceInclude = { department: true, appointment: true };
 
 export const advancesModel = {
-  listSalary: () =>
-    prisma.salaryAdvance.findMany({
+  listSalary: (query = {}) =>
+    paginate("salaryAdvance", query, {
       include: { employee: true },
       orderBy: { requestedAt: "desc" },
-    }),
+    }, ["employee.firstName","employee.lastName","employee.employeeCode"]),
   findSalary: (id) => prisma.salaryAdvance.findUniqueOrThrow({ where: { id } }),
   createSalary: (data) =>
     prisma.salaryAdvance.create({ data, include: { employee: true } }),
@@ -21,11 +22,11 @@ export const advancesModel = {
     prisma.salaryAdvance.delete({
       where: { id, status: { in: ["requested", "rejected", "cancelled"] } },
     }),
-  listService: () =>
-    prisma.serviceAdvance.findMany({
+  listService: (query = {}) =>
+    paginate("serviceAdvance", query, {
       include: serviceInclude,
       orderBy: { receivedAt: "desc" },
-    }),
+    }, ["receiptNumber","patientName","patientPhone"]),
   findService: (id) =>
     prisma.serviceAdvance.findUniqueOrThrow({ where: { id } }),
   createService: (data) =>

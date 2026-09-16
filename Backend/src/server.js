@@ -22,7 +22,7 @@ attachMeetingSignaling(
   env.production,
 );
 server.listen(env.port, () =>
-  console.log(`NHO API listening on http://localhost:${env.port}`),
+  console.log(`API listening on http://localhost:${env.port}`),
 );
 startAttendanceStreams().catch((error) =>
   console.error("Attendance streams failed to start:", error),

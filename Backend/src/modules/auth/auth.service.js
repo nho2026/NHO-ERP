@@ -8,11 +8,11 @@ const httpError = (message, status) =>
   Object.assign(new Error(message), { status });
 export const authService = {
   present: presentUser,
-  async login(input) {
+  async login(input, db) {
     const user =
       input.method === "credentials"
-        ? await authModel.findByLogin(input.username)
-        : await authModel.findByPinLookup(createPinLookup(input.pin));
+        ? await authModel.findByLogin(input.username, db)
+        : await authModel.findByPinLookup(createPinLookup(input.pin), db);
     if (input.method === "pin" && !user?.roles?.some(({ role }) => role.name === "Super Administrator"))
       throw httpError("PIN login is only available to superadmins. Use your username and password.", 401);
     const valid =
@@ -29,7 +29,7 @@ export const authService = {
     if (user.status !== "active")
       throw httpError("This account is inactive.", 403);
     const remember = input.method === "credentials" && input.remember;
-    const security = await getSettings("security");
+    const security = await getSettings("security", db);
     const maxAge = (remember ? security.rememberDays * 86400 : security.sessionHours * 3600) * 1000;
     return {
       maxAge,
@@ -49,9 +49,9 @@ export const authService = {
     });
     return { ...presentUser(user), employee: user.employee };
   },
-  async profileEvents(userId) {
+  async profileEvents(userId, query) {
     const employee = await authModel.getEmployeeIdentity(userId);
-    if (!employee) return [];
-    return authModel.findOwnEvents(employee.id);
+    if (!employee && query?.page === undefined) return [];
+    return authModel.findOwnEvents(employee?.id ?? "", query);
   },
 };

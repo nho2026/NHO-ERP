@@ -4,7 +4,7 @@ const run = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res)).catch(next);
 export const peopleController = {
   list: run(async (req, res) =>
-    res.json(await s.list(req.query.deviceId && String(req.query.deviceId))),
+    res.json(await s.list(req.query.deviceId && String(req.query.deviceId), req.query)),
   ),
   sync: run(async (req, res) =>
     res.json(await s.sync(req.validatedBody.deviceId)),

@@ -1,9 +1,10 @@
+import type { Page } from "@/shared/api/pagination";
 import defaultLogo from "@/assets/icons/logo.png";
 import arabicFont from "@/assets/fonts/arabic.ttf";
 import kurdishFont from "@/assets/fonts/kurdish.ttf";
 import printStyles from "../components/patient-report-print.css?inline";
 import { useSettings } from "@/features/settings/settings";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Download, Printer, RefreshCw, ArrowUpDown } from "lucide-react";
 import { apiClient } from "@/shared/api/client";
@@ -34,7 +35,6 @@ import {
   csvCell,
   emptyReportFilters,
   escapeReportHtml as esc,
-  filterPatientProducts,
   reportTotals,
   type PatientProductRow,
   type ReportFilters,
@@ -198,15 +198,6 @@ export default function PatientProductsReportPage() {
         ? '"NHO Kurdish", sans-serif'
         : '"Segoe UI", "Helvetica Neue", Arial, sans-serif';
 
-  const resource = useApiResource(
-    useCallback(
-      () =>
-        apiClient
-          .get<PatientProductRow[]>("/inventory/reports/products-per-patient")
-          .then((response) => response.data),
-      [],
-    ),
-  );
   const [filters, setFilters] = useState<ReportFilters>(emptyReportFilters);
   const visible: Column[] = [...columns];
   const [page, setPage] = useState(1);
@@ -214,6 +205,10 @@ export default function PatientProductsReportPage() {
     key: "date",
     descending: true,
   });
+  type ReportPage = Page<PatientProductRow> & { totals: ReturnType<typeof reportTotals>; productGroups: {name:string;values:number[]}[]; departmentGroups: {name:string;values:number[]}[] };
+  const query = JSON.stringify({ ...filters, sort: sort.key, descending: String(sort.descending), locale: i18n.language });
+  const resource = useApiResource(useCallback(() => apiClient.get<ReportPage>("/inventory/reports/products-per-patient", { params: { ...JSON.parse(query), page, pageSize: 20 } }).then(response => response.data), [query, page]));
+  const loadExport = () => apiClient.get<PatientProductRow[]>("/inventory/reports/products-per-patient", { params: JSON.parse(query) }).then(response => response.data);
   const [printError, setPrintError] = useState("");
   const chartsRef = useRef<HTMLDivElement>(null);
   const update = (patch: Partial<ReportFilters>) => {
@@ -225,28 +220,11 @@ export default function PatientProductsReportPage() {
     filters.end &&
     filters.start > filters.end
   );
-  const rows = useMemo(
-    () => filterPatientProducts(resource.data ?? [], filters),
-    [resource.data, filters],
-  );
-  const sorted = useMemo(
-    () =>
-      [...rows].sort((a, b) => {
-        const left = a[sort.key],
-          right = b[sort.key];
-        const result =
-          typeof left === "number" && typeof right === "number"
-            ? left - right
-            : String(left).localeCompare(String(right), i18n.language, {
-                numeric: true,
-              });
-        return sort.descending ? -result : result;
-      }),
-    [rows, sort, i18n.language],
-  );
-  const totals = reportTotals(rows);
-  const totalPages = Math.max(1, Math.ceil(rows.length / 20));
-  const currentPage = Math.min(page, totalPages);
+  const sorted = resource.data?.items ?? [];
+  const totals = resource.data?.totals ?? reportTotals([]);
+  const totalPages = resource.data?.pagination.totalPages ?? 1;
+  const currentPage = resource.data?.pagination.page ?? page;
+  const totalRows = resource.data?.pagination.total ?? 0;
   const displayedColumns = columns.filter((column) => visible.includes(column));
   const money = (value: number) =>
     new Intl.NumberFormat(i18n.language, {
@@ -281,32 +259,8 @@ export default function PatientProductsReportPage() {
       : column === "quantity"
         ? number(row.quantity)
         : cellValue(row, column) || "—";
-  const products = new Map<string, number>();
-  const departments = new Map<
-    string,
-    { cost: number; price: number; profit: number }
-  >();
-  rows.forEach((row) => {
-    products.set(row.product, (products.get(row.product) ?? 0) + row.quantity);
-    const sum = departments.get(row.department) ?? {
-      cost: 0,
-      price: 0,
-      profit: 0,
-    };
-    departments.set(row.department, {
-      cost: sum.cost + row.cost,
-      price: sum.price + row.price,
-      profit: sum.profit + row.profit,
-    });
-  });
-  const productGroups = [...products]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([name, value]) => ({ name, values: [value] }));
-  const departmentGroups = [...departments].map(([unit, sum]) => ({
-    name: department(unit),
-    values: [sum.cost, sum.price, sum.profit],
-  }));
+  const productGroups = resource.data?.productGroups ?? [];
+  const departmentGroups = (resource.data?.departmentGroups ?? []).map(group => ({ ...group, name: department(group.name) }));
   const unavailable = resource.isLoading || !!resource.error || invalid;
   const filterSummary = [
     filters.department === "all"
@@ -320,7 +274,9 @@ export default function PatientProductsReportPage() {
   ]
     .filter(Boolean)
     .join(" · ");
-  function exportCsv() {
+  async function exportCsv() {
+    let sorted: PatientProductRow[];
+    try { sorted = await loadExport(); } catch { setPrintError(t("resourceState.error", {defaultValue: "Unable to load the full report."})); return; }
     const data = [
       displayedColumns.map((column) => tr(column)),
       ...sorted.map((row) =>
@@ -346,7 +302,7 @@ export default function PatientProductsReportPage() {
       "text/csv;charset=utf-8",
     );
   }
-  function print() {
+  async function print() {
     setPrintError("");
     const win = window.open("", "_blank", "width=1200,height=800");
     if (!win) {
@@ -369,6 +325,8 @@ export default function PatientProductsReportPage() {
       .join(" · ");
     const numeric = (column: Column) =>
       ["quantity", "cost", "price", "profit"].includes(column);
+    let sorted: PatientProductRow[];
+    try { sorted = await loadExport(); } catch { win.close(); setPrintError("Unable to load the full report."); return; }
     win.document
       .write(`<!doctype html><html lang="${esc(i18n.language)}" dir="${i18n.dir()}"><head><meta charset="utf-8"><title>${esc(tr("title"))}</title><style>${printStyles}${fontStyles}</style></head><body><main class="report">
       <button class="print-button" onclick="window.print()">${esc(tr("print"))}</button>
@@ -378,7 +336,7 @@ export default function PatientProductsReportPage() {
       <div class="totals">${(["quantity", "cost", "price", "profit"] as const).map((key) => `<div class="metric"><span>${esc(tr(key))}</span><strong class="${key === "profit" ? (totals.profit < 0 ? "negative" : "positive") : ""}">${esc(key === "quantity" ? number(totals[key]) : money(totals[key]))}</strong></div>`).join("")}</div>
       <div class="charts">${charts}</div>
       <table><thead><tr>${displayedColumns.map((column) => `<th class="${numeric(column) ? "numeric" : ""}">${esc(tr(column))}</th>`).join("")}</tr></thead><tbody>${sorted.map((row) => `<tr>${displayedColumns.map((column) => `<td class="${numeric(column) ? "numeric" : ""} ${column === "profit" ? (row.profit < 0 ? "negative" : "positive") : ""}">${esc(cellText(row, column))}</td>`).join("")}</tr>`).join("")}</tbody></table>
-      <footer><span>${esc(organizationName)}</span><span>${esc(tr("rows"))}: ${esc(number(rows.length))} · ${esc(tr("title"))}</span></footer>
+      <footer><span>${esc(organizationName)}</span><span>${esc(tr("rows"))}: ${esc(number(totalRows))} · ${esc(tr("title"))}</span></footer>
       </main></body></html>`);
     win.document.close();
     const images = Array.from(win.document.images).map((image) =>
@@ -495,7 +453,7 @@ export default function PatientProductsReportPage() {
             </Button>
             <Button permission="export"
               className="bg-green-600 text-white hover:bg-green-700"
-              disabled={unavailable || !rows.length}
+              disabled={unavailable || !totalRows}
               onClick={exportCsv}
             >
               <Download className="size-4" />
@@ -503,7 +461,7 @@ export default function PatientProductsReportPage() {
             </Button>
             <Button permission="print"
               variant="outline"
-              disabled={unavailable || !rows.length}
+              disabled={unavailable || !totalRows}
               onClick={print}
             >
               <Printer className="size-4" />
@@ -618,7 +576,6 @@ export default function PatientProductsReportPage() {
                 <TableBody autoPaginate={false}>
                   {sorted.length ? (
                     sorted
-                      .slice((currentPage - 1) * 20, currentPage * 20)
                       .map((row) => (
                         <TableRow key={row.id}>
                           {displayedColumns.map((column) => (
@@ -659,7 +616,7 @@ export default function PatientProductsReportPage() {
               </Table>
               <div className="flex items-center justify-between gap-3 p-4">
                 <span className="text-sm 2xl:text-base text-muted-foreground">
-                  {tr("rows")}: {number(rows.length)} · {currentPage} /{" "}
+                  {tr("rows")}: {number(totalRows)} · {currentPage} /{" "}
                   {totalPages}
                 </span>
                 <div className="flex gap-2">

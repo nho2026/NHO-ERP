@@ -19,7 +19,7 @@ export async function loginUser(payload: LoginRequest): Promise<LoginResponse> {
       "/auth/login",
       payload,
     );
-    if (!data.user)
+    if (!data?.user)
       throw new AuthApiError(
         "The server returned an invalid login response.",
         502,
@@ -28,10 +28,25 @@ export async function loginUser(payload: LoginRequest): Promise<LoginResponse> {
   } catch (error) {
     if (error instanceof AuthApiError) throw error;
     if (axios.isAxiosError<{ message?: string }>(error)) {
+      const status = error.response?.status ?? 0;
+      const serverMessage = error.response?.data?.message;
+      const fallback =
+        error.code === "ECONNABORTED" || error.code === "ETIMEDOUT"
+          ? "Sign-in timed out. Please try again in a moment."
+          : !error.response
+            ? "Cannot reach the server. Check your connection and try again."
+            : status >= 500
+              ? "The sign-in server is temporarily unavailable. Please try again in a moment."
+              : status === 429
+                ? "Too many sign-in attempts. Please wait before trying again."
+                : status === 401
+                  ? "Invalid username, password, or PIN."
+                  : "Unable to sign in. Please try again.";
       throw new AuthApiError(
-        error.response?.data?.message ??
-          "Unable to sign in. Check your details and try again.",
-        error.response?.status ?? 0,
+        typeof serverMessage === "string" && serverMessage.trim()
+          ? serverMessage
+          : fallback,
+        status,
       );
     }
     throw error;

@@ -1,10 +1,11 @@
+import { paginate } from "../../../shared/database/paginate.js";
 import { prisma } from "../../../shared/database/client.js";
 export const teamModel = {
   findAll: (query = {}) =>
-    prisma.team.findMany({
+    paginate("team", query, {
       include: { leader: { select: { id: true, firstName: true, lastName: true } }, _count: { select: { employees: true } } },
       orderBy: { name: "asc" },
-    }),
+    }, ["name"]),
   create: (data) =>
     prisma.team.create({
       data,

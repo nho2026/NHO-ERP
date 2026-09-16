@@ -1,3 +1,4 @@
+import { paginate } from "../../../shared/database/paginate.js";
 import { createWithCode, withoutCode } from "../../../shared/database/automatic-code.js";
 import { defaults } from "../../settings/settings.schema.js";
 import { prisma } from "../../../shared/database/client.js";
@@ -7,22 +8,22 @@ const invoiceInclude = {
   payments: { orderBy: { paidAt: "desc" } },
 };
 export const billingModel = {
-  listCustomers: () =>
-    prisma.billingCustomer.findMany({
+  listCustomers: (query = {}) =>
+    paginate("billingCustomer", query, {
       include: { _count: { select: { invoices: true } } },
       orderBy: { name: "asc" },
-    }),
+    }, ["code","name","phone","email"]),
   createCustomer: (data) => createWithCode(prisma.billingCustomer, { data }, "CUS"),
   updateCustomer: (id, data) =>
     prisma.billingCustomer.update({ where: { id }, data: withoutCode(data) }),
   deleteCustomer: (id) => prisma.billingCustomer.delete({ where: { id } }),
-  listInvoices: (status) =>
-    prisma.billingInvoice.findMany({
+  listInvoices: (status, query = {}) =>
+    paginate("billingInvoice", query, {
       where: status ? { status } : {},
       include: invoiceInclude,
       orderBy: { issueDate: "desc" },
       take: 1000,
-    }),
+    }, ["invoiceNumber", "customer.name"]),
   createInvoice: (data) =>
     prisma.$transaction(async (tx) => {
       await tx.systemSetting.upsert({
@@ -60,12 +61,12 @@ export const billingModel = {
     prisma.billingInvoice.delete({
       where: { id, status: "draft", paidAmount: 0 },
     }),
-  listPayments: () =>
-    prisma.billingPayment.findMany({
+  listPayments: (query = {}) =>
+    paginate("billingPayment", query, {
       include: { invoice: { include: { customer: true } } },
       orderBy: { paidAt: "desc" },
       take: 1000,
-    }),
+    }, ["reference","invoice.invoiceNumber","invoice.customer.name"]),
   recordPayment: (data, validate) =>
     prisma.$transaction(async (tx) => {
       const invoice = await tx.billingInvoice.findUniqueOrThrow({

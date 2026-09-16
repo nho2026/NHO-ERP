@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useServerTable } from "@/shared/hooks/useServerTable";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Star, Trash2 } from "lucide-react";
 import { feedbackApi, type Feedback } from "../api/feedback.api";
@@ -43,33 +44,10 @@ const Stars = ({ value }: { value: number }) => (
 );
 export default function FeedbackPage() {
   const { t } = useTranslation();
-  const [items, setItems] = useState<Feedback[]>([]),
-    [loading, setLoading] = useState(true),
-    [error, setError] = useState<string>(),
-    [status, setStatus] = useState("all"),
-    [type, setType] = useState("all");
-  const load = async () => {
-    setLoading(true);
-    setError(undefined);
-    try {
-      setItems(
-        (
-          await feedbackApi.list({
-            status: status === "all" ? undefined : status,
-            targetType: type === "all" ? undefined : type,
-            pageSize: 50,
-          })
-        ).items,
-      );
-    } catch (value) {
-      setError(value instanceof Error ? value.message : String(value));
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => {
-    void load();
-  }, [status, type]);
+  const [status, setStatus] = useState("all"), [type, setType] = useState("all");
+  const table = useServerTable<Feedback>("/feedback", { status: status === "all" ? undefined : status, targetType: type === "all" ? undefined : type });
+  const items = table.data ?? [], loading = table.isLoading, error = table.error;
+  const load = table.refresh;
   return (
     <div className="space-y-5">
       <header>
@@ -115,7 +93,7 @@ export default function FeedbackPage() {
               <TableHead className="text-end">{t("table.actions")}</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody {...table.tableProps}>
             <TableResourceState
               isLoading={loading}
               error={error}

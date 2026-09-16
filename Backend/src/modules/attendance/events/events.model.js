@@ -1,3 +1,4 @@
+import { paginate } from "../../../shared/database/paginate.js";
 import { createHash } from "node:crypto";
 import { prisma } from "../../../shared/database/client.js";
 export const eventsModel = {
@@ -9,6 +10,12 @@ export const eventsModel = {
     }),
   people: (deviceId) =>
     prisma.attendancePerson.findMany({ where: { deviceId } }),
+  existingEvents: (deviceId, deviceEventIds) => deviceEventIds.length
+    ? prisma.attendanceEvent.findMany({
+        where: { deviceId, deviceEventId: { in: deviceEventIds } },
+        select: { deviceEventId: true, employeeNo: true, eventType: true, occurredAt: true },
+      })
+    : Promise.resolve([]),
   saveUnique: async (deviceId, deviceEventId, data) => prisma.$transaction(async (tx) => {
     // Serialize live and sync writes so simultaneous scans cannot both pass.
     await tx.$queryRaw`SELECT id FROM attendance_AttendanceDevice WHERE id = ${deviceId} FOR UPDATE`;
@@ -53,14 +60,14 @@ export const eventsModel = {
       created: true,
     };
   }),
-  list: (where) =>
-    prisma.attendanceEvent.findMany({
+  list: (where, query = {}) =>
+    paginate("attendanceEvent", query, {
       where,
       include: {
         device: { select: { name: true } },
         person: { select: { id: true, employeeId: true } },
       },
-      orderBy: { occurredAt: "desc" },
+      orderBy: { occurredAt: query.sort === "asc" ? "asc" : "desc" },
       take: 10000,
     }),
   status: (id, data) => prisma.attendanceDevice.update({ where: { id }, data }),
