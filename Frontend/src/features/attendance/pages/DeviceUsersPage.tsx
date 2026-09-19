@@ -344,18 +344,11 @@ export default function DeviceUsersPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Input
+                <input
+                  type="hidden"
                   name="employeeNo"
-                  inputMode="numeric"
-                  pattern="[0-9]{1,32}"
                   value={employeeNo}
-                  onChange={(event) => setEmployeeNo(event.target.value)}
-                  placeholder={t("deviceUsers.employeeNumberPlaceholder")}
-                  required
                 />
-                <p className="-mt-1 text-xs text-muted-foreground">
-                  {t("deviceUsers.employeeNumberAuto")}
-                </p>
                 <Select name="employeeId">
                   <SelectTrigger>
                     <SelectValue placeholder={t("deviceUsers.linkEmployee")} />

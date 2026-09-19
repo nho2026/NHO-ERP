@@ -157,6 +157,7 @@ export default function LeadDetailPage() {
           </p>
           <h1 className="text-2xl font-bold">{String(item.name)}</h1>
         </div>
+        <Button permission="laboratory.orders.create" variant="outline" onClick={() => navigate(`/laboratory/reception?leadId=${id}`)}>{t("laboratory.title")}</Button>
         {canManage && status !== "lost" && (
           <Button permission="update"
             className="ms-auto"

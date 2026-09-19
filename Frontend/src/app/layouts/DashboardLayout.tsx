@@ -1,5 +1,14 @@
 import { permissionForPath } from "@/features/auth/permission-policy";
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/shared/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/shared/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { MeetingSessionHost } from "@/features/meetings/MeetingSessionHost";
 import { HeaderSearch } from "./HeaderSearch";
@@ -28,6 +37,7 @@ import {
   ContactRound,
   Globe2,
   HeartPulse,
+  FlaskConical,
   LayoutDashboard,
   Landmark,
   BookOpenText,
@@ -93,9 +103,7 @@ import { getCurrentUser, logoutUser } from "@/features/auth/api/auth.api";
 import type { AuthUser } from "@/features/auth/types/auth.types";
 import { useTheme } from "@/shared/hooks/useTheme";
 import { WindowControls } from "@/shared/components/WindowControls";
-import {
-  hasPermission,
-} from "@/features/auth/access";
+import { hasPermission } from "@/features/auth/access";
 import {
   notificationsApi,
   type NotificationItem,
@@ -123,12 +131,28 @@ function notificationLabel(
 }
 
 const primaryNavigation = [
-  { to: "/dashboard", label: "navigation.dashboard", icon: LayoutDashboard },
-  { to: "/meetings", label: "navigation.liveMeetings", icon: Video },
-  { to: "/targets", label: "navigation.targets", icon: Goal },
+  {
+    to: "/dashboard",
+    label: "navigation.dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    to: "/meetings",
+    label: "navigation.liveMeetings",
+    icon: Video,
+  },
+  {
+    to: "/targets",
+    label: "navigation.targets",
+    icon: Goal,
+  },
 ];
 const taskNavigation = [
-  { to: "/tasks", label: "tasks.list", icon: ListTodo },
+  {
+    to: "/tasks",
+    label: "tasks.list",
+    icon: ListTodo,
+  },
   {
     to: "/tasks/reports",
     label: "tasks.report.title",
@@ -136,8 +160,16 @@ const taskNavigation = [
   },
 ];
 const attendanceNavigation = [
-  { to: "/attendance/devices", label: "attendancePage.devices", icon: Radio },
-  { to: "/attendance/users", label: "attendancePage.users", icon: UsersRound },
+  {
+    to: "/attendance/devices",
+    label: "attendancePage.devices",
+    icon: Radio,
+  },
+  {
+    to: "/attendance/users",
+    label: "attendancePage.users",
+    icon: UsersRound,
+  },
   {
     to: "/attendance/events",
     label: "attendancePage.events",
@@ -145,12 +177,36 @@ const attendanceNavigation = [
   },
 ];
 const hrNavigation = [
-  { to: "/employees", label: "navigation.employees", icon: UsersRound },
-  { to: "/teams", label: "navigation.teams", icon: BriefcaseBusiness },
-  { to: "/positions", label: "navigation.positions", icon: BriefcaseBusiness },
-  { to: "/salaries", label: "navigation.salaries", icon: BadgeDollarSign },
-  { to: "/hr-attendance", label: "navigation.hrAttendance", icon: UserCheck },
-  { to: "/payrolls", label: "navigation.payrolls", icon: ContactRound },
+  {
+    to: "/employees",
+    label: "navigation.employees",
+    icon: UsersRound,
+  },
+  {
+    to: "/teams",
+    label: "navigation.teams",
+    icon: BriefcaseBusiness,
+  },
+  {
+    to: "/positions",
+    label: "navigation.positions",
+    icon: BriefcaseBusiness,
+  },
+  {
+    to: "/salaries",
+    label: "navigation.salaries",
+    icon: BadgeDollarSign,
+  },
+  {
+    to: "/hr-attendance",
+    label: "navigation.hrAttendance",
+    icon: UserCheck,
+  },
+  {
+    to: "/payrolls",
+    label: "navigation.payrolls",
+    icon: ContactRound,
+  },
   {
     to: "/salary-advances",
     label: "navigation.salaryAdvances",
@@ -161,35 +217,127 @@ const hrNavigation = [
     label: "navigation.hrReports",
     icon: ChartNoAxesCombined,
   },
-  { to: "/hr/warnings", label: "hrWarnings.title", icon: TriangleAlert },
+  {
+    to: "/hr/warnings",
+    label: "hrWarnings.title",
+    icon: TriangleAlert,
+  },
+];
+const laboratoryNavigation = [
+  {
+    to: "/laboratory",
+    label: "laboratory.dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    to: "/laboratory/reception",
+    label: "laboratory.reception",
+    icon: FlaskConical,
+  },
+  {
+    to: "/laboratory/queue",
+    label: "laboratory.queue",
+    icon: FlaskConical,
+  },
+  {
+    to: "/laboratory/tickets",
+    label: "laboratory.accountingTickets",
+    icon: CreditCard,
+  },
+  {
+    to: "/laboratory/display",
+    label: "laboratory.ticketDisplay",
+    icon: LayoutDashboard,
+  },
+  {
+    to: "/laboratory/accounting",
+    label: "laboratory.accounting",
+    icon: CreditCard,
+  },
+  {
+    to: "/laboratory/room",
+    label: "laboratory.room",
+    icon: FlaskConical,
+  },
+  {
+    to: "/laboratory/completed",
+    label: "laboratory.completed",
+    icon: FlaskConical,
+  },
+  {
+    to: "/laboratory/received",
+    label: "laboratory.received",
+    icon: ContactRound,
+  },
+  {
+    to: "/laboratory/tests",
+    label: "laboratory.tests",
+    icon: FlaskConical,
+  },
 ];
 const healthcareNavigation = [
-  { to: "/departments", label: "navigation.departments", icon: Building2 },
-  { to: "/health-staff", label: "navigation.healthStaff", icon: Stethoscope },
-  { to: "/feedback", label: "feedback.title", icon: Star },
+  {
+    to: "/departments",
+    label: "navigation.departments",
+    icon: Building2,
+  },
+  {
+    to: "/health-staff",
+    label: "navigation.healthStaff",
+    icon: Stethoscope,
+  },
+  {
+    to: "/feedback",
+    label: "feedback.title",
+    icon: Star,
+  },
 ];
 const crmNavigation = [
-  { to: "/crm/whatsapp", label: "navigation.crmWhatsapp", icon: MessageCircle },
-  { to: "/crm/leads", label: "navigation.crmLeads", icon: ContactRound },
+  {
+    to: "/crm/whatsapp",
+    label: "navigation.crmWhatsapp",
+    icon: MessageCircle,
+  },
+  {
+    to: "/crm/leads",
+    label: "navigation.crmLeads",
+    icon: ContactRound,
+  },
   {
     to: "/crm/leads/progress",
     label: "navigation.leadProgressOverview",
     icon: ChartLine,
   },
-  { to: "/crm/patients", label: "navigation.crmPatients", icon: UsersRound },
+  {
+    to: "/crm/patients",
+    label: "navigation.crmPatients",
+    icon: UsersRound,
+  },
   {
     to: "/crm/appointments",
     label: "navigation.doctorAppointments",
     icon: CalendarPlus,
   },
-  { to: "/crm/payments", label: "navigation.crmPayments", icon: CreditCard },
-  { to: "/crm/follow-up", label: "postDischargeFollowUp.title", icon: CalendarClock },
+  {
+    to: "/crm/payments",
+    label: "navigation.crmPayments",
+    icon: CreditCard,
+  },
+  {
+    to: "/crm/follow-up",
+    label: "postDischargeFollowUp.title",
+    icon: CalendarClock,
+  },
   {
     to: "/crm/referrals",
     label: "navigation.crmReferrals",
     icon: ArrowRightLeft,
   },
-  { to: "/crm/forms", label: "navigation.crmForms", icon: FileText },
+  {
+    to: "/crm/forms",
+    label: "navigation.crmForms",
+    icon: FileText,
+  },
   {
     to: "/crm/today-patients",
     label: "todayPatients.title",
@@ -200,11 +348,23 @@ const crmNavigation = [
     label: "navigation.surgeryAppointments",
     icon: CalendarClock,
   },
-  { to: "/crm/surgeries", label: "navigation.surgeries", icon: HeartPulse },
+  {
+    to: "/crm/surgeries",
+    label: "navigation.surgeries",
+    icon: HeartPulse,
+  },
 ];
 const accountingNavigation = [
-  { to: "/accounting/overview", label: "financeOverview.title", icon: ChartNoAxesCombined },
-  { to: "/accounting/income-expenses", label: "incomeExpenses.title", icon: WalletCards },
+  {
+    to: "/accounting/overview",
+    label: "financeOverview.title",
+    icon: ChartNoAxesCombined,
+  },
+  {
+    to: "/accounting/income-expenses",
+    label: "incomeExpenses.title",
+    icon: WalletCards,
+  },
   {
     to: "/accounting/accounts",
     label: "navigation.chartOfAccounts",
@@ -242,19 +402,31 @@ const accountingNavigation = [
   },
 ];
 const financeNavigation = [
-  { to: "/finance/budgets", label: "navigation.budgets", icon: WalletCards },
+  {
+    to: "/finance/budgets",
+    label: "navigation.budgets",
+    icon: WalletCards,
+  },
   {
     to: "/finance/cash-flow",
     label: "navigation.cashFlow",
     icon: ArrowRightLeft,
   },
-  { to: "/finance/forecasts", label: "navigation.forecasts", icon: ChartLine },
+  {
+    to: "/finance/forecasts",
+    label: "navigation.forecasts",
+    icon: ChartLine,
+  },
   {
     to: "/finance/analysis",
     label: "navigation.financialAnalysis",
     icon: ChartNoAxesCombined,
   },
-  { to: "/finance/funding", label: "navigation.funding", icon: HandCoins },
+  {
+    to: "/finance/funding",
+    label: "navigation.funding",
+    icon: HandCoins,
+  },
 ];
 const warehouseDashboardNavigation = [
   {
@@ -303,7 +475,11 @@ const productNavigation = [
   },
 ];
 const storageNavigation = [
-  { to: "/inventory/stock", label: "warehouseModule.storage", icon: Boxes },
+  {
+    to: "/inventory/stock",
+    label: "warehouseModule.storage",
+    icon: Boxes,
+  },
   {
     to: "/warehouses/storage/special-price",
     label: "warehouseModule.editSpecialPrice",
@@ -350,22 +526,59 @@ const warehouseDirectoryNavigation = [
   },
 ];
 const warehouseGroups = [
-  { key: "cases", icon: HeartPulse },
-  { key: "utilities", icon: Settings },
-  { key: "reports", icon: ChartNoAxesCombined },
+  {
+    key: "cases",
+    icon: HeartPulse,
+  },
+  {
+    key: "utilities",
+    icon: Settings,
+  },
+  {
+    key: "reports",
+    icon: ChartNoAxesCombined,
+  },
 ] as const;
 const inventoryNavigation = [
-  { to: "/inventory/brands", label: "navigation.productBrands", icon: Tags },
-  { to: "/inventory/barcodes", label: "navigation.barcodes", icon: Barcode },
+  {
+    to: "/inventory/brands",
+    label: "navigation.productBrands",
+    icon: Tags,
+  },
+  {
+    to: "/inventory/barcodes",
+    label: "navigation.barcodes",
+    icon: Barcode,
+  },
 ];
 const posNavigation = [
-  { to: "/pos/checkout", label: "navigation.newSale", icon: ShoppingCart },
-  { to: "/pos/sales", label: "navigation.salesHistory", icon: ReceiptText },
+  {
+    to: "/pos/checkout",
+    label: "navigation.newSale",
+    icon: ShoppingCart,
+  },
+  {
+    to: "/pos/sales",
+    label: "navigation.salesHistory",
+    icon: ReceiptText,
+  },
 ];
 const accessNavigation = [
-  { to: "/users", label: "navigation.users", icon: UsersRound },
-  { to: "/roles", label: "navigation.roles", icon: ShieldCheck },
-  { to: "/system-logs", label: "navigation.systemLogs", icon: ScrollText },
+  {
+    to: "/users",
+    label: "navigation.users",
+    icon: UsersRound,
+  },
+  {
+    to: "/roles",
+    label: "navigation.roles",
+    icon: ShieldCheck,
+  },
+  {
+    to: "/system-logs",
+    label: "navigation.systemLogs",
+    icon: ScrollText,
+  },
 ];
 
 function LiveDateTime({
@@ -472,6 +685,7 @@ export default function DashboardLayout() {
   const navigationSearchRef = useRef<HTMLInputElement>(null);
   const [hrExpanded, setHrExpanded] = useState(true);
   const [attendanceExpanded, setAttendanceExpanded] = useState(true);
+  const [laboratoryExpanded, setLaboratoryExpanded] = useState(true);
   const [healthcareExpanded, setHealthcareExpanded] = useState(true);
   const [crmExpanded, setCrmExpanded] = useState(true);
   const [accountingExpanded, setAccountingExpanded] = useState(true);
@@ -632,6 +846,7 @@ export default function DashboardLayout() {
       ...attendanceNavigation,
       ...hrNavigation,
       ...healthcareNavigation,
+      ...laboratoryNavigation,
       ...crmNavigation,
       ...accountingNavigation,
       ...financeNavigation,
@@ -703,6 +918,7 @@ export default function DashboardLayout() {
         ...inventoryNavigation,
       ],
     },
+    { key: "laboratory", icon: FlaskConical, items: laboratoryNavigation },
     { key: "healthcare", icon: HeartPulse, items: healthcareNavigation },
     { key: "hr", icon: UsersRound, items: hrNavigation },
     { key: "attendance", icon: CalendarCheck, items: attendanceNavigation },
@@ -823,8 +1039,15 @@ export default function DashboardLayout() {
     return () =>
       window.removeEventListener("nho-navigation-mode-changed", update);
   }, []);
-  if (location.pathname === "/crm/today-patients" && new URLSearchParams(location.search).get("tv") === "1") {
-    return <main className="min-h-svh w-full bg-muted/45 p-4 sm:p-6"><Outlet key={location.pathname + location.search} /></main>;
+  if (
+    location.pathname === "/crm/today-patients" &&
+    new URLSearchParams(location.search).get("tv") === "1"
+  ) {
+    return (
+      <main className="min-h-svh w-full bg-muted/45 p-4 sm:p-6">
+        <Outlet key={location.pathname + location.search} />
+      </main>
+    );
   }
   return (
     <div className="h-svh w-full overflow-hidden bg-muted/45">
@@ -835,9 +1058,7 @@ export default function DashboardLayout() {
           <div
             className={`flex h-[87px] items-center gap-3 border-b border-primary/15 px-1 ${collapsed ? "lg:justify-center" : ""}`}
           >
-            <span
-              className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/10"
-            >
+            <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/10">
               <img
                 className="block size-full object-contain"
                 src={systemSettings?.organization.logo || logo}
@@ -1212,6 +1433,42 @@ export default function DashboardLayout() {
                 )}
               </div>
               <div
+                className={`mt-2 space-y-1 ${laboratoryNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
+              >
+                {collapsed ? (
+                  <NavLink
+                    to="/laboratory"
+                    title={t("laboratory.title")}
+                    className={({ isActive }) =>
+                      `hidden h-9 items-center justify-center rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/35 lg:flex ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-primary/7 hover:text-primary"}`
+                    }
+                  >
+                    <FlaskConical className="size-4.25" />
+                  </NavLink>
+                ) : (
+                  <>
+                    <button
+                      className={sectionButtonClass(laboratoryNavigation)}
+                      onClick={() => setLaboratoryExpanded((value) => !value)}
+                    >
+                      <FlaskConical className="size-4.25 shrink-0" />
+                      <span className="flex-1 text-start">
+                        {t("laboratory.title")}
+                      </span>
+                      <ChevronDown
+                        className={`size-3.5 transition-transform ${laboratoryExpanded ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    {(laboratoryExpanded ||
+                      Boolean(normalizedNavigationSearch)) && (
+                      <div className="ms-[18px] space-y-0.5 border-s border-primary/20 ps-3">
+                        {navItems(laboratoryNavigation)}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <div
                 className={`mt-2 space-y-1 ${healthcareNavigation.some(({ to }) => hasPermission(user, permissionForPath(to))) ? "" : "hidden"}`}
               >
                 {collapsed ? (
@@ -1398,7 +1655,10 @@ export default function DashboardLayout() {
                 {[
                   [Settings, "navigation.settings"],
                   [CircleHelp, "navigation.help"],
-                ].map(([Icon, label]) => (
+                ].filter(([, label]) =>
+                  label !== "navigation.settings" ||
+                  hasPermission(user, permissionForPath("/settings")),
+                ).map(([Icon, label]) => (
                   <button
                     key={String(label)}
                     onClick={() => {
@@ -1887,26 +2147,47 @@ export default function DashboardLayout() {
                   <Outlet key={location.pathname + location.search} />
                 </>
               )}
-              {hasPermission(user, "meetings.view") && <MeetingSessionHost
-                visible={location.pathname.replace(/\/$/, "") === "/meetings" && !(panelMode && showPanel)}
-                onReturn={() => {
-                  setShowPanel(false);
-                  navigate("/meetings");
-                }}
-              />}
+              {hasPermission(user, "meetings.view") && (
+                <MeetingSessionHost
+                  visible={
+                    location.pathname.replace(/\/$/, "") === "/meetings" &&
+                    !(panelMode && showPanel)
+                  }
+                  onReturn={() => {
+                    setShowPanel(false);
+                    navigate("/meetings");
+                  }}
+                />
+              )}
             </div>
           </main>
         </div>
       </div>
-      <AlertDialog open={logoutConfirmOpen} onOpenChange={value => { if (!logoutLock.current) setLogoutConfirmOpen(value); }}>
+      <AlertDialog
+        open={logoutConfirmOpen}
+        onOpenChange={(value) => {
+          if (!logoutLock.current) setLogoutConfirmOpen(value);
+        }}
+      >
         <AlertDialogContent dir={i18n.dir()}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("navigation.confirmLogout")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("navigation.confirmLogoutDescription")}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {t("navigation.confirmLogoutDescription")}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={loggingOut}>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-600 text-white hover:bg-red-700 hover:text-white" disabled={loggingOut} onClick={event => { event.preventDefault(); void logout(); }}>
+            <AlertDialogCancel disabled={loggingOut}>
+              {t("common.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700 hover:text-white"
+              disabled={loggingOut}
+              onClick={(event) => {
+                event.preventDefault();
+                void logout();
+              }}
+            >
               {t(loggingOut ? "navigation.loggingOut" : "navigation.logout")}
             </AlertDialogAction>
           </AlertDialogFooter>

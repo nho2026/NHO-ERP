@@ -1,3 +1,5 @@
+import { laboratoryChangeMiddleware } from "./modules/laboratory/laboratory.realtime.js";
+import laboratoryRoutes from "./modules/laboratory/laboratory.routes.js";
 import settingsRoutes from "./modules/settings/settings.routes.js";
 import express from "express";
 import cors from "cors";
@@ -29,11 +31,13 @@ import targetRoutes from "./modules/targets/targets.routes.js";
 import crmRoutes from "./modules/crm/crm.routes.js";
 import whatsappRoutes from "./modules/crm/whatsapp/whatsapp.routes.js";
 import systemLogRoutes from "./modules/system-logs/system-logs.routes.js";
+import { requestLog } from "./shared/middleware/request-log.middleware.js";
 import { auditApiRequest } from "./shared/middleware/audit-log.middleware.js";
 import { errorHandler } from "./shared/errors/error.middleware.js";
 
 export const app = express();
 
+app.use(requestLog);
 app.use(helmet());
 const allowedOrigins = new Set([
   env.frontendUrl,
@@ -75,10 +79,11 @@ app.use("/api/roles", roleRoutes);
 app.use("/api/permissions", permissionRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/employees", employeeRoutes);
+app.use("/api/laboratory", laboratoryChangeMiddleware, laboratoryRoutes);
 app.use("/api/healthcare", healthcareRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/accounting", accountingRoutes);
-app.use("/api/billing", billingRoutes);
+app.use("/api/billing", laboratoryChangeMiddleware, billingRoutes);
 app.use("/api/advances", advancesRoutes);
 app.use("/api/finance", financeRoutes);
 app.use("/api/inventory", inventoryRoutes);

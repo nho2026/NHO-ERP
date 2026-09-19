@@ -2,7 +2,7 @@ import { useServerTable } from "@/shared/hooks/useServerTable";
 import { settingsSnapshot } from "@/features/settings/settings";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   CalendarDays,
@@ -732,6 +732,7 @@ export default function HealthcarePage({
     Record<string, string>
   >({});
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -924,6 +925,7 @@ export default function HealthcarePage({
                         ))}
                         <TableCell className="whitespace-nowrap">
                           <div className="flex flex-wrap items-center gap-2">
+                            {resource === "appointments" && <Button permission="laboratory.orders.create" variant="outline" onClick={() => navigate(`/laboratory/reception?appointmentId=${row.id}`)}>{t("laboratory.title")}</Button>}
                             <Button data-action="edit"
                               variant="ghost"
                               size="icon"

@@ -1,3 +1,4 @@
+import { attachLaboratoryRealtime } from "./modules/laboratory/laboratory.realtime.js";
 import { syncPermissionCatalog } from "./shared/security/sync-permissions.js";
 import { startReminders } from "./modules/settings/settings.reminders.js";
 import { startBackupSchedule } from "./modules/settings/settings.backups.js";
@@ -16,11 +17,12 @@ await syncPermissionCatalog();
 const stopReminders = startReminders();
 const stopBackups = startBackupSchedule();
 const server = createServer(app);
-attachMeetingSignaling(
+const signaling = attachMeetingSignaling(
   server,
   [env.frontendUrl, ...env.publicWebsiteUrls],
   env.production,
 );
+attachLaboratoryRealtime(signaling);
 server.listen(env.port, () =>
   console.log(`API listening on http://localhost:${env.port}`),
 );

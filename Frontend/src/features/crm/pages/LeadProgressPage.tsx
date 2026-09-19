@@ -4,6 +4,13 @@ import type { CrmRecord } from "../api/crm.api";
 import { hasPagePermission } from "@/features/auth/access";
 import { useState } from "react";
 import {
+  Stethoscope,
+  PhoneCall,
+  ClipboardCheck,
+  CalendarDays,
+  UserRoundCheck,
+  Scissors,
+  CalendarCheck,
   CircleX,
   Clock3,
   ExternalLink,
@@ -25,6 +32,8 @@ import { toast } from "sonner";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
+import { FormDatePicker } from "@/shared/components/ui/form-date-picker";
+import { Label } from "@/shared/components/ui/label";
 import { Input } from "@/shared/components/ui/input";
 import {
   Popover,
@@ -52,6 +61,29 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+
+const emptyFilters = {
+  status: "",
+  source: "",
+  gender: "",
+  fromDate: "",
+  toDate: "",
+  dateField: "createdAt",
+  minAge: "",
+  maxAge: "",
+  city: "",
+  country: "",
+  contactMethod: "",
+  leadSourceChannel: "",
+  patientType: "",
+  referralPersona: "",
+};
+const fieldOptions = {
+  contactMethod: ["phone", "whatsapp", "social_media", "walk_in", "email"],
+  leadSourceChannel: ["digital", "traditional"],
+  patientType: ["medical", "non_cardiac", "surgical"],
+  referralPersona: ["doctor", "our_patient", "people"],
+};
 
 const stages = [
   "new",
@@ -98,6 +130,15 @@ const progressColors: Record<string, string> = {
   surgery_appointment: "#ea580c",
   lost: "#dc2626",
 };
+const progressIcons = {
+  new: Stethoscope,
+  contacted: PhoneCall,
+  qualified: ClipboardCheck,
+  appointment_requested: CalendarDays,
+  converted: UserRoundCheck,
+  direct_surgery_converted: Scissors,
+  surgery_appointment: CalendarCheck,
+};
 const StatusBadge = ({ status, label }: { status: string; label: string }) => (
   <Badge
     variant="outline"
@@ -123,68 +164,85 @@ function Progress({
     <div
       className={`relative grid grid-cols-7 px-1 pb-1 pt-0.5 ${compact ? "min-w-[520px]" : "min-w-[650px]"}`}
     >
-      {stages.map((stage, index) => (
-        <div key={stage} className="relative z-10 flex flex-col items-center">
-          {index < stages.length - 1 && (
+      {stages.map((stage, index) => {
+        const Icon = progressIcons[stage as keyof typeof progressIcons];
+        return (
+          <div key={stage} className="relative z-10 flex flex-col items-center">
+            {index < stages.length - 1 && (
+              <span
+                className="absolute start-1/2 top-[15px] -z-10 h-0.5 w-full bg-slate-200 dark:bg-slate-800"
+                style={
+                  index < current
+                    ? { backgroundColor: progressColors[stage] }
+                    : undefined
+                }
+              />
+            )}
             <span
-              className="absolute start-1/2 top-[6px] -z-10 h-0.5 w-full bg-slate-200 dark:bg-slate-800"
+              className={`grid size-8 place-items-center rounded-full border-2 transition-colors ${index <= current ? "text-white" : "text-muted-foreground border-teal-200 bg-slate-50 dark:border-teal-900 dark:bg-slate-950"}`}
               style={
-                index < current
-                  ? { backgroundColor: progressColors[stage] }
+                index <= current
+                  ? {
+                      borderColor: progressColors[stage],
+                      backgroundColor: progressColors[stage],
+                      boxShadow: `0 0 0 ${index === current ? 4 : 3}px color-mix(in srgb, ${progressColors[stage]} ${index === current ? 25 : 12}%, transparent)`,
+                    }
                   : undefined
               }
-            />
-          )}
-          <span
-            className={`size-3.5 rounded-full border-2 transition-colors ${index <= current ? "" : "border-teal-200 bg-slate-50 dark:border-teal-900 dark:bg-slate-950"}`}
-            style={
-              index <= current
-                ? {
-                    borderColor: progressColors[stage],
-                    backgroundColor: progressColors[stage],
-                    boxShadow: `0 0 0 ${index === current ? 4 : 3}px color-mix(in srgb, ${progressColors[stage]} ${index === current ? 25 : 12}%, transparent)`,
-                  }
-                : undefined
-            }
-          />
-          <span
-            className={`mt-1.5 max-w-20 text-center leading-[.9] ${compact ? "text-[7px]" : "text-[9px]"} ${index <= current ? "font-semibold" : "font-medium text-slate-400"}`}
-            style={
-              index <= current ? { color: progressColors[stage] } : undefined
-            }
-          >
-            {translate(stage)}
-          </span>
-        </div>
-      ))}
+            >
+              <Icon className="size-4" aria-hidden="true" />
+            </span>
+            <span
+              className={`mt-2 max-w-20 text-center leading-snug ${compact ? "text-[9px]" : "text-[10px]"} ${index <= current ? "font-semibold" : "font-medium text-slate-400"}`}
+              style={
+                index <= current ? { color: progressColors[stage] } : undefined
+              }
+            >
+              {translate(stage)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
 export default function LeadProgressPage() {
   const { t } = useTranslation();
-  const canManage = hasPagePermission(storedUser(), "create", "update", "delete");
+  const canManage = hasPagePermission(
+    storedUser(),
+    "create",
+    "update",
+    "delete",
+  );
   const statusLabel = (status: string) =>
     fallbackLabels[status] ??
     t(`crm.values.${status}`, { defaultValue: status.replaceAll("_", " ") });
   const [view, setView] = useState<"table" | "grid">("table");
   const [search, setSearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filters, setFilters] = useState({
-    status: "",
-    source: "",
-    gender: "",
-  });
+  const [filters, setFilters] = useState(emptyFilters);
   const [draft, setDraft] = useState(filters);
-  const leads = useServerTable<CrmRecord, { counts: Record<string, number> }>("/crm/leads", { summary: "true", ...Object.fromEntries(Object.entries(filters).filter(([, value]) => value)), search });
+  const leads = useServerTable<CrmRecord, { counts: Record<string, number> }>(
+    "/crm/leads",
+    {
+      summary: "true",
+      ...Object.fromEntries(
+        Object.entries(filters).filter(([, value]) => value),
+      ),
+      search,
+    },
+  );
   const rows = leads.data ?? [];
-  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const activeFilterCount = Object.entries(filters).filter(
+    ([key, value]) => key !== "dateField" && value,
+  ).length;
   const totals = leads.pageData?.counts ?? {};
   const markAsLost = async (id: string) => {
     try {
       await crmApi.leads.update(id, { status: "lost" });
       await leads.refresh();
       toast.success("Lead marked as lost.");
-    } catch (error) {
+    } catch {
       toast.error(t("crm.errors.markLost"));
     }
   };
@@ -199,22 +257,38 @@ export default function LeadProgressPage() {
           {t("crm.progress.description")}
         </p>
       </header>
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        {[...stages, "lost"].map((status) => (
-          <button
-            key={status}
-            type="button"
-            onClick={() => {
-              const next = filters.status === status ? "" : status;
-              setFilters((current) => ({ ...current, status: next }));
-              setDraft((current) => ({ ...current, status: next }));
-            }}
-            className={`rounded-xl border p-4 text-start transition-all hover:-translate-y-0.5 hover:shadow-md ${statusStyles[status]} ${filters.status === status ? "ring-2 ring-current ring-offset-2 ring-offset-background" : ""}`}
-          >
-            <p className="text-xs font-semibold">{statusLabel(status)}</p>
-            <p className="mt-1 text-2xl font-bold">{totals[status] ?? 0}</p>
-          </button>
-        ))}
+      <section className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+        {[...stages, "lost"].map((status) => {
+          const Icon =
+            status === "lost"
+              ? CircleX
+              : progressIcons[status as keyof typeof progressIcons];
+          return (
+            <Button
+              key={status}
+              variant="outline"
+              aria-pressed={filters.status === status}
+              onClick={() => {
+                const next = filters.status === status ? "" : status;
+                setFilters((current) => ({ ...current, status: next }));
+                setDraft((current) => ({ ...current, status: next }));
+              }}
+              className={`h-auto min-h-16 justify-start gap-2 rounded-xl px-3 py-2 text-start shadow-none ${statusStyles[status]} ${filters.status === status ? "ring-2 ring-current ring-offset-2 ring-offset-background" : ""}`}
+            >
+              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-current/10">
+                <Icon className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block whitespace-normal text-[10px] font-medium leading-snug">
+                  {statusLabel(status)}
+                </span>
+                <span className="mt-1 block text-lg font-bold tabular-nums">
+                  {totals[status] ?? 0}
+                </span>
+              </span>
+            </Button>
+          );
+        })}
       </section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative w-full max-w-md">
@@ -227,7 +301,13 @@ export default function LeadProgressPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+          <Popover
+            open={filterOpen}
+            onOpenChange={(open) => {
+              if (open) setDraft(filters);
+              setFilterOpen(open);
+            }}
+          >
             <PopoverTrigger asChild>
               <Button variant="outline">
                 <ListFilter />
@@ -239,14 +319,119 @@ export default function LeadProgressPage() {
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 p-4">
-              <div className="mb-4">
+            <PopoverContent
+              align="end"
+              className="flex max-h-[min(65vh,32rem)] w-[min(26rem,calc(100vw-2rem))] flex-col overflow-hidden p-3"
+            >
+              <div className="mb-3 shrink-0">
                 <p className="font-semibold">{t("crm.progress.filterTitle")}</p>
                 <p className="text-xs text-muted-foreground">
                   {t("crm.progress.filterDescription")}
                 </p>
               </div>
-              <div className="grid gap-3">
+              <div className="grid min-h-0 grid-cols-2 gap-2 overflow-y-auto pe-1 [&_input]:h-8 [&_input]:text-xs [&_button]:h-8 [&_button]:text-xs [&_label]:text-[11px]">
+                <div className="col-span-2 grid gap-1">
+                  <Label htmlFor="lead-progress-date-field">
+                    {t("crm.progress.dateField")}
+                  </Label>
+                  <Select
+                    value={draft.dateField}
+                    onValueChange={(value) =>
+                      setDraft((current) => ({ ...current, dateField: value }))
+                    }
+                  >
+                    <SelectTrigger id="lead-progress-date-field">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="createdAt">
+                        {t("crm.progress.createdDate")}
+                      </SelectItem>
+                      <SelectItem value="updatedAt">
+                        {t("crm.progress.lastUpdate")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(["fromDate", "toDate"] as const).map((field) => (
+                  <div
+                    key={field}
+                    className="grid gap-1.5"
+                    role="group"
+                    aria-label={t(`crm.referrals.${field}`)}
+                  >
+                    <Label>{t(`crm.referrals.${field}`)}</Label>
+                    <FormDatePicker
+                      value={draft[field]}
+                      onValueChange={(value) =>
+                        setDraft((current) => ({ ...current, [field]: value }))
+                      }
+                    />
+                  </div>
+                ))}
+                {(["minAge", "maxAge", "city", "country"] as const).map(
+                  (field) => (
+                    <div key={field} className="grid gap-1.5">
+                      <Label htmlFor={`lead-progress-${field}`}>
+                        {t(
+                          field === "minAge" || field === "maxAge"
+                            ? `crm.progress.${field}`
+                            : `crm.fields.${field}`,
+                        )}
+                      </Label>
+                      <Input
+                        id={`lead-progress-${field}`}
+                        type={
+                          field === "minAge" || field === "maxAge"
+                            ? "number"
+                            : "text"
+                        }
+                        min={0}
+                        max={150}
+                        maxLength={100}
+                        value={draft[field]}
+                        onChange={(event) =>
+                          setDraft((current) => ({
+                            ...current,
+                            [field]: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  ),
+                )}
+                {(
+                  Object.keys(fieldOptions) as (keyof typeof fieldOptions)[]
+                ).map((field) => (
+                  <div key={field} className="grid gap-1.5">
+                    <Label htmlFor={`lead-progress-${field}`}>
+                      {t(`crm.fields.${field}`)}
+                    </Label>
+                    <Select
+                      value={draft[field] || "all"}
+                      onValueChange={(value) =>
+                        setDraft((current) => ({
+                          ...current,
+                          [field]: value === "all" ? "" : value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger id={`lead-progress-${field}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">
+                          {t("crm.progress.allValues")}
+                        </SelectItem>
+                        {fieldOptions[field].map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {t(`crm.values.${value}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
                 <label className="grid gap-1.5 text-xs font-medium">
                   {t("crm.fields.status")}
                   <Select
@@ -317,11 +502,11 @@ export default function LeadProgressPage() {
                   </Select>
                 </label>
               </div>
-              <div className="mt-4 flex justify-end gap-2 border-t pt-4">
+              <div className="mt-3 flex shrink-0 justify-end gap-2 border-t pt-3">
                 <Button
                   variant="ghost"
                   onClick={() => {
-                    const empty = { status: "", source: "", gender: "" };
+                    const empty = { ...emptyFilters };
                     setDraft(empty);
                     setFilters(empty);
                     setFilterOpen(false);
@@ -331,6 +516,35 @@ export default function LeadProgressPage() {
                 </Button>
                 <Button
                   onClick={() => {
+                    if (
+                      draft.fromDate &&
+                      draft.toDate &&
+                      draft.fromDate > draft.toDate
+                    ) {
+                      toast.error(t("crm.progress.dateRangeError"));
+                      return;
+                    }
+                    if (
+                      (draft.minAge &&
+                        (!Number.isInteger(Number(draft.minAge)) ||
+                          Number(draft.minAge) < 0 ||
+                          Number(draft.minAge) > 150)) ||
+                      (draft.maxAge &&
+                        (!Number.isInteger(Number(draft.maxAge)) ||
+                          Number(draft.maxAge) < 0 ||
+                          Number(draft.maxAge) > 150))
+                    ) {
+                      toast.error(t("crm.progress.ageValueError"));
+                      return;
+                    }
+                    if (
+                      draft.minAge &&
+                      draft.maxAge &&
+                      Number(draft.minAge) > Number(draft.maxAge)
+                    ) {
+                      toast.error(t("crm.errors.ageRange"));
+                      return;
+                    }
                     setFilters(draft);
                     setFilterOpen(false);
                   }}
@@ -416,7 +630,8 @@ export default function LeadProgressPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44">
                         {canManage && lead.status !== "lost" && (
-                          <DropdownMenuItem permission="update"
+                          <DropdownMenuItem
+                            permission="update"
                             className="text-destructive focus:text-destructive"
                             onSelect={() => void markAsLost(lead.id)}
                           >

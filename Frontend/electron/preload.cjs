@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronWindow", {
+  printTicket: (token, height) => ipcRenderer.invoke("ticket:print", token, height),
   openWhatsapp: (phone) => ipcRenderer.invoke("inbox:open-whatsapp", phone),
   minimize: () => ipcRenderer.send("window:minimize"),
   toggleMaximize: () => ipcRenderer.send("window:toggle-maximize"),

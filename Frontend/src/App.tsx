@@ -1,3 +1,7 @@
+import LaboratoryTicketsPage from "@/features/laboratory/pages/LaboratoryTicketsPage";
+import LaboratoryDashboardPage from "@/features/laboratory/pages/LaboratoryDashboardPage";
+import LaboratoryPage from "@/features/laboratory/pages/LaboratoryPage";
+import LaboratoryTestsPage from "@/features/laboratory/pages/LaboratoryTestsPage";
 import { AlertSounds } from "@/shared/components/feedback/AlertSounds";
 import TodayPatientsPage from "@/features/healthcare/pages/TodayPatientsPage";
 import PatientProductsReportPage from "@/features/inventory/pages/PatientProductsReportPage";
@@ -63,7 +67,7 @@ import LeadProgressPage from "@/features/crm/pages/LeadProgressPage";
 import LeadDetailPage from "@/features/crm/pages/LeadDetailPage";
 import WhatsappPage from "@/features/crm/pages/WhatsappPage";
 import SystemLogsPage from "@/features/system-logs/pages/SystemLogsPage";
-import { Toaster } from "sonner";
+import { SingleAlertToaster } from "@/shared/components/feedback/SingleAlertToaster";
 import { DirectionProvider } from "@radix-ui/react-direction";
 import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
@@ -79,6 +83,16 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<DashboardLayout />}>
+          <Route path="/laboratory/tickets" element={secured(<LaboratoryTicketsPage />)} />
+          <Route path="/laboratory/display" element={secured(<LaboratoryTicketsPage display />)} />
+          <Route path="/laboratory" element={secured(<LaboratoryDashboardPage />)} />
+          <Route path="/laboratory/reception" element={secured(<LaboratoryPage key="lab-reception" mode="reception" />)} />
+          <Route path="/laboratory/accounting" element={secured(<LaboratoryPage key="lab-accounting" mode="accounting" />)} />
+          <Route path="/laboratory/room" element={secured(<LaboratoryPage key="lab-room" mode="room" />)} />
+          <Route path="/laboratory/queue" element={secured(<LaboratoryPage key="lab-queue" mode="queue" />)} />
+          <Route path="/laboratory/completed" element={secured(<LaboratoryPage key="lab-completed" mode="completed" />)} />
+          <Route path="/laboratory/received" element={secured(<LaboratoryPage key="lab-received" mode="received" />)} />
+          <Route path="/laboratory/tests" element={secured(<LaboratoryTestsPage />)} />
           <Route
             path="/dashboard"
             element={secured(<DashboardPage />)}
@@ -409,7 +423,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
       <AlertSounds />
-      <Toaster dir={direction} richColors position="top-center" closeButton />
+      <SingleAlertToaster dir={direction} richColors position="top-center" closeButton />
     </DirectionProvider>
   );
 }

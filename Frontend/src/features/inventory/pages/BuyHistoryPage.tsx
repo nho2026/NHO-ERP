@@ -1,12 +1,7 @@
+import { PurchaseFilters, type PurchaseExtraFilters } from "../components/PurchaseFilters";
+import { BuyProductForm } from "../components/BuyProductForm";
 import type { ReactNode } from "react";
 import { Card } from "@/shared/components/ui/card";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/shared/components/ui/select";
 import {
   Table,
   TableHeader,
@@ -18,16 +13,16 @@ import {
 import {
   useCallback,
   useDeferredValue,
-  useEffect,
   useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Eye, Printer, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Eye, Pencil, Printer, RotateCcw, Search, Trash2 } from "lucide-react";
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
 import { hasPermission, storedUser } from "@/features/auth/access";
 import { Button } from "@/shared/components/ui/button";
+import { Label } from "@/shared/components/ui/label";
 import { Input } from "@/shared/components/ui/input";
 import {
   Dialog,
@@ -49,8 +44,11 @@ type Purchase = {
   totalPrice: string;
   isDebt: boolean;
   status: string;
+  hasInvoice: boolean;
   attachmentUrl: string | null;
   items: {
+    productId: string;
+    warehouseId: string;
     productName: string;
     unit?: string;
     warehouseName: string;
@@ -63,6 +61,7 @@ const columns = [
   "invoiceNumber",
   "retailer",
   "totalProducts",
+  "hasInvoice",
   "note",
   "totalPrice",
 ] as const;
@@ -83,19 +82,24 @@ export default function BuyHistoryPage({
   const [search, setSearch] = useState(
     () => new URLSearchParams(window.location.search).get("search") ?? "",
   );
+  const [extraFilters, setExtraFilters] = useState<PurchaseExtraFilters>({});
+  const [hasInvoice, setHasInvoice] = useState("");
   const [retailer, setRetailer] = useState("");
   const [page, setPage] = useState(1);
   const query = useDeferredValue(search);
   const visible: Column[] = [...columns];
+  const [editing, setEditing] = useState<Purchase | null>(null);
+  const [editBusy, setEditBusy] = useState(false);
+  const canEdit = hasPermission(storedUser(), "inventory.purchases.update");
   const [selected, setSelected] = useState<Purchase | null>(null);
   const [action, setAction] = useState<{
     purchase: Purchase;
     kind: "return" | "delete";
   } | null>(null);
+  const [returnPassword, setReturnPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const [error, setError] = useState("");
-  const [retailers, setRetailers] = useState<string[]>([]);
   const canReturn = hasPermission(storedUser(), "inventory.purchases.return");
   const canDelete =
     hasPermission(storedUser(), "inventory.purchases.delete");
@@ -107,18 +111,12 @@ export default function BuyHistoryPage({
             items: Purchase[];
             pagination: { total: number; totalPages: number };
           }>("/inventory/purchases", {
-            params: { page, pageSize: 10, search: query, retailer },
+            params: { ...extraFilters, page, pageSize: 10, search: query, retailer, hasInvoice },
           })
           .then((r) => r.data),
-      [page, query, retailer],
+      [page, query, retailer, hasInvoice, extraFilters],
     ),
   );
-  useEffect(() => {
-    void apiClient
-      .get<string[]>("/inventory/purchases/retailers")
-      .then((r) => setRetailers(r.data))
-      .catch(() => {});
-  }, []);
   const money = (value: string | number) =>
     new Intl.NumberFormat(i18n.language, {
       minimumFractionDigits: 2,
@@ -126,12 +124,12 @@ export default function BuyHistoryPage({
     }).format(Number(value));
   const label = (column: Column) =>
     t(
-      column === "totalProducts"
+      column === "hasInvoice" ? "buyHistory.invoiceFilter" : column === "totalProducts"
         ? "buyHistory.totalProducts"
         : `buyProductForm.${column}`,
     );
   const value = (row: Purchase, column: Column) =>
-    column === "totalProducts"
+    column === "hasInvoice" ? t(row.hasInvoice ? "buyHistory.withInvoice" : "buyHistory.withoutInvoice") : column === "totalProducts"
       ? row.items.length
       : column === "totalPrice"
         ? money(row.totalPrice)
@@ -152,7 +150,7 @@ export default function BuyHistoryPage({
     target.print();
   };
   const confirm = async () => {
-    if (!action || lock.current) return;
+    if (!action || lock.current || (action.kind === "return" && !returnPassword)) return;
     lock.current = true;
     setBusy(true);
     setError("");
@@ -160,8 +158,10 @@ export default function BuyHistoryPage({
       if (action.kind === "return")
         await apiClient.post(
           `/inventory/purchases/${action.purchase.id}/return`,
+          { password: returnPassword },
         );
       else await apiClient.delete(`/inventory/purchases/${action.purchase.id}`);
+      setReturnPassword("");
       setAction(null);
       if (
         action.kind === "delete" &&
@@ -207,33 +207,13 @@ export default function BuyHistoryPage({
               }}
             />
           </div>
-          <Select
-            value={retailer || "__all__"}
-            onValueChange={(value) => {
-              value = value === "__all__" ? "" : value;
-              setRetailer(value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger
-              className={
-                "h-10 w-full rounded-md border bg-background px-3 text-sm sm:w-64"
-              }
-              aria-label={t("buyHistory.filterRetailer")}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">
-                {t("buyHistory.filterRetailer")}
-              </SelectItem>
-              {retailers.map((name) => (
-                <SelectItem key={name} value={name}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PurchaseFilters value={{ ...extraFilters, retailer, hasInvoice }} onApply={(filters) => {
+            const { retailer: _retailer, hasInvoice: _hasInvoice, status: _status, ...extra } = filters;
+            setExtraFilters(extra);
+            setRetailer(filters.retailer);
+            setHasInvoice(filters.hasInvoice);
+            setPage(1);
+          }} />
           <div className="ms-auto"></div>
         </div>
         <div className="overflow-x-auto">
@@ -323,13 +303,22 @@ export default function BuyHistoryPage({
                             color: "border bg-background hover:bg-muted",
                             disabled: false,
                           },
+                          ...(canEdit ? [{
+                            icon: Pencil, label: "edit", onClick: () => setEditing(row),
+                            color: "border bg-background hover:bg-muted", disabled: row.status !== "completed",
+                          }] : []),
                           ...(canReturn
                             ? [
                                 {
                                   icon: RotateCcw,
                                   label: "return",
                                   onClick: () => {
+                                    if (row.hasInvoice && !row.attachmentUrl) {
+                                      setError(t("buyProductForm.attachmentRequired"));
+                                      return;
+                                    }
                                     setError("");
+                                    setReturnPassword("");
                                     setAction({
                                       purchase: row,
                                       kind: "return",
@@ -347,7 +336,12 @@ export default function BuyHistoryPage({
                                   icon: Trash2,
                                   label: "delete",
                                   onClick: () => {
+                                    if (!row.attachmentUrl) {
+                                      setError(t("buyProductForm.attachmentRequired"));
+                                      return;
+                                    }
                                     setError("");
+                                    setReturnPassword("");
                                     setAction({
                                       purchase: row,
                                       kind: "delete",
@@ -368,7 +362,7 @@ export default function BuyHistoryPage({
                             disabled,
                           }) => (
                             <Button
-                              permission={key} data-action={key === "delete" ? "delete" : undefined}
+                              permission={key === "edit" ? "update" : key} data-action={key === "delete" ? "delete" : undefined}
                               key={key}
                               variant="ghost"
                               size="icon"
@@ -421,6 +415,17 @@ export default function BuyHistoryPage({
           </div>
         </footer>
       </Card>
+      <Dialog open={!!editing} onOpenChange={(open) => { if (!open && !editBusy) setEditing(null); }}>
+        <DialogContent dir={i18n.dir()} className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(96vw,1200px)]">
+          <DialogHeader className="shrink-0 px-6 py-5">
+            <DialogTitle>{t("buyHistory.edit")} · {editing?.invoiceNumber}</DialogTitle>
+          </DialogHeader>
+          {editing && <BuyProductForm key={editing.id} purchase={editing} onBusy={setEditBusy} onSaved={() => {
+            setEditing(null);
+            void result.refresh();
+          }} />}
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={!!selected}
         onOpenChange={(open) => {
@@ -523,7 +528,7 @@ export default function BuyHistoryPage({
       <Dialog
         open={!!action}
         onOpenChange={(open) => {
-          if (!open && !busy) setAction(null);
+          if (!open && !busy) { setReturnPassword(""); setAction(null); }
         }}
       >
         <DialogContent>
@@ -544,6 +549,25 @@ export default function BuyHistoryPage({
               )}
             </DialogDescription>
           </DialogHeader>
+          {action?.kind === "return" && (
+            <div className="space-y-2">
+              <Label htmlFor="purchase-return-password">{t("buyHistory.returnPassword")}</Label>
+              <Input
+                id="purchase-return-password"
+                type="password"
+                autoComplete="current-password"
+                value={returnPassword}
+                onChange={(event) => setReturnPassword(event.target.value)}
+                disabled={busy}
+                maxLength={128}
+                autoFocus
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && returnPassword && !busy) { event.preventDefault(); void confirm(); }
+                }}
+                required
+              />
+            </div>
+          )}
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
@@ -553,13 +577,13 @@ export default function BuyHistoryPage({
             <Button
               variant="outline"
               disabled={busy}
-              onClick={() => setAction(null)}
+              onClick={() => { setReturnPassword(""); setAction(null); }}
             >
               {t("buyHistory.cancel")}
             </Button>
             <Button permission={action?.kind === "return" ? "return" : "delete"}
               variant="destructive"
-              disabled={busy}
+              disabled={busy || (action?.kind === "return" && !returnPassword)}
               onClick={() => void confirm()}
             >
               {t(

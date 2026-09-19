@@ -42,7 +42,7 @@ const select = {
 };
 
 export const leadModel = {
-  counts: () => prisma.crmLead.groupBy({ by: ["status"], _count: { _all: true } }),
+  counts: (where = {}) => prisma.crmLead.groupBy({ where, by: ["status"], _count: { _all: true } }),
   findAll: (skip, take, where) =>
     Promise.all([
       prisma.crmLead.findMany({

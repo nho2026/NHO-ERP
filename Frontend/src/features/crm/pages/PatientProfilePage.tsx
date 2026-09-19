@@ -1,3 +1,4 @@
+import type { LabOrder } from "@/features/laboratory/api";
 import { hasPermission } from "@/features/auth/access";
 import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -21,7 +22,7 @@ import {
   History,
   Pill,
 } from "lucide-react";
-import { apiErrorMessage } from "@/shared/api/client";
+import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { toast } from "sonner";
 import {
   crmApi,
@@ -82,6 +83,11 @@ export default function PatientProfilePage({
       ? "/crm/today-patients"
       : location.state?.from === "/crm/follow-up" ? "/crm/follow-up" : "/crm/patients";
   const canManage = hasPermission(storedUser(), "crm.patients.update");
+  const canViewLaboratory = hasPermission(storedUser(), "laboratory.orders.view");
+  const laboratoryResults = useApiResource(useCallback(async () => {
+    if (!canViewLaboratory) return null;
+    return (await apiClient.get<{ items: LabOrder[] }>("/laboratory/orders", { params: { patientId: id, resultsReady: "true", page: 1, pageSize: 1 } })).data.items[0] ?? null;
+  }, [id, canViewLaboratory]));
   const profile = useApiResource(
     useCallback(() => crmApi.patients.get(id), [id]),
   );
@@ -326,6 +332,8 @@ export default function PatientProfilePage({
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button permission="laboratory.orders.view" variant="secondary" onClick={() => navigate(`/laboratory/reception?patientId=${id}`)}><FlaskConical />{t("laboratory.title")}</Button>
+
             {canManage && patient.status !== "post_discharge_follow_up" && (
               <Button permission="crm.patients.update" variant="secondary" disabled={sendingFollowUp} onClick={() => {
                 setFollowUpDate(patient.followUpDate ? String(patient.followUpDate).slice(0, 10) : "");
@@ -449,7 +457,7 @@ export default function PatientProfilePage({
               ? `Latest visit: ${new Date(String(latestVisit.scheduledAt)).toLocaleDateString()}`
               : "No updates recorded.",
           ],
-          [FlaskConical, "Latest results", "No laboratory results recorded."],
+          [FlaskConical, t("laboratory.results"), laboratoryResults.error ?? (laboratoryResults.isLoading && canViewLaboratory ? t("common.loading") : laboratoryResults.data ? laboratoryResults.data.items.map((item) => `${item.testName}: ${item.result ?? ""} ${item.unit ?? ""}`).join("; ") : "—")],
           [
             FileText,
             "Recent documents",

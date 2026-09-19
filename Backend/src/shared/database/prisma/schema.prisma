@@ -481,6 +481,7 @@ model HealthStaff {
 }
 
 model CrmLead {
+  laboratoryOrders LaboratoryOrder[]
   id                  String                 @id @default(cuid())
   code                String?                @unique(map: "CrmLead_code_key")
   name                String
@@ -588,6 +589,7 @@ model CrmLeadStatusHistory {
 }
 
 model Patient {
+  laboratoryOrders LaboratoryOrder[]
   prescriptions PatientPrescription[]
   icuCases InventoryIcuCase[]
   id                  String                  @id @default(cuid())
@@ -739,6 +741,7 @@ model PatientPayment {
 }
 
 model Appointment {
+  laboratoryOrders LaboratoryOrder[]
   id              String           @id @default(cuid())
   patientName     String
   patientPhone    String
@@ -959,6 +962,7 @@ model BillingCustomer {
 }
 
 model BillingInvoice {
+  laboratoryOrder LaboratoryOrder?
   id             String               @id @default(cuid())
   invoiceNumber  String               @unique(map: "BillingInvoice_invoiceNumber_key")
   customerId     String
@@ -1001,6 +1005,7 @@ model BillingInvoiceItem {
 }
 
 model BillingPayment {
+  laboratoryReceipt LaboratoryPaymentReceipt?
   id        String         @id @default(cuid())
   invoiceId String
   amount    Float
@@ -1398,6 +1403,7 @@ model InventoryPurchase {
   salesperson   String?
   isDebt        Boolean  @default(false)
   note          String?  @db.Text
+  hasInvoice    Boolean @default(false)
   attachmentUrl String?
   totalPrice    Decimal  @db.Decimal(18, 2)
   items         Json
@@ -1557,4 +1563,94 @@ model FinanceCashFlowAudit {
   flow FinanceCashFlow @relation(fields: [flowId], references: [id], onDelete: Restrict)
   @@index([flowId, createdAt])
   @@map("finance_CashFlowAudit")
+}
+
+model LaboratoryTest {
+  id             String @id @default(cuid())
+  code           String @unique
+  name           String
+  specimen       String
+  price          Decimal @db.Decimal(18, 2)
+  unit           String?
+  referenceRange String?
+  status         String @default("active")
+  items          LaboratoryOrderItem[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  @@map("laboratory_Tests")
+}
+
+model LaboratoryDailyQueue {
+  day String @id @db.VarChar(10)
+  nextNumber Int @default(0)
+  @@map("laboratory_DailyQueue")
+}
+
+model LaboratoryOrder {
+  accountingCalledAt DateTime?
+  accountingCalledByName String?
+  receivedAt      DateTime?
+  contactedAt     DateTime?
+  contactedByName String?
+  deliveredAt     DateTime?
+  deliveredByName String?
+  attachments     Json?
+  id              String @id @default(cuid())
+  requestId       String @unique @db.VarChar(36)
+  patientId       String
+  leadId          String?
+  appointmentId   String?
+  invoiceId       String @unique
+  queueDay        String @db.VarChar(10)
+  queueNumber     Int
+  status          String @default("awaiting_payment")
+  notes           String? @db.Text
+  createdByName   String
+  collectedByName String?
+  completedByName String?
+  collectedAt     DateTime?
+  completedAt     DateTime?
+  patient         Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  lead            CrmLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  appointment     Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  invoice         BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  receipts        LaboratoryPaymentReceipt[]
+  items           LaboratoryOrderItem[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([queueDay, queueNumber])
+  @@index([patientId, createdAt])
+  @@index([leadId])
+  @@index([appointmentId])
+  @@index([status, queueDay, queueNumber])
+  @@map("laboratory_Orders")
+}
+
+model LaboratoryOrderItem {
+  id             String @id @default(cuid())
+  orderId        String
+  testId         String?
+  testName       String
+  specimen       String
+  price          Decimal @db.Decimal(18, 2)
+  unit           String?
+  referenceRange String?
+  result         String? @db.Text
+  resultNotes    String? @db.Text
+  order          LaboratoryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  test           LaboratoryTest? @relation(fields: [testId], references: [id], onDelete: SetNull)
+  @@index([orderId])
+  @@index([testId])
+  @@map("laboratory_OrderItems")
+}
+
+model LaboratoryPaymentReceipt {
+  requestId String @id @db.VarChar(36)
+  orderId String
+  paymentId String @unique
+  order LaboratoryOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  payment BillingPayment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  @@index([orderId])
+  @@map("laboratory_PaymentReceipts")
 }

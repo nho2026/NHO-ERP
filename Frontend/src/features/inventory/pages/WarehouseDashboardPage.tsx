@@ -47,7 +47,7 @@ export default function WarehouseDashboardPage() {
     useCallback(async () => {
       const [warehouses, stock, products, movements] = await Promise.all([
         inventoryApi.all("warehouses"),
-        canStock ? inventoryApi.all("stock") : Promise.resolve(null),
+        canStock ? inventoryApi.stockSummary() : Promise.resolve(null),
         canProducts
           ? inventoryApi.list("products", 1, { pageSize: "1" })
           : Promise.resolve(null),
@@ -68,14 +68,12 @@ export default function WarehouseDashboardPage() {
     d?.stock?.filter(
       (row) => location === "all" || row.warehouseId === location,
     ) ?? [];
-  const empty = rows.filter((row) => Number(row.quantity) <= 0);
-  const low = rows.filter(
-    (row) =>
-      Number(row.quantity) > 0 &&
-      Number(row.quantity) <= Number(row.reorderLevel),
-  );
-  const healthy = rows.length - empty.length - low.length;
-  const alerts = [...empty, ...low];
+  const total = rows.reduce((sum, row) => sum + row.total, 0);
+  const units = rows.reduce((sum, row) => sum + row.units, 0);
+  const empty = rows.reduce((sum, row) => sum + row.empty, 0);
+  const low = rows.reduce((sum, row) => sum + row.low, 0);
+  const healthy = total - empty - low;
+  const alerts = empty + low;
   const quickLinks = [
     {
       label: "buy",
@@ -136,14 +134,14 @@ export default function WarehouseDashboardPage() {
     {
       label: "units",
       value: d?.stock
-        ? rows.reduce((sum, row) => sum + Number(row.quantity), 0)
+        ? units
         : undefined,
       icon: Boxes,
       note: "selectedLocation",
     },
     {
       label: "attention",
-      value: d?.stock ? alerts.length : undefined,
+      value: d?.stock ? alerts : undefined,
       icon: TriangleAlert,
       note: "reorderNote",
     },
@@ -188,12 +186,12 @@ export default function WarehouseDashboardPage() {
           </Link>
         </div>
       </section>
-      {resource.error && (
+      {(resource.error || alertTable.error) && (
         <div
           role="alert"
           className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
         >
-          {resource.error}
+          {resource.error || alertTable.error}
         </div>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -301,7 +299,7 @@ export default function WarehouseDashboardPage() {
               {t("warehouseDashboard.healthHint")}
             </p>
             <p className="mt-6 text-4xl font-bold tabular-nums">
-              {resource.isLoading || !d ? "—" : number(rows.length)}
+              {resource.isLoading || !d ? "—" : number(total)}
               <span className="ms-2 text-sm font-normal text-muted-foreground">
                 {t("warehouseDashboard.stockLines")}
               </span>
@@ -312,14 +310,14 @@ export default function WarehouseDashboardPage() {
             >
               {[
                 { count: healthy, color: "bg-teal-500" },
-                { count: low.length, color: "bg-amber-400" },
-                { count: empty.length, color: "bg-rose-500" },
+                { count: low, color: "bg-amber-400" },
+                { count: empty, color: "bg-rose-500" },
               ].map(({ count, color }) => (
                 <span
                   key={color}
                   className={color}
                   style={{
-                    width: `${rows.length ? (count / rows.length) * 100 : 0}%`,
+                    width: `${total ? (count / total) * 100 : 0}%`,
                   }}
                 />
               ))}
@@ -327,8 +325,8 @@ export default function WarehouseDashboardPage() {
             <div className="space-y-4">
               {[
                 { label: "healthy", count: healthy, color: "bg-teal-500" },
-                { label: "low", count: low.length, color: "bg-amber-400" },
-                { label: "out", count: empty.length, color: "bg-rose-500" },
+                { label: "low", count: low, color: "bg-amber-400" },
+                { label: "out", count: empty, color: "bg-rose-500" },
               ].map(({ label, count, color }) => (
                 <div key={label} className="flex items-center gap-2 text-sm">
                   <span className={`size-2 rounded-full ${color}`} />
@@ -367,12 +365,12 @@ export default function WarehouseDashboardPage() {
                     : "warehouseDashboard.unavailable",
                 )}
               </p>
-            ) : alerts.length === 0 ? (
+            ) : alerts === 0 ? (
               <div className="px-6 py-10 text-center">
                 <Boxes className="mx-auto mb-3 size-8 text-teal-500" />
                 <p className="text-sm font-medium">
                   {t(
-                    rows.length
+                    total
                       ? "warehouseDashboard.noAlerts"
                       : "warehouseDashboard.noStock",
                   )}
@@ -395,7 +393,7 @@ export default function WarehouseDashboardPage() {
                       )}
                     </TableRow>
                   </TableHeader>
-                  <TableBody {...alertTable.tableProps}>
+                  <TableBody {...alertTable.tableProps} aria-busy={alertTable.isLoading}>
                     {(alertTable.data ?? []).map((row) => (
                       <TableRow key={row.id} className="border-t">
                         <TableCell className="px-5 py-3 font-medium">

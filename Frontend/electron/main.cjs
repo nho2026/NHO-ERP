@@ -68,6 +68,25 @@ function windowFromEvent(event) {
   return BrowserWindow.fromWebContents(event.sender);
 }
 
+ipcMain.handle("ticket:print", async (event, token, height) => {
+  if (!windowFromEvent(event) || typeof token !== "string" || !/^nho-ticket-[a-f0-9-]{36}$/.test(token) || !Number.isFinite(height) || height < 80 || height > 2000)
+    throw new Error("Invalid ticket print request.");
+  const ticket = BrowserWindow.getAllWindows().find((window) =>
+    window.webContents.getTitle() === token && window.webContents.getURL() === "about:blank",
+  );
+  if (!ticket) throw new Error("Ticket print window was closed.");
+  try {
+    await new Promise((resolve, reject) => {
+      ticket.webContents.print({ silent: true, printBackground: true, margins: { marginType: "none" }, pageSize: { width: 80000, height: Math.ceil(height * 1000) } }, (success, reason) => {
+        if (success) resolve();
+        else reject(new Error(reason || "Ticket printing failed."));
+      });
+    });
+  } finally {
+    if (!ticket.isDestroyed()) ticket.close();
+  }
+});
+
 ipcMain.on("window:minimize", (event) => windowFromEvent(event)?.minimize());
 ipcMain.on("window:toggle-maximize", (event) => {
   const window = windowFromEvent(event);

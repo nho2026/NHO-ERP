@@ -1,8 +1,16 @@
 import { stockModel } from "./stock.model.js";
 import { stockAdjustmentSchema } from "./stock.schema.js";
 export const stockService = {
+  summary: async () => (await stockModel.summary()).map((row) => ({
+    warehouseId: row.warehouseId,
+    total: Number(row.total),
+    units: Number(row.units),
+    empty: Number(row.emptyCount),
+    low: Number(row.low),
+  })),
   list: async ({ query = {} }) => {
     const where = {
+      ...(query.onlyLow === "true" && stockModel.lowStockWhere()),
       ...(query.warehouseId && {
         warehouseId: String(query.warehouseId),
       }),

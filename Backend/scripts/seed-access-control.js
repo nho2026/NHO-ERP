@@ -1,3 +1,4 @@
+import { seedLaboratoryRoles } from "../src/shared/security/laboratory-roles.js";
 import "dotenv/config";
 import { prisma } from "../src/shared/database/client.js";
 import { syncPermissionCatalog } from "../src/shared/security/sync-permissions.js";
@@ -9,6 +10,7 @@ try {
   await prisma.rolePermission.count();
 
   await syncPermissionCatalog();
+  await seedLaboratoryRoles(prisma);
   const permissions = await prisma.permission.findMany({ select: { id: true } });
   await prisma.$transaction(async (tx) => {
     const role = await tx.role.upsert({

@@ -8,6 +8,9 @@ export const ordersModel = {
       where: { id: { in: ids }, status: "active" },
       include: { images: { orderBy: { sortOrder: "asc" } } },
     }),
+  update: (id, previous, data) => prisma.inventoryOrder.updateMany({
+    where: { id, name: previous.name, note: previous.note, items: { equals: previous.items } }, data,
+  }),
   create: (data) => prisma.inventoryOrder.create({ data }),
   find: (id) => prisma.inventoryOrder.findUnique({ where: { id } }),
   updateArrival: (id, previousItems, items) =>

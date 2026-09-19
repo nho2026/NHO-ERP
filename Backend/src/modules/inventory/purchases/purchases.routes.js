@@ -12,5 +12,6 @@ router.post(
 );
 router.delete("/purchases/:id", manage, adjust, purchasesController.remove);
 router.get("/purchases/retailers", view, purchasesController.retailers);
+router.patch("/purchases/:id", adjust, purchasesController.update);
 router.post("/purchases", adjust, purchasesController.create);
 export default router;

@@ -1,5 +1,17 @@
 {
   "catalog": [
+    {"key": "laboratory.pages.dashboard.view", "module": "laboratory.pages.dashboard", "name": "View laboratory / dashboard"},
+    {"key": "laboratory.pages.reception.view", "module": "laboratory.pages.reception", "name": "View laboratory / reception"},
+    {"key": "laboratory.pages.queue.view", "module": "laboratory.pages.queue", "name": "View laboratory / queue"},
+    {"key": "laboratory.pages.room.view", "module": "laboratory.pages.room", "name": "View laboratory / room"},
+    {"key": "laboratory.pages.tickets.view", "module": "laboratory.pages.tickets", "name": "View laboratory / tickets"},
+    {"key": "laboratory.pages.display.view", "module": "laboratory.pages.display", "name": "View laboratory / display"},
+    {"key": "laboratory.pages.received.view", "module": "laboratory.pages.received", "name": "View laboratory / received"},
+    {"key": "laboratory.pages.completed.view", "module": "laboratory.pages.completed", "name": "View laboratory / completed"},
+    {"key": "laboratory.pages.accounting.view", "module": "laboratory.pages.accounting", "name": "View laboratory / accounting"},
+    {"key": "laboratory.pages.tests.view", "module": "laboratory.pages.tests", "name": "View laboratory / tests"},
+    {"key": "laboratory.display.call", "module": "laboratory.display", "name": "Call laboratory display tickets"},
+    {"key": "laboratory.display.view", "module": "laboratory.display", "name": "View laboratory display management"},
     {
       "key": "accounting.accounts.create",
       "module": "accounting.accounts",
@@ -2734,9 +2746,70 @@
       "key": "users.view",
       "module": "users",
       "name": "View users"
-    }
+    },
+    {
+        "key": "laboratory.orders.view",
+        "module": "laboratory.orders",
+        "name": "View laboratory / orders"
+      },
+      {
+        "key": "laboratory.orders.create",
+        "module": "laboratory.orders",
+        "name": "Create laboratory / orders"
+      },
+      {
+        "key": "laboratory.orders.update",
+        "module": "laboratory.orders",
+        "name": "Update laboratory / orders"
+      },
+      {
+        "key": "laboratory.orders.print",
+        "module": "laboratory.orders",
+        "name": "Print laboratory / orders"
+      },
+      {
+        "key": "laboratory.tests.view",
+        "module": "laboratory.tests",
+        "name": "View laboratory / tests"
+      },
+      {
+        "key": "laboratory.tests.create",
+        "module": "laboratory.tests",
+        "name": "Create laboratory / tests"
+      },
+      {
+        "key": "laboratory.tests.delete",
+        "module": "laboratory.tests",
+        "name": "Delete laboratory / tests"
+      },
+      {
+        "key": "laboratory.tests.update",
+        "module": "laboratory.tests",
+        "name": "Update laboratory / tests"
+      },
+      {
+        "key": "laboratory.payments.view",
+        "module": "laboratory.payments",
+        "name": "View laboratory / payments"
+      },
+      {
+        "key": "laboratory.payments.create",
+        "module": "laboratory.payments",
+        "name": "Create laboratory / payments"
+      }
   ],
   "availableActions": {
+    "laboratory.display": ["view", "call"],
+    "laboratory.pages.tests": ["view"],
+    "laboratory.pages.accounting": ["view"],
+    "laboratory.pages.completed": ["view"],
+    "laboratory.pages.received": ["view"],
+    "laboratory.pages.display": ["view"],
+    "laboratory.pages.tickets": ["view"],
+    "laboratory.pages.room": ["view"],
+    "laboratory.pages.queue": ["view"],
+    "laboratory.pages.reception": ["view"],
+    "laboratory.pages.dashboard": ["view"],
     "crm.patients": ["create", "delete", "export", "print", "update", "view"],
     "inventory.special-prices": [
       "create",
@@ -3211,7 +3284,23 @@
       "print",
       "update",
       "view"
-    ]
+    ],
+    "laboratory.orders": [
+        "view",
+        "create",
+        "update",
+        "print"
+      ],
+      "laboratory.tests": [
+        "view",
+        "create",
+        "update",
+        "delete"
+      ],
+      "laboratory.payments": [
+        "view",
+        "create"
+      ]
   },
   "pages": {
     "/dashboard": "dashboard",
@@ -3324,9 +3413,27 @@
     "/warehouses/cases/cardiac-sw": "inventory.cardiac-sw",
     "/warehouses/cases/cardiac-surgery": "inventory.cardiac-surgery",
     "/warehouses/cases/cardiology": "inventory.cardiology",
-    "/warehouses/cases/surgery-bypass": "inventory.surgery-bypass"
+    "/warehouses/cases/surgery-bypass": "inventory.surgery-bypass",
+    "/laboratory": "laboratory.pages.dashboard",
+      "/laboratory/reception": "laboratory.pages.reception",
+      "/laboratory/queue": "laboratory.pages.queue",
+      "/laboratory/room": "laboratory.pages.room",
+      "/laboratory/tickets": "laboratory.pages.tickets",
+      "/laboratory/display": "laboratory.pages.display",
+      "/laboratory/received": "laboratory.pages.received",
+      "/laboratory/completed": "laboratory.pages.completed",
+      "/laboratory/accounting": "laboratory.pages.accounting",
+      "/laboratory/tests": "laboratory.pages.tests"
   },
   "resources": [
+    {
+        "pattern": "^/laboratory/orders(?:/[^/]+)?$",
+        "resource": "laboratory.orders"
+      },
+      {
+        "pattern": "^/laboratory/tests(?:/[^/]+)?$",
+        "resource": "laboratory.tests"
+      },
     {
       "pattern": "^/employees/records/attendance-permissions(?:/|$)",
       "resource": "hr.attendance-permissions"
@@ -3717,6 +3824,50 @@
     }
   ],
   "overrides": [
+    { "method": "GET", "pattern": "^/laboratory/orders/[^/]+/queue-position$", "permission": "laboratory.orders.view" },
+    { "method": "POST", "pattern": "^/laboratory/orders/[^/]+/request-patient$", "permission": "laboratory.orders.update" },
+    { "method": "GET", "pattern": "^/laboratory/accounting-queue$", "permission": "laboratory.orders.view" },
+    { "method": "POST", "pattern": "^/laboratory/orders/[^/]+/call-ticket$", "permission": "laboratory.display.call" },
+    {
+      "method": "GET",
+      "pattern": "^/laboratory/dashboard$",
+      "permission": "laboratory.orders.view"
+    },
+    {
+      "method": "GET",
+      "pattern": "^/laboratory/overview$",
+      "permission": "laboratory.orders.view"
+    },
+    {
+      "method": "POST",
+      "pattern": "^/laboratory/orders/[^/]+/attachments$",
+      "permission": "laboratory.orders.update"
+    },
+    {
+      "method": "GET",
+      "pattern": "^/laboratory/orders/[^/]+/attachments/[^/]+$",
+      "permission": "laboratory.orders.view"
+    },
+    {
+        "method": "PATCH",
+        "pattern": "^/laboratory/orders/[^/]+/(stage|results)$",
+        "permission": "laboratory.orders.update"
+      },
+      {
+        "method": "POST",
+        "pattern": "^/laboratory/orders/[^/]+/pay$",
+        "permission": "laboratory.payments.create"
+      },
+      {
+        "method": "GET",
+        "pattern": "^/laboratory/lookups/[^/]+$",
+        "permission": "laboratory.orders.create"
+      },
+      {
+        "method": "GET",
+        "pattern": "^/laboratory/config$",
+        "permission": "laboratory.orders.view"
+      },
     {
       "method": "POST",
       "pattern": "^/pos/sales$",
@@ -3844,6 +3995,17 @@
     }
   ],
   "readDependencies": {
+    "laboratory.display.call": ["laboratory.display.view", "laboratory.orders.view"],
+    "laboratory.pages.tests.view": ["laboratory.tests.view"],
+    "laboratory.pages.accounting.view": ["laboratory.payments.view"],
+    "laboratory.pages.completed.view": ["laboratory.orders.view"],
+    "laboratory.pages.received.view": ["laboratory.orders.view"],
+    "laboratory.pages.display.view": ["laboratory.orders.view"],
+    "laboratory.pages.tickets.view": ["laboratory.orders.view"],
+    "laboratory.pages.room.view": ["laboratory.orders.view"],
+    "laboratory.pages.queue.view": ["laboratory.orders.view"],
+    "laboratory.pages.reception.view": ["laboratory.orders.view"],
+    "laboratory.pages.dashboard.view": ["laboratory.orders.view"],
     "crm.patients.create": ["crm.lookups.view", "healthcare.appointments.view"],
     "crm.patients.delete": ["crm.lookups.view", "healthcare.appointments.view"],
     "crm.patients.export": ["crm.lookups.view", "healthcare.appointments.view"],
@@ -3914,6 +4076,16 @@
     "roles.create": ["permissions.view"],
     "roles.delete": ["permissions.view"],
     "roles.update": ["permissions.view"],
-    "roles.view": ["permissions.view"]
+    "roles.view": ["permissions.view"],
+    "laboratory.payments.view": [
+        "laboratory.orders.view"
+      ],
+      "laboratory.payments.create": [
+        "laboratory.orders.view"
+      ],
+      "laboratory.orders.create": [
+        "laboratory.orders.view",
+        "laboratory.tests.view"
+      ]
   }
 }

@@ -1,13 +1,8 @@
+import { PurchaseFilters, type PurchaseExtraFilters } from "../components/PurchaseFilters";
 import { hasPermission } from "@/features/auth/access";
 import { randomId } from "@/shared/lib/random-id";
 import { Card } from "@/shared/components/ui/card";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/shared/components/ui/select";
+
 import {
   Table,
   TableHeader,
@@ -20,7 +15,6 @@ import { Label } from "@/shared/components/ui/label";
 import {
   useCallback,
   useDeferredValue,
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -49,6 +43,7 @@ type Debt = {
   paidAmount: string;
   totalPrice: string;
   note: string;
+  hasInvoice: boolean;
   attachmentUrl: string | null;
   items: {
     productName: string;
@@ -64,6 +59,7 @@ const columns = [
   "retailer",
   "salesperson",
   "totalProducts",
+  "hasInvoice",
   "status",
   "date",
   "paid",
@@ -82,10 +78,11 @@ export default function BuyDebtsPage() {
   const { t, i18n } = useTranslation();
   const [search, setSearch] = useState("");
   const query = useDeferredValue(search);
+  const [extraFilters, setExtraFilters] = useState<PurchaseExtraFilters>({});
+  const [hasInvoice, setHasInvoice] = useState("");
   const [retailer, setRetailer] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
-  const [retailers, setRetailers] = useState<string[]>([]);
   const visible: Column[] = [...columns];
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [selected, setSelected] = useState<Debt | null>(null);
@@ -110,18 +107,12 @@ export default function BuyDebtsPage() {
               outstanding: number;
             };
           }>("/inventory/purchase-debts", {
-            params: { search: query, retailer, status, page, pageSize: 10 },
+            params: { ...extraFilters, search: query, retailer, hasInvoice, status, page, pageSize: 10 },
           })
           .then((r) => r.data),
-      [query, retailer, status, page],
+      [query, retailer, hasInvoice, status, page, extraFilters],
     ),
   );
-  useEffect(() => {
-    void apiClient
-      .get<string[]>("/inventory/purchases/retailers")
-      .then((r) => setRetailers(r.data))
-      .catch(() => {});
-  }, []);
   const money = (v: string | number) =>
     new Intl.NumberFormat(i18n.language, {
       minimumFractionDigits: 2,
@@ -139,14 +130,14 @@ export default function BuyDebtsPage() {
         : "unpaid";
   const label = (key: Column) =>
     t(
-      ["status", "date", "paid"].includes(key)
+      key === "hasInvoice" ? "buyHistory.invoiceFilter" : ["status", "date", "paid"].includes(key)
         ? `buyDebts.${key}`
         : key === "totalProducts"
           ? "buyHistory.totalProducts"
           : `buyProductForm.${key}`,
     );
   const value = (row: Debt, key: Column): string | number =>
-    key === "totalProducts"
+    key === "hasInvoice" ? t(row.hasInvoice ? "buyHistory.withInvoice" : "buyHistory.withoutInvoice") : key === "totalProducts"
       ? row.items.length
       : key === "date"
         ? new Date(row.buyDate).toLocaleDateString(i18n.language)
@@ -207,8 +198,6 @@ export default function BuyDebtsPage() {
       lock.current = false;
     }
   };
-  const selectClass =
-    "h-10 rounded-md border bg-background px-3 text-sm w-full sm:w-60";
   return (
     <div className="space-y-4 pb-8">
       <header className="flex items-center gap-3 border-b pb-4">
@@ -236,56 +225,14 @@ export default function BuyDebtsPage() {
               setPage(1);
             }}
           />
-          <Select
-            value={retailer || "__all__"}
-            onValueChange={(value) => {
-              value = value === "__all__" ? "" : value;
-              setRetailer(value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger
-              className={selectClass}
-              aria-label={t("buyHistory.filterRetailer")}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">
-                {t("buyHistory.filterRetailer")}
-              </SelectItem>
-              {retailers.map((name) => (
-                <SelectItem key={name} value={name}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={status || "__all__"}
-            onValueChange={(value) => {
-              value = value === "__all__" ? "" : value;
-              setStatus(value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger
-              className={selectClass}
-              aria-label={t("buyDebts.filterStatus")}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">
-                {t("buyDebts.filterStatus")}
-              </SelectItem>
-              {["paid", "unpaid", "partial"].map((s) => (
-                <SelectItem key={s} value={s}>
-                  {t(`buyDebts.${s}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PurchaseFilters value={{ ...extraFilters, retailer, hasInvoice, status }} onApply={(filters) => {
+            const { retailer: _retailer, hasInvoice: _hasInvoice, status: _status, ...extra } = filters;
+            setExtraFilters(extra);
+            setRetailer(filters.retailer);
+            setHasInvoice(filters.hasInvoice);
+            setStatus(filters.status ?? "");
+            setPage(1);
+          }} />
           <Button
             className="bg-teal-500 text-white hover:bg-teal-600"
             size="icon"

@@ -1,3 +1,4 @@
+import { ProductSelect } from "../components/ProductSelect";
 import { randomId } from "@/shared/lib/random-id";
 import {
   Dialog,
@@ -63,15 +64,14 @@ export default function TransferProductPage() {
   const invalidRange = Boolean(filters.from && filters.to && filters.from > filters.to);
   const lock = useRef(false);
   const canManage = hasPermission(storedUser(), "inventory.transfers.create");
+  const [selectedProducts, setSelectedProducts] = useState<RecordItem[]>([]);
   const resources = useApiResource(
     useCallback(async () => {
-      const [products, warehouses, stock] = await Promise.all([
-        inventoryApi.all("products"),
+      const [warehouses, stock] = await Promise.all([
         inventoryApi.all("warehouses"),
         inventoryApi.all("stock"),
       ]);
       return {
-        products: products.filter((p) => p.status === "active"),
         warehouses,
         stock,
       };
@@ -284,7 +284,7 @@ export default function TransferProductPage() {
                 </TableHeader>
                 <TableBody autoPaginate={false}>
                   {lines.map((line) => {
-                    const product = resources.data?.products.find(
+                    const product = selectedProducts.find(
                       (p) => p.id === line.productId,
                     );
                     const stock = resources.data?.stock.find(
@@ -305,18 +305,13 @@ export default function TransferProductPage() {
                       ) ?? [];
                     return (
                       <TableRow key={line.id}>
-                        <TableCell className="min-w-64">
-                          {selector(
-                            line.productId,
-                            (productId) =>
-                              change(line.id, {
-                                productId,
-                                fromWarehouseId: "",
-                                quantity: "",
-                              }),
-                            resources.data?.products ?? [],
-                            t("transferForm.product"),
-                          )}
+                        <TableCell className="w-[300px] min-w-[300px]">
+                          <ProductSelect selected={product} disabled={busy}
+                            onChange={(product) => {
+                              setSelectedProducts((items) => [...items.filter((item) => item.id !== product.id), product]);
+                              change(line.id, { productId: product.id, fromWarehouseId: "", quantity: "" });
+                            }}
+                          />
                         </TableCell>
                         <TableCell>
                           {selector(

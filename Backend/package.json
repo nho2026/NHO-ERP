@@ -10,6 +10,8 @@
     "start": "node src/server.js",
     "format": "prettier --write \"src/**/*.js\"",
     "setup:voice": "node node_modules/ffmpeg-static/install.js",
+    "db:setup-laboratory": "node scripts/setup-laboratory.js",
+    "verify:laboratory": "node scripts/verify-laboratory.js",
     "db:generate": "prisma generate --schema src/shared/database/prisma/schema.prisma",
     "db:push": "prisma db push --schema src/shared/database/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema src/shared/database/prisma/schema.prisma",

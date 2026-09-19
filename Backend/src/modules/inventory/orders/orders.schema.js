@@ -7,6 +7,7 @@ export const ordersSchema = z.object({
     .array(
       z
         .object({
+          originalIndex: z.number().int().min(0).optional(),
           imageUrl: z
             .string()
             .regex(/^\/public\/product-images\/[a-zA-Z0-9.-]+$/)

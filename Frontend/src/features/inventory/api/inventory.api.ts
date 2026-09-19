@@ -14,6 +14,9 @@ export type StoragePageData = PageData & {
 };
 export type ExpiryPageData = PageData & { warehouses: RecordItem[]; categories: RecordItem[]; today: string };
 export const inventoryApi = {
+  stockSummary: () => apiClient.get<{
+    warehouseId: string; total: number; units: number; empty: number; low: number;
+  }[]>("/inventory/stock/summary").then((response) => response.data),
   expiry: (page = 1, filters: Record<string, string> = {}) =>
     apiClient.get<ExpiryPageData>("/inventory/expiry", { params: { page, pageSize: 50, ...filters } }).then(response => response.data),
   storage: (page = 1, filters: Record<string, string> = {}) =>

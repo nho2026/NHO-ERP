@@ -77,6 +77,19 @@ export const leadFilterSchema = z.object({
   source: z.string().trim().max(100).optional(),
   gender: optionalQueryEnum(z.enum(["male", "female", "other"])),
   status: optionalQueryEnum(leadStatus),
-  minAge: z.coerce.number().int().min(0).max(150).optional(),
-  maxAge: z.coerce.number().int().min(0).max(150).optional(),
+  minAge: optionalQueryEnum(z.coerce.number().int().min(0).max(150)),
+  maxAge: optionalQueryEnum(z.coerce.number().int().min(0).max(150)),
+  fromDate: optionalQueryEnum(z.iso.date()),
+  toDate: optionalQueryEnum(z.iso.date()),
+  dateField: optionalQueryEnum(z.enum(["createdAt", "updatedAt"])),
+  city: z.string().trim().max(100).optional(),
+  country: z.string().trim().max(100).optional(),
+  contactMethod: optionalQueryEnum(leadSchema.shape.contactMethod.unwrap().unwrap()),
+  leadSourceChannel: optionalQueryEnum(leadSchema.shape.leadSourceChannel.unwrap().unwrap()),
+  patientType: optionalQueryEnum(leadSchema.shape.patientType.unwrap().unwrap()),
+  referralPersona: optionalQueryEnum(leadSchema.shape.referralPersona.unwrap().unwrap()),
+}).refine(input => !input.fromDate || !input.toDate || input.fromDate <= input.toDate, {
+  message: "From date must be on or before to date.", path: ["toDate"],
+}).refine(input => input.minAge === undefined || input.maxAge === undefined || input.minAge <= input.maxAge, {
+  message: "Minimum age cannot exceed maximum age.", path: ["maxAge"],
 });

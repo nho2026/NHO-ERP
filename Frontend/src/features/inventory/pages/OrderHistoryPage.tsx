@@ -1,8 +1,9 @@
+import { OrderForm } from "../components/OrderForm";
 import { hasPagePermission } from "@/features/auth/access";
 import type { ReactNode } from "react";
 import { useCallback, useDeferredValue, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Eye, Printer, Trash2 } from "lucide-react";
+import { Eye, Pencil, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Card } from "@/shared/components/ui/card";
@@ -26,7 +27,7 @@ import {
 
 import { apiClient, apiErrorMessage } from "@/shared/api/client";
 import { useApiResource } from "@/shared/hooks/useApiResource";
-import { storedUser } from "@/features/auth/access";
+import { hasPermission, storedUser } from "@/features/auth/access";
 type Order = {
   id: string;
   name: string;
@@ -34,6 +35,9 @@ type Order = {
   createdAt: string;
   totalPrice: string;
   items: {
+    isNew: boolean;
+    productId: string | null;
+    imageUrl?: string | null;
     name: string;
     size: string;
     code: string;
@@ -71,6 +75,9 @@ export default function OrderHistoryPage({
   const query = useDeferredValue(search);
   const [page, setPage] = useState(1);
   const visible: Column[] = [...columns];
+  const [editing, setEditing] = useState<Order | null>(null);
+  const [editBusy, setEditBusy] = useState(false);
+  const canEdit = hasPermission(storedUser(), "inventory.orders.update");
   const [selected, setSelected] = useState<Order | null>(null);
   const [deleting, setDeleting] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
@@ -267,6 +274,10 @@ export default function OrderHistoryPage({
                       >
                         <Eye className="size-4" />
                       </Button>
+                      {canEdit && <Button permission="update" size="icon" variant="outline" className="size-8"
+                        aria-label={`${t("orderHistory.edit")} ${row.name}`} onClick={() => setEditing(row)}>
+                        <Pencil className="size-4" />
+                      </Button>}
                       {canManage && (
                         <Button data-action="delete"
                           size="icon"
@@ -319,6 +330,17 @@ export default function OrderHistoryPage({
           </div>
         </footer>
       </Card>
+      <Dialog open={!!editing} onOpenChange={(open) => { if (!open && !editBusy) setEditing(null); }}>
+        <DialogContent dir={i18n.dir()} className="flex h-[80dvh] max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(96vw,1200px)]">
+          <DialogHeader className="shrink-0 px-6 py-5">
+            <DialogTitle>{t("orderHistory.edit")} · {editing?.name}</DialogTitle>
+          </DialogHeader>
+          {editing && <OrderForm key={editing.id} order={editing} onBusy={setEditBusy} onSaved={() => {
+            setEditing(null);
+            void result.refresh();
+          }} />}
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={!!selected}
         onOpenChange={(open) => {

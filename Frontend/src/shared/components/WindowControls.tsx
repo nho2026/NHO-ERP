@@ -3,6 +3,7 @@ import { Maximize2, Minus, X } from "lucide-react";
 declare global {
   interface Window {
     electronWindow?: {
+      printTicket: (token: string, height: number) => Promise<void>;
       minimize: () => void;
       toggleMaximize: () => void;
       close: () => void;

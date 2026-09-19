@@ -25,6 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
+import { Label } from "@/shared/components/ui/label";
 import { Input } from "@/shared/components/ui/input";
 import {
   Table,
@@ -34,11 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import {
-  changeOwnPassword,
-  getProfile,
-  updateProfile,
-} from "../api/auth.api";
+import { changeOwnPassword, getProfile, updateProfile } from "../api/auth.api";
 import type { AuthUser } from "../types/auth.types";
 import { employeePortalApi } from "@/features/employee-portal/api/employee-portal.api";
 
@@ -108,11 +105,11 @@ export default function ProfilePage() {
     }
   };
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="mx-auto w-full max-w-7xl space-y-6 pb-6">
       <Card className="overflow-hidden border-0 shadow-sm">
         <div className="h-32 bg-[linear-gradient(120deg,#0f766e,#1596b7,#0d9488)]" />
-        <CardContent className="relative flex flex-wrap items-end gap-5 px-6 pb-6">
-          <Avatar className="-mt-14 size-28 border-4 border-card shadow-lg">
+        <CardContent className="relative grid grid-cols-[auto_minmax(0,1fr)] items-end gap-4 px-4 pb-5 sm:gap-5 sm:px-6 sm:pb-6 md:grid-cols-[auto_minmax(0,1fr)_auto]">
+          <Avatar className="-mt-10 size-20 border-4 sm:-mt-14 sm:size-28 border-card shadow-lg">
             <AvatarFallback className="bg-primary text-3xl font-bold text-primary-foreground">
               {initials}
             </AvatarFallback>
@@ -128,7 +125,9 @@ export default function ProfilePage() {
               @{user?.username} · {user?.role ?? t("profile.noRole")}
             </p>
           </div>
-          <Button data-action="edit"
+          <Button
+            data-action="edit"
+            className="col-span-2 w-full md:col-span-1 md:w-auto"
             variant={editing ? "secondary" : "outline"}
             onClick={() => setEditing((value) => !value)}
           >
@@ -137,225 +136,253 @@ export default function ProfilePage() {
           </Button>
         </CardContent>
       </Card>
-      <div className="grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
-        <div className="space-y-5">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <UserRound className="text-primary" />
-                {t("profile.personalInformation")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {profile.isLoading ? (
-                <div className="h-36 animate-pulse rounded-xl bg-muted" />
-              ) : (
-                <form
-                  className="grid gap-4 sm:grid-cols-2"
-                  onSubmit={saveProfile}
-                >
-                  <label className="space-y-1 text-xs font-medium">
-                    {t("profile.fullName")}
-                    <Input
-                      name="name"
-                      defaultValue={user?.name ?? ""}
-                      disabled={!editing}
-                      required
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs font-medium">
-                    {t("profile.email")}
-                    <Input
-                      name="email"
-                      type="email"
-                      defaultValue={user?.email ?? ""}
-                      disabled={!editing}
-                      required
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs font-medium sm:col-span-2">
-                    {t("profile.department")}
-                    <Input
-                      name="department"
-                      defaultValue={
-                        user?.department ?? employee?.department?.name ?? ""
-                      }
-                      disabled={!editing}
-                    />
-                  </label>
-                  {editing && (
-                    <Button permission="update" className="sm:col-span-2" disabled={saving}>
-                      {saving ? t("profile.saving") : t("profile.save")}
-                    </Button>
-                  )}
-                </form>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <CalendarDays className="text-primary" />
-                {t("profile.recentAttendance")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("profile.event")}</TableHead>
-                    <TableHead>{t("profile.device")}</TableHead>
-                    <TableHead>{t("profile.verification")}</TableHead>
-                    <TableHead>{t("profile.dateTime")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody {...events.tableProps}>
-                  <TableResourceState
-                    isLoading={events.isLoading}
-                    error={events.error}
-                    isEmpty={!events.data?.length}
-                    colSpan={4}
+      <div className="grid min-w-0 gap-5 lg:grid-cols-12 lg:items-stretch">
+        <Card className="min-w-0 rounded-2xl lg:col-span-7">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <UserRound className="text-primary" />
+              {t("profile.personalInformation")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {profile.isLoading ? (
+              <div className="h-36 animate-pulse rounded-xl bg-muted" />
+            ) : (
+              <form
+                className="grid gap-4 sm:grid-cols-2"
+                onSubmit={saveProfile}
+              >
+                <Label className="flex flex-col gap-2 text-xs font-medium">
+                  {t("profile.fullName")}
+                  <Input
+                    name="name"
+                    defaultValue={user?.name ?? ""}
+                    disabled={!editing}
+                    required
                   />
-                  {events.data?.map((event) => (
-                    <TableRow key={event.id}>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {t(`profile.${event.eventType}`)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{event.device.name}</TableCell>
-                      <TableCell>{event.verification || "—"}</TableCell>
-                      <TableCell>
-                        {new Intl.DateTimeFormat(i18n.resolvedLanguage, {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }).format(new Date(event.occurredAt))}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="space-y-5">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <BriefcaseBusiness className="text-primary" />
-                {t("profile.employment")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                [ShieldCheck, t("profile.role"), user?.role],
-                [UserRound, t("profile.employeeCode"), employee?.employeeCode],
-                [
-                  BriefcaseBusiness,
-                  t("profile.position"),
-                  employee?.position?.name,
-                ],
-                [MapPin, t("profile.department"), employee?.department?.name],
-                [
-                  CalendarDays,
-                  t("profile.hireDate"),
-                  employee?.hireDate
-                    ? new Intl.DateTimeFormat(i18n.resolvedLanguage, {
-                        dateStyle: "medium",
-                      }).format(new Date(employee.hireDate))
-                    : null,
-                ],
-                [Mail, t("profile.email"), user?.email],
-              ].map(([Icon, label, value], index) => {
-                const ItemIcon = Icon as typeof ShieldCheck;
-                return (
-                  <div
-                    className="flex items-center gap-3 rounded-xl bg-muted/60 p-3"
-                    key={index}
+                </Label>
+                <Label className="flex flex-col gap-2 text-xs font-medium">
+                  {t("profile.email")}
+                  <Input
+                    name="email"
+                    type="email"
+                    defaultValue={user?.email ?? ""}
+                    disabled={!editing}
+                    required
+                  />
+                </Label>
+                <Label className="flex flex-col gap-2 text-xs font-medium sm:col-span-2">
+                  {t("profile.department")}
+                  <Input
+                    name="department"
+                    defaultValue={
+                      user?.department ?? employee?.department?.name ?? ""
+                    }
+                    disabled={!editing}
+                  />
+                </Label>
+                {editing && (
+                  <Button
+                    permission="update"
+                    className="sm:col-span-2"
+                    disabled={saving}
                   >
-                    <ItemIcon className="size-4 text-primary" />
-                    <div>
-                      <small className="block text-muted-foreground">
-                        {String(label)}
-                      </small>
-                      <b className="text-sm">{String(value || "—")}</b>
-                    </div>
+                    {saving ? t("profile.saving") : t("profile.save")}
+                  </Button>
+                )}
+              </form>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="min-w-0 rounded-2xl lg:col-span-5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BriefcaseBusiness className="text-primary" />
+              {t("profile.employment")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            {[
+              [ShieldCheck, t("profile.role"), user?.role],
+              [UserRound, t("profile.employeeCode"), employee?.employeeCode],
+              [
+                BriefcaseBusiness,
+                t("profile.position"),
+                employee?.position?.name,
+              ],
+              [MapPin, t("profile.department"), employee?.department?.name],
+              [
+                CalendarDays,
+                t("profile.hireDate"),
+                employee?.hireDate
+                  ? new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+                      dateStyle: "medium",
+                    }).format(new Date(employee.hireDate))
+                  : null,
+              ],
+              [Mail, t("profile.email"), user?.email],
+            ].map(([Icon, label, value], index) => {
+              const ItemIcon = Icon as typeof ShieldCheck;
+              return (
+                <div
+                  className="flex min-w-0 items-start gap-3 rounded-xl bg-muted/60 p-3"
+                  key={index}
+                >
+                  <ItemIcon className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <small className="block text-muted-foreground">
+                      {String(label)}
+                    </small>
+                    <b className="block break-words text-sm font-semibold">
+                      {String(value || "—")}
+                    </b>
                   </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                {t("employeePortal.warnings")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {!warnings.data?.length ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("employeePortal.noWarnings")}
-                </p>
-              ) : (
-                warnings.data.slice(0, 5).map((item) => (
-                  <div
-                    key={item.warningId}
-                    className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3"
-                  >
-                    <div className="flex justify-between gap-2">
-                      <b className="text-sm">{item.warning.title}</b>
-                      <Badge
-                        variant={
-                          item.warning.severity === "urgent"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                      >
-                        {item.warning.severity}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+        <Card className="min-w-0 overflow-hidden rounded-2xl lg:col-span-8 lg:row-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CalendarDays className="text-primary" />
+              {t("profile.recentAttendance")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="min-w-0 overflow-x-auto p-0">
+            <Table className="min-w-[560px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("profile.event")}</TableHead>
+                  <TableHead>{t("profile.device")}</TableHead>
+                  <TableHead>{t("profile.verification")}</TableHead>
+                  <TableHead>{t("profile.dateTime")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody {...events.tableProps}>
+                <TableResourceState
+                  isLoading={events.isLoading}
+                  error={events.error}
+                  isEmpty={!events.data?.length}
+                  colSpan={4}
+                />
+                {events.data?.map((event) => (
+                  <TableRow key={event.id}>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {t(`profile.${event.eventType}`)}
                       </Badge>
-                    </div>
-                    <p className="mt-1 text-xs">{item.warning.message}</p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <KeyRound className="text-primary" />
-                {t("profile.security")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-3" onSubmit={savePassword}>
+                    </TableCell>
+                    <TableCell>{event.device.name}</TableCell>
+                    <TableCell>{event.verification || "—"}</TableCell>
+                    <TableCell>
+                      {new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(event.occurredAt))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        <Card className="min-w-0 rounded-2xl lg:col-span-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <KeyRound className="text-primary" />
+              {t("profile.security")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-3" onSubmit={savePassword}>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="profile-currentPassword">
+                  {t("profile.currentPassword")}
+                </Label>
                 <Input
+                  id="profile-currentPassword"
+                  autoComplete="current-password"
                   name="currentPassword"
                   type="password"
                   placeholder={t("profile.currentPassword")}
                   required
                 />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="profile-newPassword">
+                  {t("profile.newPassword")}
+                </Label>
                 <Input
+                  id="profile-newPassword"
+                  autoComplete="new-password"
                   name="newPassword"
                   type="password"
                   minLength={8}
                   placeholder={t("profile.newPassword")}
                   required
                 />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="profile-confirmPassword">
+                  {t("profile.confirmPassword")}
+                </Label>
                 <Input
+                  id="profile-confirmPassword"
+                  autoComplete="new-password"
                   name="confirmPassword"
                   type="password"
                   minLength={8}
                   placeholder={t("profile.confirmPassword")}
                   required
                 />
-                <Button permission="update" className="w-full" variant="outline" disabled={saving}>
-                  {t("profile.changePassword")}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+              </div>
+              <Button
+                permission="update"
+                className="w-full"
+                variant="outline"
+                disabled={saving}
+              >
+                {t("profile.changePassword")}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+        <Card className="min-w-0 rounded-2xl lg:col-span-4">
+          <CardHeader>
+            <CardTitle className="text-base">
+              {t("employeePortal.warnings")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {!warnings.data?.length ? (
+              <p className="text-sm text-muted-foreground">
+                {t("employeePortal.noWarnings")}
+              </p>
+            ) : (
+              warnings.data.slice(0, 5).map((item) => (
+                <div
+                  key={item.warningId}
+                  className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3"
+                >
+                  <div className="flex justify-between gap-2">
+                    <b className="text-sm">{item.warning.title}</b>
+                    <Badge
+                      variant={
+                        item.warning.severity === "urgent"
+                          ? "destructive"
+                          : "secondary"
+                      }
+                    >
+                      {item.warning.severity}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-xs">{item.warning.message}</p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
