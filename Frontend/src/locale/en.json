@@ -1,5 +1,6 @@
 {
   "laboratory": {
+    "name": "Name",
     "paid": "Paid",
     "payNow": "Pay Now",
     "cancel": "Cancel",

@@ -16,6 +16,23 @@ const wait = (milliseconds) =>
 export class HikvisionClient {
   constructor({ ipAddress, port, username, password }) {
     Object.assign(this, { ipAddress, port, username, password });
+    this.digestChallenge = null;
+    this.digestNonceCount = 0;
+    this.digestCnonce = null;
+    this.reuseDigest = true;
+  }
+  digestAuthorization(method, path) {
+    const c = this.digestChallenge;
+    if (!c) return undefined;
+    const nc = (++this.digestNonceCount).toString(16).padStart(8, "0");
+    const cnonce = this.digestCnonce ??= crypto.randomBytes(8).toString("hex");
+    const qop = c.qop?.split(",").map(value => value.trim()).find(value => value === "auth");
+    const ha1 = md5(`${this.username}:${c.realm}:${this.password}`);
+    const ha2 = md5(`${method}:${path}`);
+    const response = md5(qop
+      ? `${ha1}:${c.nonce}:${nc}:${cnonce}:${qop}:${ha2}`
+      : `${ha1}:${c.nonce}:${ha2}`);
+    return `Digest username="${this.username}", realm="${c.realm}", nonce="${c.nonce}", uri="${path}", response="${response}"${qop ? `, qop=${qop}, nc=${nc}, cnonce="${cnonce}"` : ""}${c.opaque ? `, opaque="${c.opaque}"` : ""}`;
   }
   request(
     method,
@@ -94,21 +111,28 @@ export class HikvisionClient {
         if (payload) req.write(payload);
         req.end();
       });
-    return send().then(async (first) => {
-      if (
-        first.status !== 401 ||
-        !first.headers["www-authenticate"]?.startsWith("Digest")
-      )
-        return this.finish(first);
-      const c = parseChallenge(first.headers["www-authenticate"]);
-      const nc = "00000001";
-      const cnonce = crypto.randomBytes(8).toString("hex");
-      const qop = c.qop?.split(",")[0] ?? "auth";
-      const response = md5(
-        `${md5(`${this.username}:${c.realm}:${this.password}`)}:${c.nonce}:${nc}:${cnonce}:${qop}:${md5(`${method}:${path}`)}`,
-      );
-      const auth = `Digest username="${this.username}", realm="${c.realm}", nonce="${c.nonce}", uri="${path}", response="${response}", qop=${qop}, nc=${nc}, cnonce="${cnonce}"${c.opaque ? `, opaque="${c.opaque}"` : ""}`;
-      return this.finish(await send(auth));
+    const cachedAuth = this.reuseDigest ? this.digestAuthorization(method, path) : undefined;
+    return send(cachedAuth).then(async (first) => {
+      const authenticate = async (challengeResponse) => {
+        const challenge = challengeResponse.headers["www-authenticate"];
+        if (challengeResponse.status !== 401 || !/^Digest\s/i.test(challenge ?? ""))
+          return challengeResponse;
+        this.digestChallenge = parseChallenge(challenge);
+        this.digestNonceCount = 0;
+        this.digestCnonce = null;
+        return send(this.digestAuthorization(method, path));
+      };
+      let result = await authenticate(first);
+      // Some terminals reject a cached session without a usable new challenge.
+      // Retry only explicit authentication failures, with a fresh handshake;
+      // use that compatible handshake for the remainder of this sync.
+      if (result.status === 401 && cachedAuth) {
+        this.digestChallenge = null;
+        this.reuseDigest = false;
+        result = await authenticate(await send());
+      }
+      if (result.status === 401) this.digestChallenge = null;
+      return this.finish(result);
     });
   }
   alertStream(onData, signal) {
@@ -232,8 +256,29 @@ export class HikvisionClient {
       error.deviceErrorCode = responseStatus?.errorCode;
       throw error;
     }
-    if (String(result.headers["content-type"] ?? "").startsWith("image/"))
+    const responseType = String(result.headers["content-type"] ?? "");
+    if (responseType.startsWith("image/") || responseType.startsWith("application/octet-stream"))
       return result.buffer;
+    if (responseType.startsWith("multipart/")) {
+      const boundary = responseType.match(/boundary=(?:"([^"]+)"|([^;\s]+))/i);
+      if (boundary) {
+        const delimiter = Buffer.from(`--${boundary[1] ?? boundary[2]}`);
+        let start = result.buffer.indexOf(delimiter);
+        while (start !== -1) {
+          const next = result.buffer.indexOf(delimiter, start + delimiter.length);
+          if (next === -1) break;
+          const headerEnd = result.buffer.indexOf("\r\n\r\n", start);
+          if (headerEnd !== -1 && headerEnd < next) {
+            const headers = result.buffer.subarray(start + delimiter.length, headerEnd).toString();
+            if (/content-type:\s*(?:image\/[^\s;]+|application\/octet-stream)/i.test(headers)) {
+              const end = result.buffer.subarray(next - 2, next).equals(Buffer.from("\r\n")) ? next - 2 : next;
+              return result.buffer.subarray(headerEnd + 4, end);
+            }
+          }
+          start = next;
+        }
+      }
+    }
     try {
       return JSON.parse(result.text);
     } catch {
@@ -480,7 +525,7 @@ export class HikvisionClient {
   }
   async captureFace(employeeNo, name) {
     const xml =
-      '<?xml version="1.0" encoding="UTF-8"?><CaptureFaceDataCond xmlns="http://www.isapi.org/ver20/XMLSchema" version="2.0"><captureInfrared>false</captureInfrared><dataType>url</dataType></CaptureFaceDataCond>';
+      '<?xml version="1.0" encoding="UTF-8"?><CaptureFaceDataCond xmlns="http://www.isapi.org/ver20/XMLSchema" version="2.0"><captureInfrared>false</captureInfrared><dataType>binary</dataType></CaptureFaceDataCond>';
     let image;
     let lastTransientError;
     for (let attempt = 0; attempt < 10 && !image; attempt++) {
@@ -562,9 +607,10 @@ export class HikvisionClient {
     );
     const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
     try {
+      // SetUp adds or replaces the face for this FPID in one operation.
       return await this.request(
-        "POST",
-        "/ISAPI/Intelligent/FDLib/FaceDataRecord?format=json",
+        "PUT",
+        "/ISAPI/Intelligent/FDLib/FDSetUp?format=json",
         Buffer.concat([head, image, tail]),
         `multipart/form-data; boundary=${boundary}`,
         30000,

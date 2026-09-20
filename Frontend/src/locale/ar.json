@@ -1,5 +1,6 @@
 {
   "laboratory": {
+    "name": "الاسم",
     "paid": "مدفوع",
     "payNow": "ادفع الآن",
     "cancel": "إلغاء",

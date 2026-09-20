@@ -71,7 +71,15 @@ export default function LaboratoryTestsPage() {
     setBusy(true);
     setError("");
     try {
-      await labApi.saveTest(editing?.id, { ...data, status });
+      await labApi.saveTest(editing?.id, {
+        ...data,
+        status,
+        ...(editing && {
+          specimen: editing.specimen ?? "",
+          unit: editing.unit ?? "",
+          referenceRange: editing.referenceRange ?? "",
+        }),
+      });
       setOpen(false);
       await table.refresh();
     } catch (cause) {
@@ -138,11 +146,8 @@ export default function LaboratoryTestsPage() {
               <TableRow>
                 {[
                   "code",
-                  "test",
-                  "specimen",
+                  "name",
                   "price",
-                  "unit",
-                  "referenceRange",
                   "status",
                   "actions",
                 ].map((key) => (
@@ -155,16 +160,13 @@ export default function LaboratoryTestsPage() {
                 isLoading={table.isLoading}
                 error={table.error}
                 isEmpty={!table.data?.length}
-                colSpan={8}
+                colSpan={5}
               />
               {table.data?.map((test) => (
                 <TableRow key={test.id}>
                   <TableCell>{test.code}</TableCell>
                   <TableCell>{test.name}</TableCell>
-                  <TableCell>{test.specimen}</TableCell>
                   <TableCell>{test.price}</TableCell>
-                  <TableCell>{test.unit || "—"}</TableCell>
-                  <TableCell>{test.referenceRange || "—"}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -276,15 +278,12 @@ export default function LaboratoryTestsPage() {
                 [
                   "code",
                   "name",
-                  "specimen",
                   "price",
-                  "unit",
-                  "referenceRange",
                 ] as const
               ).map((field) => (
                 <div className="flex flex-col gap-2" key={field}>
                   <Label htmlFor={`lab-test-${field}`}>
-                    {t(`laboratory.${field === "name" ? "test" : field}`)}
+                    {t(`laboratory.${field}`)}
                   </Label>
                   <Input
                     id={`lab-test-${field}`}
@@ -297,7 +296,7 @@ export default function LaboratoryTestsPage() {
                     min={field === "price" ? "0" : undefined}
                     step={field === "price" ? "0.01" : undefined}
                     required={["name", "price"].includes(field)}
-                    maxLength={field === "code" || field === "unit" ? 100 : 191}
+                    maxLength={field === "code" ? 100 : 191}
                     defaultValue={editing?.[field] ?? ""}
                   />
                 </div>
